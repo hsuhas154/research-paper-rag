@@ -84,18 +84,20 @@ upload a PDF, and ask questions once it's indexed.
 ## Project structure
 
 ```text
+
 research-paper-rag/
-|-- data/uploads/            # uploaded PDFs land here at runtime
-|-- src/
-|   |-- pdf_processor.py     # extraction, reference stripping, cleaning
-|   |-- chunker.py           # sentence-aware overlapping chunking
-|   |-- embedder.py          # Sentence Transformer wrapper
-|   |-- vector_store.py      # FAISS index + retrieval
-|   |-- llm.py               # Ollama LLM call + grounded-answer prompting
-|   `-- rag_pipeline.py      # ties the above into one pipeline object
-|-- app.py                   # Gradio UI, entry point
-|-- requirements.txt
-`-- README.md
+├── data/uploads/            # uploaded PDFs land here at runtime
+├── src/
+│   ├── pdf_processor.py     # extraction, reference stripping, cleaning
+│   ├── chunker.py           # sentence-aware overlapping chunking
+│   ├── embedder.py          # Sentence Transformer wrapper
+│   ├── vector_store.py      # FAISS index + retrieval
+│   ├── llm.py               # Ollama LLM call + grounded-answer prompting
+│   └── rag_pipeline.py      # ties the above into one pipeline object
+├── app.py                   # Gradio UI, entry point
+├── requirements.txt
+└── README.md
+
 ```
 
 ## Design decisions worth noting
