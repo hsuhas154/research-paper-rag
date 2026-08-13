@@ -11,17 +11,17 @@ calls, no data leaving your machine.
 ## How it works
 
 ```mermaid
-flowchart LR
-    A[PDF Upload] --> B[Text Extraction<br/>PyMuPDF]
-    B --> C[Reference Stripping<br/>+ Cleaning]
-    C --> D[Sentence-aware<br/>Chunking]
-    D --> E[Embedding<br/>all-MiniLM-L6-v2]
-    E --> F[(FAISS Vector<br/>Index)]
+flowchart TD
+    A[PDF Upload] --> B[Text Extraction - PyMuPDF]
+    B --> C[Reference Stripping and Cleaning]
+    C --> D[Sentence-aware Chunking]
+    D --> E[Embedding - all-MiniLM-L6-v2]
+    E --> F[(FAISS Vector Index)]
     G[User Question] --> H[Query Embedding]
     H --> F
-    F --> I[Top-k Retrieved<br/>Chunks]
-    I --> J[Local LLM<br/>Llama 3.1 8B via Ollama]
-    J --> K[Grounded Answer<br/>+ Citations]
+    F --> I[Top-k Retrieved Chunks]
+    I --> J[Local LLM - Llama 3.1 8B via Ollama]
+    J --> K[Grounded Answer with Citations]
 ```
 
 1. **Extraction:** PyMuPDF pulls raw text from the uploaded PDF, then a
@@ -83,18 +83,20 @@ upload a PDF, and ask questions once it's indexed.
 
 ## Project structure
 
+```text
 research-paper-rag/
-├── data/uploads/ # uploaded PDFs land here at runtime
-├── src/
-│ ├── pdf_processor.py # extraction, reference stripping, cleaning
-│ ├── chunker.py # sentence-aware overlapping chunking
-│ ├── embedder.py # Sentence Transformer wrapper
-│ ├── vector_store.py # FAISS index + retrieval
-│ ├── llm.py # Ollama LLM call + grounded-answer prompting
-│ └── rag_pipeline.py # ties the above into one pipeline object
-├── app.py # Gradio UI, entry point
-├── requirements.txt
-└── README.md
+|-- data/uploads/            # uploaded PDFs land here at runtime
+|-- src/
+|   |-- pdf_processor.py     # extraction, reference stripping, cleaning
+|   |-- chunker.py           # sentence-aware overlapping chunking
+|   |-- embedder.py          # Sentence Transformer wrapper
+|   |-- vector_store.py      # FAISS index + retrieval
+|   |-- llm.py               # Ollama LLM call + grounded-answer prompting
+|   `-- rag_pipeline.py      # ties the above into one pipeline object
+|-- app.py                   # Gradio UI, entry point
+|-- requirements.txt
+`-- README.md
+```
 
 ## Design decisions worth noting
 
