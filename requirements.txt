@@ -1,0 +1,12 @@
+pymupdf>=1.24.0
+faiss-cpu>=1.8.0
+gradio>=4.40.0
+ollama>=0.3.0
+sentence-transformers>=3.0.0
+
+# NOTE: do not run `pip install -r requirements.txt` directly for the line above.
+# torch/transformers/numpy must already be installed (this project was built
+# against a CUDA 12.8 nightly torch build for RTX 50-series/Blackwell GPU
+# support - see README Setup section). Install order:
+#   1. pip install pymupdf faiss-cpu gradio ollama
+#   2. pip install sentence-transformers --no-deps
