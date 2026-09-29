@@ -7,3 +7,7 @@ data/uploads/*
 .env
 *.egg-info/
 .DS_Store
+
+# Phase 2: the persistent corpus is generated data, rebuilt by re-indexing PDFs
+data/corpus/
+.pytest_cache/

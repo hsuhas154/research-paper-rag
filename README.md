@@ -1,57 +1,132 @@
 # Research Paper Q&A System (RAG)
 
 A retrieval-augmented generation system for asking natural-language questions
-about research papers, with answers grounded in the paper's actual text and
-fully verifiable source citations. Runs entirely locally: no external API
-calls, no data leaving your machine.
+across a library of research papers, with answers grounded in the papers'
+actual text and citations down to the page and section. Runs entirely
+locally: no external API calls, no data leaving your machine.
 
-**Status:** Phase 1 prototype complete (single-document Q&A). See
-[Roadmap](#roadmap) for what's next.
+**Status:** Phase 2 complete — persistent multi-paper library, hybrid
+retrieval, cross-encoder re-ranking, and a measured retrieval benchmark.
+See [Roadmap](#roadmap) for what's next.
 
 ## How it works
 
 ```mermaid
 flowchart TD
     A[PDF Upload] --> B[Text Extraction - PyMuPDF]
-    B --> C[Reference Stripping and Cleaning]
-    C --> D[Sentence-aware Chunking]
-    D --> E[Embedding - all-MiniLM-L6-v2]
-    E --> F[(FAISS Vector Index)]
-    G[User Question] --> H[Query Embedding]
-    H --> F
-    F --> I[Top-k Retrieved Chunks]
-    I --> J[Local LLM - Llama 3.1 8B via Ollama]
-    J --> K[Grounded Answer with Citations]
+    B --> C[Reference Stripping]
+    C --> D[Page and Section Segmentation]
+    D --> E[Sentence-aware Chunking]
+    E --> F[Embedding - all-MiniLM-L6-v2]
+    F --> G[(FAISS Index)]
+    E --> H[(BM25 Lexical Index)]
+
+    Q[User Question] --> R1[Dense Search]
+    Q --> R2[Lexical Search]
+    G --> R1
+    H --> R2
+    R1 --> RRF[Reciprocal Rank Fusion]
+    R2 --> RRF
+    RRF --> RR[Cross-Encoder Re-ranking]
+    RR --> L[Local LLM - Llama 3.1 8B via Ollama]
+    L --> ANS[Grounded Answer with Page-Level Citations]
 ```
 
-1. **Extraction:** PyMuPDF pulls raw text from the uploaded PDF, then a
-   cleaning step rejoins line-broken words, strips the reference list, and
-   normalizes whitespace.
-2. **Chunking:** text is split into ~180-word, sentence-respecting chunks
-   with overlap, so no chunk exceeds the embedding model's token limit and
-   no idea gets isolated at a chunk boundary.
-3. **Embedding:** each chunk is converted into a 384-dimensional vector via
-   a pretrained Sentence Transformer, normalized so cosine similarity search
-   is exact.
-4. **Indexing:** vectors are stored in a FAISS flat (exact search) index.
-5. **Retrieval:** a question is embedded the same way, and the top-k most
-   similar chunks are retrieved by cosine similarity.
-6. **Generation:** retrieved chunks are passed as context to a locally
-   running LLM (Llama 3.1 8B via Ollama), which is explicitly instructed to
-   answer only from that context and cite which excerpt supports each claim.
+1. **Extraction:** PyMuPDF pulls text page by page, then the reference list is
+   stripped and section headings are detected, so every piece of text keeps a
+   record of the page and section it came from.
+2. **Chunking:** text is split into ~180-word, sentence-respecting chunks with
+   overlap. Chunks never span a section boundary, so a chunk's section label is
+   always truthful for all of its text.
+3. **Indexing:** each chunk is embedded into a 384-dimensional vector (FAISS,
+   exact cosine similarity) *and* indexed lexically (BM25). Both indexes cover
+   the whole library, not one paper.
+4. **Retrieval:** a question is run through both indexes, the two rankings are
+   fused with Reciprocal Rank Fusion, and the top ~20 candidates are re-scored
+   by a cross-encoder that reads the question and each passage together.
+5. **Generation:** the top passages, each labelled with its paper, page, and
+   section, are passed to a locally running LLM instructed to answer only from
+   that context and cite the excerpt behind every claim.
+
+## Why hybrid retrieval
+
+Dense embedding search matches on *meaning*, which is what you want for
+"what mechanism removes oxygen at 70 km" and exactly what you don't want for
+"what value of Kzz was used". A sentence transformer maps `1e4 cm2/s` and
+`1e7 cm2/s` to nearly the same vector — the semantics are identical, only the
+number differs — so the chunk holding the specific value has no particular
+reason to outrank its neighbours. That was the main retrieval failure left
+open at the end of Phase 1.
+
+BM25 has the opposite bias: it scores exact term overlap weighted by rarity,
+and rare terms are exactly what identifiers, symbols, and numeric values are.
+Fusing the two rankings covers each method's blind spot with the other's
+strength, and the cross-encoder then re-reads the survivors to fix the cases
+where both first-stage retrievers guessed wrong.
+
+### Measured results
+
+Ten labelled questions against the sample paper
+(`eval/venus_queries.json`), scored by whether a retrieved chunk actually
+contains the answer text:
+
+| mode | Hit@5 | MRR@5 | Hit@10 | MRR@10 | sec/query |
+|---|---|---|---|---|---|
+| dense (Phase 1) | 0.90 | 0.517 | 1.00 | 0.533 | 0.083 |
+| bm25 | 0.80 | 0.683 | 0.90 | 0.696 | 0.000 |
+| hybrid | 0.90 | 0.658 | 0.90 | 0.658 | 0.005 |
+| **hybrid + rerank** | **0.90** | **0.820** | **1.00** | **0.832** | 0.784 |
+
+Reproduce with:
+
+```bash
+python -m scripts.compare_retrieval --k 5 --verbose
+```
+
+Reading the numbers honestly:
+
+- **Re-ranking is where most of the gain is.** Hit rate barely moves — dense
+  retrieval usually finds *something* relevant within five passages — but MRR
+  climbs from 0.52 to 0.82, meaning the right passage moves to the top rather
+  than sitting at rank 3 or 4. That matters because LLM attention degrades
+  over long contexts: evidence at rank 1 gets used, evidence at rank 5 often
+  doesn't.
+- **Fusion alone can lose a result that dense retrieval found.** On the
+  `henry-law` query — where the answer term never appears in the question —
+  BM25 contributes nothing useful, and its noise pushes the correct chunk out
+  of the fused top 10. The cross-encoder recovers it from the wider candidate
+  pool. This is the argument for the two-stage design (wide pool, then
+  re-rank) over fusion alone, and it is why the pool is deliberately larger
+  than the number of passages returned.
+- **The re-ranker costs ~0.8s per query.** Irrelevant next to 10-30s of LLM
+  generation, which is why it is the default.
 
 ## Tech stack
 
 | Component | Choice | Why |
 |---|---|---|
-| PDF extraction | PyMuPDF | Reliable text extraction, handles academic layouts well |
-| Embeddings | `all-MiniLM-L6-v2` (Sentence Transformers) | Fast, strong baseline, small enough to run alongside the LLM on 8GB VRAM |
-| Vector search | FAISS (`IndexFlatIP`) | Exact cosine-similarity search; brute-force is correct at this scale (no approximation tradeoff needed) |
+| PDF extraction | PyMuPDF | Reliable text extraction, handles academic layouts well; font-size data drives title detection |
+| Embeddings | `all-MiniLM-L6-v2` | Fast, strong baseline, small enough to run alongside the LLM on 8GB VRAM |
+| Dense search | FAISS (`IndexFlatIP`) | Exact cosine-similarity search; brute-force is correct at this scale |
+| Lexical search | Okapi BM25, implemented in `src/bm25.py` | ~60 lines, no dependency, and the scoring formula is worth being able to explain |
+| Fusion | Reciprocal Rank Fusion | Cosine scores and BM25 scores aren't on comparable scales; RRF fuses on rank and sidesteps the problem |
+| Re-ranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Reads question and passage jointly; too slow for full search, ideal as a second stage |
+| Persistence | FAISS + numpy + JSON | See below |
 | LLM | Llama 3.1 8B, via Ollama | Fully local inference, no API cost or external data exposure |
 | UI | Gradio | Fast to build for a Python-only prototype |
 
 No LangChain / LlamaIndex — the pipeline is built directly against each
 library so every step is explicit and explainable.
+
+**On not using a vector database:** the Phase 1 roadmap named Chroma. It was
+dropped deliberately. This project runs against a CUDA 12.8 nightly torch
+build for Blackwell GPU support, and chromadb brings its own pydantic and
+onnxruntime pins — real risk to a working environment for no functional gain
+at a scale where brute-force search is already exact. Persistence is instead
+`embeddings.npy` + `chunks.json` + `documents.json`, with the FAISS index
+rebuilt from the embeddings on load. Keeping only the source of truth on disk
+means a stale index can never disagree with the chunks it indexes, and the
+index type stays free to change later without invalidating anything stored.
 
 ## Setup
 
@@ -63,7 +138,7 @@ Requires an NVIDIA GPU with CUDA support for reasonable LLM inference speed
 conda activate <your-env>
 
 # 2. Install dependencies
-pip install pymupdf faiss-cpu gradio ollama
+pip install pymupdf faiss-cpu gradio ollama pytest
 pip install sentence-transformers --no-deps   # avoids touching an existing torch install
 
 # 3. Install and start Ollama, pull the model
@@ -74,56 +149,115 @@ ollama pull llama3.1:8b
 
 ## Usage
 
+### Web interface
+
 ```bash
 python app.py
 ```
 
-Open the local URL shown in the terminal (typically `http://127.0.0.1:7860`),
-upload a PDF, and ask questions once it's indexed.
+Open the local URL shown in the terminal (typically `http://127.0.0.1:7860`).
+The **Library** tab indexes and removes papers; the **Ask** tab answers
+questions against any subset of them, with the retrieval strategy selectable
+so the difference between modes is visible rather than buried in a config
+file. The library persists, so papers indexed in one session are still there
+the next time the app starts.
+
+### Command line
+
+```bash
+# Manage the library
+python -m src.corpus add data/uploads/paper.pdf
+python -m src.corpus list
+python -m src.corpus remove <doc_id>
+
+# Ask a question (optionally choosing a retrieval mode)
+python -m src.rag_pipeline "What eddy diffusion coefficient was used?"
+python -m src.rag_pipeline "What Kzz was used?" dense
+
+# Benchmark retrieval strategies
+python -m scripts.compare_retrieval --k 5 --verbose
+
+# Run the tests
+pytest tests/ -q
+```
+
+Every module also runs standalone for inspection, e.g.
+`python -m src.pdf_processor <pdf>` prints the detected sections and
+`python -m src.bm25 <pdf>` shows lexical retrieval in isolation.
 
 ## Project structure
 
 ```text
-
 research-paper-rag/
-├── data/uploads/            # uploaded PDFs land here at runtime
+├── data/
+│   ├── uploads/             # PDFs, stored under their document id
+│   └── corpus/              # persistent index (generated, gitignored)
 ├── src/
-│   ├── pdf_processor.py     # extraction, reference stripping, cleaning
-│   ├── chunker.py           # sentence-aware overlapping chunking
+│   ├── pdf_processor.py     # extraction, reference stripping, page/section segmentation
+│   ├── chunker.py           # sentence-aware chunking with page/section provenance
 │   ├── embedder.py          # Sentence Transformer wrapper
-│   ├── vector_store.py      # FAISS index + retrieval
-│   ├── llm.py               # Ollama LLM call + grounded-answer prompting
+│   ├── vector_store.py      # multi-document FAISS index + scoped search
+│   ├── bm25.py              # Okapi BM25 lexical index
+│   ├── reranker.py          # cross-encoder re-ranking
+│   ├── retriever.py         # hybrid retrieval + Reciprocal Rank Fusion
+│   ├── corpus.py            # persistent document library
+│   ├── llm.py               # Ollama call + grounded-answer prompting
 │   └── rag_pipeline.py      # ties the above into one pipeline object
+├── scripts/
+│   └── compare_retrieval.py # retrieval benchmark
+├── eval/
+│   └── venus_queries.json   # labelled retrieval test set
+├── tests/                   # 77 unit tests
 ├── app.py                   # Gradio UI, entry point
 ├── requirements.txt
 └── README.md
-
 ```
 
 ## Design decisions worth noting
 
 - **Normalized embeddings + inner-product FAISS index** = exact cosine
   similarity search at FAISS's fastest index type.
-- **Sentence-boundary-aware chunking**, not naive character splitting —
-  avoids both mid-sentence cuts and silent embedding-model truncation
-  (MiniLM has a 256-token hard limit).
-- **Explicit groundedness prompting** — the LLM is instructed to answer only
-  from retrieved context and to say so when the context is insufficient,
-  rather than blending in its own pretrained knowledge unmarked.
+- **Chunks never span a section boundary** — a chunk's section label is
+  therefore true of all its text, so a citation can never point a reader at
+  the wrong part of the paper.
+- **Relevance judged by content, not chunk id.** The retrieval test set marks
+  a chunk relevant if it contains the required phrases. Hand-labelled chunk
+  ids would silently rot the first time chunk size or overlap changed.
+- **Document scoping uses a FAISS id selector**, not over-fetch-and-filter,
+  which would quietly return too few results whenever one paper dominates the
+  rankings.
+- **Embeddings are persisted, not just the index.** They are the expensive
+  artifact and they are tiny (~1.5 KB/chunk); keeping them makes document
+  removal a pure array operation instead of a full re-index.
+- **Explicit groundedness prompting** — the LLM answers only from retrieved
+  context, cites an excerpt per claim, and is told to flag disagreement
+  between papers rather than silently picking one.
 
 ## Known limitations
 
-- Single document per session (no multi-paper corpus yet)
-- No re-ranking: retrieval quality depends entirely on the initial
-  embedding similarity, which can miss chunks containing exact
-  numbers/values even when conceptually related chunks rank higher
-- No automated faithfulness/retrieval evaluation yet (manual testing only)
-- No persistence: re-uploading a paper re-indexes it from scratch
+- **Re-ranking is not domain-adapted.** The cross-encoder is trained on MS
+  MARCO web passages. On the `henry-law` query it recovers the right chunk
+  only to rank 8 — good enough to be retrieved, not good enough to lead.
+- **Section detection is heuristic.** It reads numbered headings and a list of
+  known section names; unconventional heading styles leave a chunk labelled
+  with the previous section.
+- **Scanned PDFs are rejected**, not OCR'd — indexing fails with a clear
+  message rather than silently indexing nothing.
+- **No conversational memory.** Each question is answered independently;
+  follow-ups like "what about at 60 km?" carry no context. The `history`
+  parameter in `llm.generate_answer` is in place for this.
+- **No automated faithfulness evaluation.** Retrieval quality is measured;
+  whether the generated answer is faithful to the retrieved context is not.
+- **Single-user, single-process.** No API layer, no concurrency control.
 
 ## Roadmap
 
-- [ ] Multi-document support with a persistent vector database (Chroma)
-- [ ] Hybrid search (BM25 + dense) and cross-encoder re-ranking
-- [ ] RAGAS-based retrieval and faithfulness evaluation
-- [ ] Conversational multi-turn memory
-- [ ] FastAPI backend + Docker + cloud deployment
+- [x] ~~Multi-document support with a persistent vector database~~ (Phase 2 —
+      persistent multi-document corpus, FAISS + JSON rather than Chroma)
+- [x] ~~Hybrid search (BM25 + dense) and cross-encoder re-ranking~~ (Phase 2)
+- [x] ~~Retrieval evaluation~~ (Phase 2 — Hit@k / MRR / P@k benchmark)
+- [ ] RAGAS-based answer faithfulness and groundedness evaluation (Phase 3)
+- [ ] Conversational multi-turn memory with query rewriting (Phase 3)
+- [ ] FastAPI backend, replacing direct Gradio-to-pipeline calls (Phase 3)
+- [ ] Docker containerization and cloud deployment (Phase 4)
+- [ ] Modern web frontend against the API (Phase 4)

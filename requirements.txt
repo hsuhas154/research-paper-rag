@@ -3,10 +3,19 @@ faiss-cpu>=1.8.0
 gradio>=4.40.0
 ollama>=0.3.0
 sentence-transformers>=3.0.0
+pytest>=8.0.0
 
 # NOTE: do not run `pip install -r requirements.txt` directly for the line above.
 # torch/transformers/numpy must already be installed (this project was built
 # against a CUDA 12.8 nightly torch build for RTX 50-series/Blackwell GPU
 # support - see README Setup section). Install order:
-#   1. pip install pymupdf faiss-cpu gradio ollama
+#   1. pip install pymupdf faiss-cpu gradio ollama pytest
 #   2. pip install sentence-transformers --no-deps
+#
+# Phase 2 added hybrid search, re-ranking, and a persistent multi-document
+# corpus without adding a single runtime dependency:
+#   - BM25 is implemented directly in src/bm25.py rather than via rank_bm25
+#   - the cross-encoder re-ranker uses sentence-transformers, already present
+#   - persistence is FAISS + numpy + json rather than a vector database
+# The cross-encoder model (cross-encoder/ms-marco-MiniLM-L-6-v2, ~90 MB) is
+# downloaded from the Hugging Face hub the first time re-ranking is used.

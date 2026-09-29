@@ -1,89 +1,178 @@
 """
 rag_pipeline.py
 
-Ties together PDF processing, chunking, embedding, vector search, and
-LLM generation into a single RAGPipeline class. This is the object
-the Gradio UI (app.py) will actually talk to - it shouldn't need to
-know anything about chunks, embeddings, or FAISS directly.
+Ties the corpus, the hybrid retriever, and the LLM into a single
+RAGPipeline object. This is what the Gradio UI (app.py) talks to - it
+should not need to know anything about chunks, embeddings, FAISS, rank
+fusion, or Ollama directly.
+
+Phase 2 changes: the pipeline now sits on top of a persistent
+multi-document corpus rather than one in-memory document, questions can
+be scoped to a subset of papers, and the retrieval strategy is
+selectable per question.
 """
 
-from typing import List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Sequence
 
-from src.pdf_processor import load_and_clean_pdf
-from src.chunker import chunk_text, Chunk
+from src.corpus import Corpus, DocumentRecord
 from src.embedder import Embedder
-from src.vector_store import VectorStore, RetrievedChunk
 from src.llm import generate_answer
+from src.reranker import CrossEncoderReranker
+from src.retriever import MODE_HYBRID_RERANK, HybridRetriever
+from src.vector_store import RetrievedChunk
+
+
+@dataclass
+class Answer:
+    """A generated answer plus everything needed to verify it."""
+    text: str
+    sources: List[RetrievedChunk]
+    mode: str
+    document_titles: Dict[str, str]
+    n_dense_candidates: int = 0
+    n_lexical_candidates: int = 0
+    n_fused_candidates: int = 0
+
+    def retrieval_summary(self) -> str:
+        """One line describing how the passages were found."""
+        if self.mode in ("dense", "bm25"):
+            return f"{self.mode} retrieval -> {len(self.sources)} passages"
+        return (
+            f"{self.n_dense_candidates} dense + {self.n_lexical_candidates} lexical "
+            f"candidates -> {self.n_fused_candidates} fused -> {len(self.sources)} passages"
+        )
 
 
 class RAGPipeline:
     """
-    Holds one loaded document's vector index and answers questions
-    against it. The embedding model is loaded once at construction
-    time (expensive) and reused across documents and queries (cheap).
+    The whole system behind one object.
+
+    The embedding model is loaded once at construction (expensive) and
+    reused for every document and query (cheap). The cross-encoder is
+    constructed here too but loads lazily on its first use, so starting
+    the app with re-ranking switched off costs nothing.
     """
 
-    def __init__(self, top_k: int = 5):
+    def __init__(self, top_k: int = 5, candidate_pool: int = 20):
         self.embedder = Embedder()
-        self.store: Optional[VectorStore] = None
+        self.corpus = Corpus(self.embedder)
+        self.retriever = HybridRetriever(
+            embedder=self.embedder,
+            store=self.corpus.store,
+            reranker=CrossEncoderReranker(),
+            candidate_pool=candidate_pool,
+        )
         self.top_k = top_k
-        self.document_name: Optional[str] = None
 
-    def load_document(self, pdf_path: str, document_name: Optional[str] = None) -> int:
+    # ------------------------------------------------------------------
+    # Library management
+    # ------------------------------------------------------------------
+
+    def add_document(self, pdf_path: str, title: Optional[str] = None) -> DocumentRecord:
         """
-        Processes a PDF end-to-end: extract -> clean -> chunk -> embed -> index.
-        Calling this again replaces the currently loaded document.
+        Indexes a PDF into the corpus and returns its registry entry.
 
-        Returns the number of chunks indexed, so the UI can show
-        something like "Indexed 77 chunks" as feedback.
+        The retriever is resynced afterwards because its lexical index is
+        derived from the corpus contents and would otherwise be blind to
+        the new document.
         """
-        cleaned = load_and_clean_pdf(pdf_path)
-        chunks: List[Chunk] = chunk_text(cleaned)
-        embeddings = self.embedder.encode([c.text for c in chunks])
+        record = self.corpus.add_pdf(pdf_path, title=title)
+        self._resync()
+        return record
 
-        self.store = VectorStore(embedding_dim=embeddings.shape[1])
-        self.store.build(chunks, embeddings)
-        self.document_name = document_name or pdf_path
+    def remove_document(self, doc_id: str) -> bool:
+        """Removes a document from the corpus. Returns False if unknown."""
+        removed = self.corpus.remove_document(doc_id)
+        if removed:
+            self._resync()
+        return removed
 
-        return len(chunks)
+    def _resync(self) -> None:
+        """Points the retriever at the corpus's current store and reindexes BM25."""
+        self.retriever.store = self.corpus.store
+        self.retriever.sync()
 
-    def answer_question(self, question: str) -> Tuple[str, List[RetrievedChunk]]:
+    @property
+    def documents(self) -> List[DocumentRecord]:
+        return self.corpus.documents
+
+    def document_titles(self) -> Dict[str, str]:
+        """doc_id -> short title, as used in citation labels."""
+        return {d.doc_id: d.short_title for d in self.corpus.documents}
+
+    # ------------------------------------------------------------------
+    # Question answering
+    # ------------------------------------------------------------------
+
+    def answer_question(
+        self,
+        question: str,
+        doc_ids: Optional[Sequence[str]] = None,
+        mode: str = MODE_HYBRID_RERANK,
+        top_k: Optional[int] = None,
+    ) -> Answer:
         """
-        Answers a question against the currently loaded document.
+        Answers a question against the corpus.
 
-        Returns (answer_text, retrieved_chunks) so the caller can
-        display both the generated answer and the source passages
-        it was grounded in.
+        Args:
+            question: natural-language question
+            doc_ids: restrict to these papers; None searches all of them
+            mode: retrieval strategy (see retriever.RETRIEVAL_MODES)
+            top_k: passages to ground the answer in; defaults to the
+                pipeline's configured value
+
+        Returns:
+            An Answer carrying the generated text, the source passages,
+            and the retrieval statistics behind them.
         """
-        if self.store is None:
-            raise ValueError("No document loaded. Call load_document() first.")
+        if self.corpus.is_empty():
+            raise ValueError("No documents in the corpus. Add a PDF first.")
 
-        query_embedding = self.embedder.encode([question])[0]
-        retrieved = self.store.search(query_embedding, top_k=self.top_k)
-        answer = generate_answer(question, retrieved)
+        retrieval = self.retriever.retrieve(
+            question,
+            top_k=top_k or self.top_k,
+            mode=mode,
+            doc_ids=doc_ids,
+        )
+        titles = self.document_titles()
+        text = generate_answer(question, retrieval.chunks, document_titles=titles)
 
-        return answer, retrieved
+        return Answer(
+            text=text,
+            sources=retrieval.chunks,
+            mode=retrieval.mode,
+            document_titles=titles,
+            n_dense_candidates=retrieval.n_dense_candidates,
+            n_lexical_candidates=retrieval.n_lexical_candidates,
+            n_fused_candidates=retrieval.n_fused_candidates,
+        )
 
 
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) != 3:
-        print('Usage: python src/rag_pipeline.py <path_to_pdf> "<question>"')
+    if len(sys.argv) < 2:
+        print('Usage: python -m src.rag_pipeline "<question>" [retrieval_mode]')
         sys.exit(1)
 
+    print("Loading models and corpus...")
     pipeline = RAGPipeline(top_k=5)
 
-    print("Loading document...")
-    n_chunks = pipeline.load_document(sys.argv[1])
-    print(f"Indexed {n_chunks} chunks.\n")
+    if pipeline.corpus.is_empty():
+        print("Corpus is empty. Add a paper first: python -m src.corpus add <pdf>")
+        sys.exit(1)
 
-    answer, retrieved = pipeline.answer_question(sys.argv[2])
+    print(f"Corpus: {len(pipeline.documents)} document(s), "
+          f"{len(pipeline.corpus.store)} chunks.\n")
+
+    retrieval_mode = sys.argv[2] if len(sys.argv) > 2 else MODE_HYBRID_RERANK
+    answer = pipeline.answer_question(sys.argv[1], mode=retrieval_mode)
 
     print("=== ANSWER ===")
-    print(answer)
+    print(answer.text)
 
-    print("\n=== SOURCES ===")
-    for i, r in enumerate(retrieved, start=1):
-        preview = r.chunk.text[:120].replace("\n", " ")
-        print(f"[{i}] score={r.score:.4f}: {preview}...")
+    print(f"\n=== RETRIEVAL ({answer.retrieval_summary()}) ===")
+    for i, source in enumerate(answer.sources, start=1):
+        title = answer.document_titles.get(source.chunk.doc_id)
+        print(f"[{i}] score={source.score:.4f} | {source.chunk.citation(title)}")

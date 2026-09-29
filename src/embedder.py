@@ -35,6 +35,14 @@ class Embedder:
         self.device = device
         self.model_name = model_name
         self.model = SentenceTransformer(model_name, device=device)
+        # Read off the loaded model rather than assumed, so swapping the
+        # embedding model doesn't silently desync the index dimension.
+        # sentence-transformers 5.x renamed this method; support both so
+        # the project isn't pinned to one minor version.
+        dimension_getter = getattr(
+            self.model, "get_embedding_dimension", None
+        ) or self.model.get_sentence_embedding_dimension
+        self.embedding_dim = dimension_getter()
 
     def encode(self, texts: List[str], batch_size: int = 32) -> np.ndarray:
         """

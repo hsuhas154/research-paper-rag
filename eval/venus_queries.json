@@ -1,0 +1,66 @@
+{
+  "description": "Retrieval test set for Dai, Shao & Sheng (2024), 'An investigation into Venusian atmospheric chemistry based on an open-access photochemistry-transport model at 0-112 km' (A&A 689, A55). Used by scripts/compare_retrieval.py to compare retrieval strategies.",
+  "relevance_rule": "A retrieved chunk counts as relevant if its text contains ALL phrases in must_contain (case-insensitive). Judging relevance by content rather than by hand-labelled chunk ids means the test set survives any change to chunk size, overlap, or segmentation - which would otherwise invalidate every label the moment the chunker is touched.",
+  "queries": [
+    {
+      "id": "kzz-value",
+      "question": "What eddy diffusion coefficient Kzz value was used in the cloud layer?",
+      "must_contain": ["kzz", "cm2 s"],
+      "note": "Numeric-value lookup - the case dense retrieval handles worst, since the embedding of a magnitude is nearly identical regardless of the number."
+    },
+    {
+      "id": "base-model",
+      "question": "Which existing photochemical model is this work built on?",
+      "must_contain": ["vulcan"],
+      "note": "Rare proper noun: strong lexical signal, weak semantic signal."
+    },
+    {
+      "id": "altitude-range",
+      "question": "What altitude range does the model span?",
+      "must_contain": ["112 km"],
+      "note": "Numeric range stated in the abstract and model description."
+    },
+    {
+      "id": "o2-mechanism",
+      "question": "What novel mechanism eliminates O2 at 70 km?",
+      "must_contain": ["o2", "70 km"],
+      "note": "Conceptual question - dense retrieval should do well here."
+    },
+    {
+      "id": "so2-dissolution",
+      "question": "How does dissolution into cloud droplets affect SO2 abundance?",
+      "must_contain": ["dissolution", "so2"],
+      "note": "Mixed conceptual and lexical."
+    },
+    {
+      "id": "henry-law",
+      "question": "How is gas solubility in cloud droplets parameterised?",
+      "must_contain": ["henry"],
+      "note": "The answer term ('Henry's law') never appears in the question - pure semantic bridge, where BM25 alone should fail."
+    },
+    {
+      "id": "boundary-conditions",
+      "question": "What boundary conditions were imposed at the top and bottom of the model domain?",
+      "must_contain": ["boundary condition"],
+      "note": "Section-level lookup."
+    },
+    {
+      "id": "observation-agreement",
+      "question": "Which observed species abundances does the model reproduce correctly?",
+      "must_contain": ["observation"],
+      "note": "Broad question with many partially-relevant chunks."
+    },
+    {
+      "id": "sulfur-reservoir",
+      "question": "What is the primary reservoir of sulfur in the Venusian atmosphere?",
+      "must_contain": ["sulfur", "reservoir"],
+      "note": "Direct factual lookup with a clear single answer."
+    },
+    {
+      "id": "photolysis-rates",
+      "question": "How are photolysis rates computed in the radiative transfer scheme?",
+      "must_contain": ["photolysis"],
+      "note": "Method-detail question."
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 """
 chunker.py
 
-Splits cleaned document text into overlapping, sentence-respecting
+Splits a segmented document into overlapping, sentence-respecting
 chunks suitable for embedding.
 
 Chunks are built by accumulating whole sentences (never cutting a
@@ -10,6 +10,14 @@ chunk then starts by re-including the last few sentences of the
 previous chunk (the "overlap"), so an idea that straddles a chunk
 boundary isn't retrievable only in a fragmented, context-free form.
 
+Phase 2 change: chunks are built from Segments rather than one flat
+string, and each sentence carries the page and section it came from.
+A chunk therefore knows the page range it spans and which section it
+belongs to, which is what lets an answer cite "page 4, Section 2.2"
+instead of just naming the paper. Chunks are never allowed to span a
+section boundary, so a chunk's section label is always truthful for
+all of its text.
+
 Sentence splitting uses a lightweight regex approach rather than a
 heavy NLP library, with explicit protection for common academic
 abbreviations (e.g. "et al.", "Fig.", "Eq.") that would otherwise be
@@ -17,8 +25,10 @@ misread as sentence endings.
 """
 
 import re
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Optional
+
+from src.pdf_processor import Segment
 
 
 # Abbreviations ending in a period that do NOT end a sentence.
@@ -55,21 +65,86 @@ def split_into_sentences(text: str) -> List[str]:
 
 @dataclass
 class Chunk:
+    """
+    One embeddable passage, plus enough provenance to cite it.
+
+    doc_id is assigned by the corpus when the chunk is indexed; it is
+    empty for chunks that have just come out of the chunker and have
+    not been attached to a document yet.
+    """
     chunk_id: int
     text: str
     word_count: int
+    page_start: int = 0
+    page_end: int = 0
+    section: Optional[str] = None
+    doc_id: str = ""
+
+    def citation(self, document_title: Optional[str] = None) -> str:
+        """
+        A short human-readable source label, e.g.
+        "Dai et al. 2024, p. 4-5, Section 2.2 Atmospheric chemistry".
+        """
+        parts = []
+        if document_title:
+            parts.append(document_title)
+        if self.page_start:
+            if self.page_end and self.page_end != self.page_start:
+                parts.append(f"p. {self.page_start}-{self.page_end}")
+            else:
+                parts.append(f"p. {self.page_start}")
+        if self.section:
+            parts.append(f"Section {self.section}")
+        return ", ".join(parts) if parts else "source unknown"
 
 
-def chunk_text(
-    text: str,
+@dataclass
+class _TaggedSentence:
+    """A sentence with the provenance of the Segment it came from."""
+    text: str
+    page_number: int
+    section: Optional[str]
+    word_count: int = field(default=0)
+
+    def __post_init__(self):
+        self.word_count = len(self.text.split())
+
+
+def _flatten_to_sentences(segments: List[Segment]) -> List[_TaggedSentence]:
+    """Expands Segments into individual sentences that remember their origin."""
+    sentences: List[_TaggedSentence] = []
+    for segment in segments:
+        for sentence in split_into_sentences(segment.text):
+            sentences.append(_TaggedSentence(sentence, segment.page_number, segment.section))
+    return sentences
+
+
+def _build_chunk(chunk_id: int, sentences: List[_TaggedSentence]) -> Chunk:
+    """Assembles a Chunk from the sentences accumulated for it."""
+    pages = [s.page_number for s in sentences]
+    return Chunk(
+        chunk_id=chunk_id,
+        text=" ".join(s.text for s in sentences),
+        word_count=sum(s.word_count for s in sentences),
+        page_start=min(pages),
+        page_end=max(pages),
+        # Every sentence in a chunk shares a section by construction
+        # (see chunk_segments), so the first one speaks for all of them.
+        section=sentences[0].section,
+    )
+
+
+def chunk_segments(
+    segments: List[Segment],
     target_words: int = 180,
     overlap_words: int = 40,
 ) -> List[Chunk]:
     """
-    Groups sentences into overlapping chunks.
+    Groups sentences into overlapping chunks that respect both sentence
+    and section boundaries.
 
     Args:
-        text: cleaned document text (output of pdf_processor.clean_text)
+        segments: output of pdf_processor.segment_pages
         target_words: approximate words per chunk. Kept well under the
             ~256 token limit of all-MiniLM-L6-v2 (180 words is roughly
             230-260 tokens for typical English prose), so chunks are
@@ -78,52 +153,54 @@ def chunk_text(
             each chunk from the end of the previous one.
 
     Returns:
-        List of Chunk objects.
+        List of Chunk objects, numbered sequentially from 0.
     """
-    sentences = split_into_sentences(text)
+    sentences = _flatten_to_sentences(segments)
 
     chunks: List[Chunk] = []
-    current_sentences: List[str] = []
-    current_word_count = 0
+    current: List[_TaggedSentence] = []
+    current_words = 0
     chunk_id = 0
-    i = 0
 
-    while i < len(sentences):
-        sentence = sentences[i]
-        current_sentences.append(sentence)
-        current_word_count += len(sentence.split())
-        i += 1
+    def flush_if_meaningful(minimum_words: int) -> None:
+        """Emits the accumulated sentences as a chunk, if worth keeping."""
+        nonlocal chunk_id, current, current_words
+        if current and current_words > minimum_words:
+            chunks.append(_build_chunk(chunk_id, current))
+            chunk_id += 1
+        current, current_words = [], 0
 
-        if current_word_count >= target_words:
-            chunks.append(Chunk(
-                chunk_id=chunk_id,
-                text=" ".join(current_sentences),
-                word_count=current_word_count,
-            ))
+    for sentence in sentences:
+        # A section change closes the current chunk. Mixing two sections
+        # into one chunk would make its section label wrong for part of
+        # its own text, which is worse than a slightly short chunk.
+        if current and sentence.section != current[0].section:
+            flush_if_meaningful(minimum_words=0)
+
+        current.append(sentence)
+        current_words += sentence.word_count
+
+        if current_words >= target_words:
+            chunks.append(_build_chunk(chunk_id, current))
             chunk_id += 1
 
             # Build the overlap seed for the next chunk: walk backwards
             # through this chunk's sentences until we've collected
             # roughly `overlap_words` worth.
-            overlap_sentences = []
-            overlap_count = 0
-            for s in reversed(current_sentences):
-                overlap_sentences.insert(0, s)
-                overlap_count += len(s.split())
-                if overlap_count >= overlap_words:
+            overlap: List[_TaggedSentence] = []
+            overlap_words_count = 0
+            for s in reversed(current):
+                overlap.insert(0, s)
+                overlap_words_count += s.word_count
+                if overlap_words_count >= overlap_words:
                     break
 
-            current_sentences = overlap_sentences
-            current_word_count = overlap_count
+            current = overlap
+            current_words = overlap_words_count
 
-    # Flush a final chunk if meaningful content remains beyond just
-    # the trailing overlap seed.
-    if current_sentences and current_word_count > overlap_words:
-        chunks.append(Chunk(
-            chunk_id=chunk_id,
-            text=" ".join(current_sentences),
-            word_count=current_word_count,
-        ))
+    # Flush a final chunk if meaningful content remains beyond just the
+    # trailing overlap seed.
+    flush_if_meaningful(minimum_words=overlap_words)
 
     return chunks
 
@@ -131,17 +208,21 @@ def chunk_text(
 if __name__ == "__main__":
     import sys
     sys.path.insert(0, ".")
-    from src.pdf_processor import load_and_clean_pdf
+    from src.pdf_processor import load_and_segment_pdf
 
     if len(sys.argv) != 2:
-        print("Usage: python src/chunker.py <path_to_pdf>")
+        print("Usage: python -m src.chunker <path_to_pdf>")
         sys.exit(1)
 
-    cleaned = load_and_clean_pdf(sys.argv[1])
-    chunks = chunk_text(cleaned)
+    doc_segments = load_and_segment_pdf(sys.argv[1])
+    doc_chunks = chunk_segments(doc_segments)
 
-    print(f"Document produced {len(chunks)} chunks.\n")
-    for c in chunks[:3]:
-        print(f"--- Chunk {c.chunk_id} ({c.word_count} words) ---")
-        print(c.text)
+    print(f"Document produced {len(doc_chunks)} chunks from {len(doc_segments)} segments.")
+    word_counts = [c.word_count for c in doc_chunks]
+    print(f"Words per chunk: min={min(word_counts)} max={max(word_counts)} "
+          f"mean={sum(word_counts) / len(word_counts):.0f}\n")
+
+    for c in doc_chunks[:3]:
+        print(f"--- Chunk {c.chunk_id} ({c.word_count} words) | {c.citation()} ---")
+        print(c.text[:400])
         print()
