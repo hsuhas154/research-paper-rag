@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     # Sanity check: embed a query and compare it against the first two chunks,
     # just to confirm the similarity math produces sensible-looking numbers
-    # (this isn't real retrieval yet — that's Stage 5 with FAISS).
+    # (this isn't real retrieval yet; that's vector_store.py with FAISS).
     query_embedding = embedder.encode(["What is the SO2 dissolution rate in Venus clouds?"])
     sim_to_chunk0 = float(np.dot(query_embedding[0], embeddings[0]))
     sim_to_chunk_last = float(np.dot(query_embedding[0], embeddings[-1]))

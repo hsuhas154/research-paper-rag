@@ -19,7 +19,7 @@ is `base`.
 conda activate ultimate_dl
 ```
 
-Check it worked — you should see `(ultimate_dl)` at the start of your prompt,
+Check it worked - you should see `(ultimate_dl)` at the start of your prompt,
 and this should print a torch version and `True`:
 
 ```bash
@@ -52,7 +52,7 @@ That download is about 4.9 GB and only happens once.
 
 There are two things to start, in this order: **Ollama**, then **the app**.
 
-### Step 1 — Start Ollama
+### Step 1 - Start Ollama
 
 Ollama must be running before you ask any questions, because it serves the
 language model that writes the answers.
@@ -63,7 +63,7 @@ Open a terminal and run:
 ollama serve
 ```
 
-Leave that terminal open. It will keep printing log lines — that is normal.
+Leave that terminal open. It will keep printing log lines - that is normal.
 
 **Or**, to run it in the background and get your terminal back:
 
@@ -81,11 +81,11 @@ curl -s http://localhost:11434/api/tags
 If it prints nothing, Ollama is not running yet.
 
 > **Note:** on some systems Ollama is already running as a background service
-> after install. If `curl` above already returns JSON, skip this step — you do
+> after install. If `curl` above already returns JSON, skip this step - you do
 > not need to start it again. Running `ollama serve` twice gives you an
 > `address already in use` error, which is harmless.
 
-### Step 2 — Start the app
+### Step 2 - Start the app
 
 In a **second** terminal:
 
@@ -122,27 +122,27 @@ The interface has two tabs.
   a second or two. The table below shows everything currently indexed.
 - **Remove a paper:** pick it from the dropdown, click **Remove**.
 
-The library is **persistent** — papers stay indexed after you close and
+The library is **persistent** - papers stay indexed after you close and
 reopen the app. You do not need to re-upload them.
 
 ### Ask tab
 
 - Type a question and press **Ask** (or hit Enter).
-- **Search which papers** — tick the papers to search. All are ticked by
+- **Search which papers** - tick the papers to search. All are ticked by
   default, which searches the whole library.
-- **Retrieval strategy** — leave this on `hybrid+rerank` for normal use. The
+- **Retrieval strategy** - leave this on `hybrid+rerank` for normal use. The
   other options exist so you can see the difference:
-  - `dense` — meaning-based search only
-  - `bm25` — exact keyword search only
-  - `hybrid` — both, fused together
-  - `hybrid+rerank` — both, then re-scored by a more accurate model *(best)*
-- **Passages to retrieve** — how much source material to give the model.
+  - `dense` - meaning-based search only
+  - `bm25` - exact keyword search only
+  - `hybrid` - both, fused together
+  - `hybrid+rerank` - both, then re-scored by a more accurate model *(best)*
+- **Passages to retrieve** - how much source material to give the model.
   5 is a good default; raise it for broad questions.
 
 Below each answer you get the **source passages** it was built from, each
 labelled with its paper, page, and section, so you can check any claim.
 
-> **The first question is slow** (~30–40 seconds) while the language model
+> **The first question is slow** (~30-40 seconds) while the language model
 > loads into GPU memory. Every question after that is much faster. This is
 > normal and not a bug.
 
@@ -169,7 +169,7 @@ If you started it in the background with `nohup`, stop it with:
 pkill -f "ollama serve"
 ```
 
-**Check it actually stopped** — this should print nothing:
+**Check it actually stopped** - this should print nothing:
 
 ```bash
 pgrep -af "ollama serve"
@@ -288,7 +288,7 @@ the bulk command in section 6.
 |---|---|---|
 | `Could not reach the local LLM ... via Ollama` | Ollama is not running | Run `ollama serve` (section 2, step 1) |
 | `ModuleNotFoundError: No module named 'torch'` (or faiss, gradio) | Wrong conda environment | `conda activate ultimate_dl` |
-| `address already in use` from `ollama serve` | Ollama is already running | Nothing to do — it is fine |
+| `address already in use` from `ollama serve` | Ollama is already running | Nothing to do - it is fine |
 | Port 7860 already in use | An older app instance is still running | `pkill -f "python app.py"`, then start again |
 | First question hangs for ~40 seconds | Model loading into VRAM | Normal; only the first one |
 | `No text could be extracted ... scanned PDF` | The PDF is page images with no text layer | Not supported; use a text-based PDF |

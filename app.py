@@ -98,7 +98,7 @@ def add_document(pdf_file):
         return refresh_library_views(f"❌ Could not index the PDF: {error}")
 
     return refresh_library_views(
-        f"✅ Indexed **{record.title}** — {record.n_pages} pages, {record.n_chunks} chunks."
+        f"✅ Indexed **{record.title}**: {record.n_pages} pages, {record.n_chunks} chunks."
     )
 
 

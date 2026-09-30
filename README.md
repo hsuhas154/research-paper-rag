@@ -5,7 +5,7 @@ across a library of research papers, with answers grounded in the papers'
 actual text and citations down to the page and section. Runs entirely
 locally: no external API calls, no data leaving your machine.
 
-**Status:** Phase 2 complete — persistent multi-paper library, hybrid
+**Status:** Phase 2 complete - persistent multi-paper library, hybrid
 retrieval, cross-encoder re-ranking, and a measured retrieval benchmark.
 Validated on a 16-paper corpus spanning six fields: **100% paper-level
 routing, 92% answer accuracy, zero hallucinations** over 39 questions
@@ -58,8 +58,8 @@ flowchart TD
 Dense embedding search matches on *meaning*, which is what you want for
 "what mechanism removes oxygen at 70 km" and exactly what you don't want for
 "what value of Kzz was used". A sentence transformer maps `1e4 cm2/s` and
-`1e7 cm2/s` to nearly the same vector — the semantics are identical, only the
-number differs — so the chunk holding the specific value has no particular
+`1e7 cm2/s` to nearly the same vector - the semantics are identical, only the
+number differs - so the chunk holding the specific value has no particular
 reason to outrank its neighbours. That was the main retrieval failure left
 open at the end of Phase 1.
 
@@ -91,13 +91,13 @@ python -m scripts.compare_retrieval --k 5 --verbose
 
 Reading the numbers honestly:
 
-- **Scale is what justifies hybrid retrieval.** Dense-only search — the whole
-  Phase 1 strategy — drops to 0.82 Hit@5 once 16 unrelated papers share one
+- **Scale is what justifies hybrid retrieval.** Dense-only search - the whole
+  Phase 1 strategy - drops to 0.82 Hit@5 once 16 unrelated papers share one
   index, while BM25 rises to 0.95. On a single paper the two were nearly
   tied; the gap only opens at library scale, because exact terms are what
   distinguish one paper from another.
 - **Re-ranking buys ranking quality, not recall.** It lifts MRR from 0.787 to
-  0.881 — the right passage moves to rank 1 instead of sitting at 3 or 4.
+  0.881 - the right passage moves to rank 1 instead of sitting at 3 or 4.
   That matters because LLM attention degrades over long contexts: evidence at
   rank 1 gets used, evidence at rank 5 often doesn't.
 - **Fusion alone can lose a result one retriever found.** When the answer
@@ -110,7 +110,7 @@ Reading the numbers honestly:
 
 The pool size behind those numbers was tuned by sweep, not intuition:
 widening it from 20 to 30 lifts MRR@5 from 0.861 to 0.881, while weighting
-BM25 above dense in fusion never helps — so RRF stays parameter-free.
+BM25 above dense in fusion never helps - so RRF stays parameter-free.
 
 ## Tech stack
 
@@ -126,13 +126,13 @@ BM25 above dense in fusion never helps — so RRF stays parameter-free.
 | LLM | Llama 3.1 8B, via Ollama | Fully local inference, no API cost or external data exposure |
 | UI | Gradio | Fast to build for a Python-only prototype |
 
-No LangChain / LlamaIndex — the pipeline is built directly against each
+No LangChain / LlamaIndex - the pipeline is built directly against each
 library so every step is explicit and explainable.
 
 **On not using a vector database:** the Phase 1 roadmap named Chroma. It was
 dropped deliberately. This project runs against a CUDA 12.8 nightly torch
 build for Blackwell GPU support, and chromadb brings its own pydantic and
-onnxruntime pins — real risk to a working environment for no functional gain
+onnxruntime pins - real risk to a working environment for no functional gain
 at a scale where brute-force search is already exact. Persistence is instead
 `embeddings.npy` + `chunks.json` + `documents.json`, with the FAISS index
 rebuilt from the embeddings on load. Keeping only the source of truth on disk
@@ -232,7 +232,7 @@ research-paper-rag/
 
 - **Normalized embeddings + inner-product FAISS index** = exact cosine
   similarity search at FAISS's fastest index type.
-- **Chunks never span a section boundary** — a chunk's section label is
+- **Chunks never span a section boundary** - a chunk's section label is
   therefore true of all its text, so a citation can never point a reader at
   the wrong part of the paper.
 - **Relevance judged by content, not chunk id.** The retrieval test set marks
@@ -244,7 +244,7 @@ research-paper-rag/
 - **Embeddings are persisted, not just the index.** They are the expensive
   artifact and they are tiny (~1.5 KB/chunk); keeping them makes document
   removal a pure array operation instead of a full re-index.
-- **Explicit groundedness prompting** — the LLM answers only from retrieved
+- **Explicit groundedness prompting** - the LLM answers only from retrieved
   context, cites an excerpt per claim, and is told to flag disagreement
   between papers rather than silently picking one.
 
@@ -262,7 +262,7 @@ research-paper-rag/
 - **Section detection is heuristic.** It combines numbered headings, known
   section names, and font size relative to body text. Scanned papers with
   unstable typography still produce some odd section labels.
-- **Scanned PDFs are rejected**, not OCR'd — indexing fails with a clear
+- **Scanned PDFs are rejected**, not OCR'd - indexing fails with a clear
   message rather than silently indexing nothing.
 - **No conversational memory.** Each question is answered independently;
   follow-ups like "what about at 60 km?" carry no context. The `history`
@@ -273,12 +273,25 @@ research-paper-rag/
 
 ## Roadmap
 
-- [x] ~~Multi-document support with a persistent vector database~~ (Phase 2 —
-      persistent multi-document corpus, FAISS + JSON rather than Chroma)
+- [x] ~~Multi-document support with a persistent vector database~~ (Phase 2 - persistent multi-document corpus, FAISS + JSON rather than Chroma)
 - [x] ~~Hybrid search (BM25 + dense) and cross-encoder re-ranking~~ (Phase 2)
-- [x] ~~Retrieval evaluation~~ (Phase 2 — Hit@k / MRR / P@k benchmark)
+- [x] ~~Retrieval evaluation~~ (Phase 2 - Hit@k / MRR / P@k benchmark)
+
+**Phase 3 - accuracy, then capability.** The first two items address the two
+measured weaknesses from the [16-paper evaluation](EVALUATION.md); they are
+listed first because they are the only items that move answer accuracy.
+Everything else in Phase 3 adds measurement or surface area, not correctness.
+
+- [ ] Domain-adapted re-ranking, replacing the MS MARCO cross-encoder that
+      demotes correct passages when the answer term is absent from the
+      question (Phase 3)
+- [ ] Equation, symbol, and table extraction, so answers that *are* a
+      formula stop degrading into garbled Unicode (Phase 3)
 - [ ] RAGAS-based answer faithfulness and groundedness evaluation (Phase 3)
 - [ ] Conversational multi-turn memory with query rewriting (Phase 3)
 - [ ] FastAPI backend, replacing direct Gradio-to-pipeline calls (Phase 3)
+
+**Phase 4 - deployment.**
+
 - [ ] Docker containerization and cloud deployment (Phase 4)
 - [ ] Modern web frontend against the API (Phase 4)
