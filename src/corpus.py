@@ -31,6 +31,7 @@ removal a pure array operation instead of a full re-index.
 """
 
 import json
+import re
 import shutil
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -46,7 +47,12 @@ from src.pdf_processor import extract_pages, extract_title, segment_pages, strip
 from src.vector_store import VectorStore
 
 DEFAULT_CORPUS_DIR = Path("data/corpus")
-DEFAULT_UPLOAD_DIR = Path("data/uploads")
+
+# Indexed PDFs are archived *inside* the corpus directory, not alongside
+# the user's source files. Writing them back to the staging folder made
+# the corpus re-index its own archive copies the next time that folder
+# was swept, silently duplicating every document.
+DEFAULT_PDF_SUBDIR = "pdfs"
 
 # Bumped whenever the on-disk layout changes in a way that older files
 # cannot satisfy. A mismatch is reported clearly rather than crashing
@@ -85,13 +91,13 @@ class Corpus:
         self,
         embedder: Embedder,
         corpus_dir: Path = DEFAULT_CORPUS_DIR,
-        upload_dir: Path = DEFAULT_UPLOAD_DIR,
+        pdf_dir: Optional[Path] = None,
     ):
         self.embedder = embedder
         self.corpus_dir = Path(corpus_dir)
-        self.upload_dir = Path(upload_dir)
+        self.pdf_dir = Path(pdf_dir) if pdf_dir else self.corpus_dir / DEFAULT_PDF_SUBDIR
         self.corpus_dir.mkdir(parents=True, exist_ok=True)
-        self.upload_dir.mkdir(parents=True, exist_ok=True)
+        self.pdf_dir.mkdir(parents=True, exist_ok=True)
 
         self.documents: List[DocumentRecord] = []
         self.store = VectorStore(embedding_dim=self.embedder.embedding_dim)
@@ -213,12 +219,16 @@ class Corpus:
         embeddings = self.embedder.encode([c.text for c in chunks])
         self.store.add_document(doc_id, chunks, embeddings)
 
-        stored_pdf = self.upload_dir / f"{doc_id}.pdf"
-        shutil.copyfile(source, stored_pdf)
+        shutil.copyfile(source, self.pdf_dir / f"{doc_id}.pdf")
+
+        # Filename stem is the last resort when neither metadata nor
+        # typography yields a title. Underscores and hyphens are separator
+        # conventions, not part of the name, so they read better as spaces.
+        from_filename = re.sub(r"[_\s]+", " ", source.stem).strip()
 
         record = DocumentRecord(
             doc_id=doc_id,
-            title=title or extract_title(str(source)) or source.stem,
+            title=title or extract_title(str(source)) or from_filename,
             filename=source.name,
             n_pages=len(pages),
             n_chunks=len(chunks),
@@ -241,8 +251,7 @@ class Corpus:
         self.store.remove_document(doc_id)
         self.documents = [d for d in self.documents if d.doc_id != doc_id]
 
-        stored_pdf = self.upload_dir / f"{doc_id}.pdf"
-        stored_pdf.unlink(missing_ok=True)
+        (self.pdf_dir / f"{doc_id}.pdf").unlink(missing_ok=True)
 
         self.save()
         return True

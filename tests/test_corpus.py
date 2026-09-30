@@ -37,7 +37,7 @@ def corpus(tmp_path):
     return Corpus(
         FakeEmbedder(),
         corpus_dir=tmp_path / "corpus",
-        upload_dir=tmp_path / "uploads",
+        pdf_dir=tmp_path / "pdfs",
     )
 
 
@@ -66,7 +66,7 @@ class TestEmptyCorpus:
     def test_loading_a_nonexistent_corpus_is_not_an_error(self, tmp_path):
         # First run has no corpus directory; that is a valid state, not a failure.
         fresh = Corpus(FakeEmbedder(), corpus_dir=tmp_path / "nothing_here",
-                       upload_dir=tmp_path / "uploads")
+                       pdf_dir=tmp_path / "pdfs")
         assert fresh.is_empty()
 
 
@@ -76,7 +76,7 @@ class TestPersistence:
         add_fake_document(corpus, "bbb", "Second Paper")
 
         reloaded = Corpus(FakeEmbedder(), corpus_dir=tmp_path / "corpus",
-                          upload_dir=tmp_path / "uploads")
+                          pdf_dir=tmp_path / "pdfs")
 
         assert len(reloaded) == 2
         assert [d.title for d in reloaded.documents] == ["First Paper", "Second Paper"]
@@ -86,7 +86,7 @@ class TestPersistence:
         add_fake_document(corpus, "aaa", "First Paper")
 
         reloaded = Corpus(FakeEmbedder(), corpus_dir=tmp_path / "corpus",
-                          upload_dir=tmp_path / "uploads")
+                          pdf_dir=tmp_path / "pdfs")
         chunk = reloaded.store.chunks[0]
 
         assert chunk.doc_id == "aaa"
@@ -98,7 +98,7 @@ class TestPersistence:
         before = corpus.store.embeddings.copy()
 
         reloaded = Corpus(FakeEmbedder(), corpus_dir=tmp_path / "corpus",
-                          upload_dir=tmp_path / "uploads")
+                          pdf_dir=tmp_path / "pdfs")
 
         np.testing.assert_allclose(reloaded.store.embeddings, before)
 
@@ -106,7 +106,7 @@ class TestPersistence:
         add_fake_document(corpus, "aaa", "First Paper")
 
         reloaded = Corpus(FakeEmbedder(), corpus_dir=tmp_path / "corpus",
-                          upload_dir=tmp_path / "uploads")
+                          pdf_dir=tmp_path / "pdfs")
         query = reloaded.embedder.encode(["aaa chunk 1"])[0]
 
         # The FAISS index is rebuilt from embeddings.npy on load rather than
@@ -122,7 +122,7 @@ class TestPersistence:
 
         with pytest.raises(ValueError, match="storage format"):
             Corpus(FakeEmbedder(), corpus_dir=tmp_path / "corpus",
-                   upload_dir=tmp_path / "uploads")
+                   pdf_dir=tmp_path / "pdfs")
 
     def test_detects_a_chunk_embedding_count_mismatch(self, corpus, tmp_path):
         add_fake_document(corpus, "aaa", "First Paper")
@@ -131,7 +131,20 @@ class TestPersistence:
 
         with pytest.raises(ValueError, match="inconsistent"):
             Corpus(FakeEmbedder(), corpus_dir=tmp_path / "corpus",
-                   upload_dir=tmp_path / "uploads")
+                   pdf_dir=tmp_path / "pdfs")
+
+
+class TestPdfArchive:
+    def test_archives_indexed_pdfs_away_from_the_source_folder(self, tmp_path):
+        # Writing archive copies back into the folder the user stages
+        # source PDFs in made a re-index pick up those copies and index
+        # every paper twice.
+        staging = tmp_path / "uploads"
+        staging.mkdir()
+        corpus = Corpus(FakeEmbedder(), corpus_dir=tmp_path / "corpus")
+
+        assert corpus.pdf_dir.is_relative_to(corpus.corpus_dir)
+        assert not corpus.pdf_dir.is_relative_to(staging)
 
 
 class TestRemoval:
@@ -150,7 +163,7 @@ class TestRemoval:
         corpus.remove_document("aaa")
 
         reloaded = Corpus(FakeEmbedder(), corpus_dir=tmp_path / "corpus",
-                          upload_dir=tmp_path / "uploads")
+                          pdf_dir=tmp_path / "pdfs")
 
         assert [d.doc_id for d in reloaded.documents] == ["bbb"]
         assert len(reloaded.store) == 3

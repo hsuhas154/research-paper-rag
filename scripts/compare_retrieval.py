@@ -44,13 +44,27 @@ from src.embedder import Embedder
 from src.retriever import RETRIEVAL_MODES, HybridRetriever
 from src.vector_store import RetrievedChunk
 
-DEFAULT_QUERY_FILE = Path("eval/venus_queries.json")
+DEFAULT_QUERY_FILE = Path("eval/corpus_queries.json")
 
 
-def is_relevant(retrieved: RetrievedChunk, must_contain: List[str]) -> bool:
-    """A chunk is relevant if it contains every required phrase."""
+def is_relevant(
+    retrieved: RetrievedChunk,
+    query: dict,
+    titles: Dict[str, str],
+) -> bool:
+    """
+    A chunk is relevant if it contains every required phrase and, when the
+    query names a paper, comes from that paper.
+
+    The paper check is what makes a multi-document benchmark meaningful:
+    without it, a chunk from the wrong paper that happens to share
+    vocabulary would score as a hit.
+    """
+    paper = query.get("paper")
+    if paper and paper.lower() not in titles.get(retrieved.chunk.doc_id, "").lower():
+        return False
     text = retrieved.chunk.text.lower()
-    return all(phrase.lower() in text for phrase in must_contain)
+    return all(phrase.lower() in text for phrase in query["must_contain"])
 
 
 def evaluate_mode(
@@ -58,6 +72,7 @@ def evaluate_mode(
     queries: List[dict],
     mode: str,
     k: int,
+    titles: Optional[Dict[str, str]] = None,
 ) -> Dict[str, float]:
     """Runs every query through one retrieval mode and aggregates metrics."""
     hits = 0
@@ -73,7 +88,7 @@ def evaluate_mode(
 
         relevant_ranks = [
             rank for rank, r in enumerate(results, start=1)
-            if is_relevant(r, query["must_contain"])
+            if is_relevant(r, query, titles or {})
         ]
 
         if relevant_ranks:
@@ -122,7 +137,11 @@ def main() -> int:
     print(f"Corpus: {len(corpus)} document(s), {len(corpus.store)} chunks")
     print(f"Evaluating {len(queries)} queries at k={args.k}\n")
 
-    results = {mode: evaluate_mode(retriever, queries, mode, args.k) for mode in args.modes}
+    titles = {d.doc_id: d.title for d in corpus.documents}
+    results = {
+        mode: evaluate_mode(retriever, queries, mode, args.k, titles)
+        for mode in args.modes
+    }
 
     header = f"{'mode':<16}{'Hit@k':>9}{'MRR@k':>9}{'P@k':>9}{'sec/query':>12}"
     print(header)

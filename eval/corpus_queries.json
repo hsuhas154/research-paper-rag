@@ -1,0 +1,279 @@
+{
+  "description": "Cross-corpus retrieval test set covering all 16 indexed papers, spanning machine learning, planetary science, chemistry, microelectronics, power systems, and clinical prediction. Used by scripts/compare_retrieval.py.",
+  "relevance_rule": "A retrieved chunk counts as relevant only if it comes from the paper named in `paper` AND its text contains ALL phrases in must_contain (case-insensitive). Retrieval runs over the WHOLE corpus, unscoped, so a query must find the right paper among all 16 before it can find the right passage - the realistic multi-document case, and the one where a purely semantic retriever is most likely to drift into a neighbouring paper on a similar topic.",
+  "queries": [
+    {
+      "id": "transformer-layers",
+      "paper": "Attention is All you Need",
+      "question": "How many identical layers are in the Transformer's encoder stack?",
+      "must_contain": ["N = 6"],
+      "type": "numeric"
+    },
+    {
+      "id": "transformer-bleu",
+      "paper": "Attention is All you Need",
+      "question": "What BLEU score did the big Transformer reach on English-to-German translation?",
+      "must_contain": ["28.4"],
+      "type": "numeric"
+    },
+    {
+      "id": "transformer-scaling",
+      "paper": "Attention is All you Need",
+      "question": "Why is the dot product scaled before the softmax in attention?",
+      "must_contain": ["scaled dot-product"],
+      "type": "conceptual"
+    },
+    {
+      "id": "adam-defaults",
+      "paper": "Adam: A Method for Stochastic Optimization",
+      "question": "What default values are recommended for the exponential decay rates in Adam?",
+      "must_contain": ["0.9", "0.999"],
+      "type": "numeric"
+    },
+    {
+      "id": "adam-bias-correction",
+      "paper": "Adam: A Method for Stochastic Optimization",
+      "question": "Why does Adam need initialization bias correction?",
+      "must_contain": ["bias"],
+      "type": "conceptual"
+    },
+    {
+      "id": "adam-name",
+      "paper": "Adam: A Method for Stochastic Optimization",
+      "question": "What does the name Adam stand for?",
+      "must_contain": ["adaptive moment estimation"],
+      "type": "factual"
+    },
+    {
+      "id": "gan-minimax",
+      "paper": "Generative Adversarial Nets",
+      "question": "What two-player game do the generator and discriminator play?",
+      "must_contain": ["minimax"],
+      "type": "conceptual"
+    },
+    {
+      "id": "gan-datasets",
+      "paper": "Generative Adversarial Nets",
+      "question": "Which image datasets were the adversarial nets trained on?",
+      "must_contain": ["MNIST"],
+      "type": "factual"
+    },
+    {
+      "id": "gan-optimum",
+      "paper": "Generative Adversarial Nets",
+      "question": "What is the optimal discriminator for a fixed generator?",
+      "must_contain": ["D∗"],
+      "type": "method"
+    },
+    {
+      "id": "dl-backprop",
+      "paper": "Deep Learning",
+      "question": "How does backpropagation compute gradients through a multilayer network?",
+      "must_contain": ["backpropagat"],
+      "type": "conceptual"
+    },
+    {
+      "id": "dl-convnets",
+      "paper": "Deep Learning",
+      "question": "What are the four key ideas behind convolutional neural networks?",
+      "must_contain": ["convolutional"],
+      "type": "conceptual"
+    },
+    {
+      "id": "dl-future",
+      "paper": "Deep Learning",
+      "question": "What do the authors expect unsupervised learning to become in the future?",
+      "must_contain": ["unsupervised learning"],
+      "type": "conceptual"
+    },
+    {
+      "id": "ml-three-components",
+      "paper": "A Few Useful Things to Know About Machine Learning",
+      "question": "What three components does every learning algorithm consist of?",
+      "must_contain": ["representation", "evaluation", "optimization"],
+      "type": "conceptual"
+    },
+    {
+      "id": "ml-generalization",
+      "paper": "A Few Useful Things to Know About Machine Learning",
+      "question": "Why does generalization matter more than training set performance?",
+      "must_contain": ["generalization"],
+      "type": "conceptual"
+    },
+    {
+      "id": "ml-more-data",
+      "paper": "A Few Useful Things to Know About Machine Learning",
+      "question": "Is more data or a cleverer algorithm more valuable?",
+      "must_contain": ["more data"],
+      "type": "conceptual"
+    },
+    {
+      "id": "dai-kzz",
+      "paper": "Dai et al. Astronomy and Astrophysics 2024",
+      "question": "What eddy diffusion coefficient Kzz value was used in the cloud layer?",
+      "must_contain": ["kzz", "cm2 s"],
+      "type": "numeric"
+    },
+    {
+      "id": "dai-vulcan",
+      "paper": "Dai et al. Astronomy and Astrophysics 2024",
+      "question": "Which existing photochemical model is the Venus model built on?",
+      "must_contain": ["vulcan"],
+      "type": "factual"
+    },
+    {
+      "id": "dai-o2",
+      "paper": "Dai et al. Astronomy and Astrophysics 2024",
+      "question": "What novel mechanism eliminates O2 at 70 km in the Venus model?",
+      "must_contain": ["o2", "70 km"],
+      "type": "conceptual"
+    },
+    {
+      "id": "jiang-absorber",
+      "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
+      "question": "Which iron-bearing species is proposed as the Venus ultraviolet absorber?",
+      "must_contain": ["iron"],
+      "type": "conceptual"
+    },
+    {
+      "id": "jiang-mineral",
+      "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
+      "question": "How were the candidate minerals synthesised and characterised?",
+      "must_contain": ["synthes"],
+      "type": "method"
+    },
+    {
+      "id": "spacek-wavelength",
+      "paper": "A Model of UV–Blue Absorbance in Bulk Liquid of Venusian Cloud Aerosols",
+      "question": "Over what wavelength range is the unknown Venus UV absorber active?",
+      "must_contain": ["280", "500 nm"],
+      "type": "numeric"
+    },
+    {
+      "id": "spacek-aerosol",
+      "paper": "A Model of UV–Blue Absorbance in Bulk Liquid of Venusian Cloud Aerosols",
+      "question": "What does the model assume about absorbance in the bulk liquid of cloud aerosols?",
+      "must_contain": ["absorbance"],
+      "type": "conceptual"
+    },
+    {
+      "id": "mahieux-instrument",
+      "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection",
+      "question": "Which instrument was used to obtain the Venus mesosphere spectra?",
+      "must_contain": ["soir"],
+      "type": "factual"
+    },
+    {
+      "id": "mahieux-formaldehyde",
+      "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection",
+      "question": "What upper limit was derived for formaldehyde?",
+      "must_contain": ["h2co"],
+      "type": "numeric"
+    },
+    {
+      "id": "trabelsi-isomers",
+      "paper": "Chlorine–sulfur isomers as parents of ClS2 and SCl2 on Venus",
+      "question": "Which chlorine-sulfur isomers are studied as parents of ClS2 and SCl2?",
+      "must_contain": ["clsscl"],
+      "type": "factual"
+    },
+    {
+      "id": "trabelsi-bond-energy",
+      "paper": "Chlorine–sulfur isomers as parents of ClS2 and SCl2 on Venus",
+      "question": "What bond dissociation energies were computed for these isomers?",
+      "must_contain": ["bond dissociation"],
+      "type": "numeric"
+    },
+    {
+      "id": "ultrasound-channels",
+      "paper": "64-channel ultrasound transducer amplifier",
+      "question": "What is the die size of the ultrasound preamplifier ASIC?",
+      "must_contain": ["mm"],
+      "type": "numeric"
+    },
+    {
+      "id": "ultrasound-preamp",
+      "paper": "64-channel ultrasound transducer amplifier",
+      "question": "What preamplifier architecture was used for the ultrasound transducer channels?",
+      "must_contain": ["preamp"],
+      "type": "method"
+    },
+    {
+      "id": "edt-mechanism",
+      "paper": "Characterization and modeling of edge direct tunneling",
+      "question": "What causes edge direct tunneling leakage in ultrathin gate oxide MOSFETs?",
+      "must_contain": ["gate edge"],
+      "type": "conceptual"
+    },
+    {
+      "id": "edt-model",
+      "paper": "Characterization and modeling of edge direct tunneling",
+      "question": "What analytic model is used to describe electron direct tunneling?",
+      "must_contain": ["tunneling"],
+      "type": "method"
+    },
+    {
+      "id": "modulator-ito",
+      "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
+      "question": "Which active material is used in the sub-wavelength modulator?",
+      "must_contain": ["indium-tin-oxide"],
+      "type": "factual"
+    },
+    {
+      "id": "modulator-tradeoff",
+      "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
+      "question": "What is the efficiency-loss limit in electro-absorption modulators?",
+      "must_contain": ["electro-absorption"],
+      "type": "conceptual"
+    },
+    {
+      "id": "adhesive-alignment",
+      "paper": "Magnetically Aligned Anisotropic Conductive Adhesive for Microwave Applications",
+      "question": "How are the conductive particles aligned in the adhesive?",
+      "must_contain": ["align"],
+      "type": "method"
+    },
+    {
+      "id": "adhesive-application",
+      "paper": "Magnetically Aligned Anisotropic Conductive Adhesive for Microwave Applications",
+      "question": "What microwave application is the anisotropic conductive adhesive used for?",
+      "must_contain": ["conductive adhesive"],
+      "type": "conceptual"
+    },
+    {
+      "id": "mmc-invention",
+      "paper": "Modular Multilevel Converters: Recent Applications",
+      "question": "Who invented the modular multilevel converter and in what year?",
+      "must_contain": ["marquardt", "2001"],
+      "type": "factual"
+    },
+    {
+      "id": "mmc-hvdc",
+      "paper": "Modular Multilevel Converters: Recent Applications",
+      "question": "Why are modular multilevel converters used in HVdc transmission?",
+      "must_contain": ["hvdc"],
+      "type": "conceptual"
+    },
+    {
+      "id": "sepsis-architecture",
+      "paper": "Predicting Sepsis Onset in ICUs",
+      "question": "What graph neural network architecture is used to predict sepsis onset?",
+      "must_contain": ["graph"],
+      "type": "method"
+    },
+    {
+      "id": "sepsis-uncertainty",
+      "paper": "Predicting Sepsis Onset in ICUs",
+      "question": "How is predictive uncertainty estimated in the sepsis model?",
+      "must_contain": ["gaussian process"],
+      "type": "method"
+    },
+    {
+      "id": "sepsis-distribution-shift",
+      "paper": "Predicting Sepsis Onset in ICUs",
+      "question": "How does the model perform under distribution shifts in body mass index and age?",
+      "must_contain": ["distribution shift"],
+      "type": "conceptual"
+    }
+  ]
+}

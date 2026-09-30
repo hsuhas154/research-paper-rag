@@ -7,7 +7,12 @@ locally: no external API calls, no data leaving your machine.
 
 **Status:** Phase 2 complete — persistent multi-paper library, hybrid
 retrieval, cross-encoder re-ranking, and a measured retrieval benchmark.
-See [Roadmap](#roadmap) for what's next.
+Validated on a 16-paper corpus spanning six fields: **100% paper-level
+routing, 92% answer accuracy, zero hallucinations** over 39 questions
+([full evaluation](EVALUATION.md)). See [Roadmap](#roadmap) for what's next.
+
+**New here?** [RUNNING.md](RUNNING.md) walks through setup, starting and
+stopping everything, and troubleshooting.
 
 ## How it works
 
@@ -66,16 +71,17 @@ where both first-stage retrievers guessed wrong.
 
 ### Measured results
 
-Ten labelled questions against the sample paper
-(`eval/venus_queries.json`), scored by whether a retrieved chunk actually
-contains the answer text:
+Thirty-nine labelled questions across a **16-paper, 802-chunk corpus**
+(`eval/corpus_queries.json`), retrieval unscoped so every query must find its
+own paper among all 16. A chunk counts as relevant only if it comes from the
+right paper *and* contains the answer text:
 
-| mode | Hit@5 | MRR@5 | Hit@10 | MRR@10 | sec/query |
-|---|---|---|---|---|---|
-| dense (Phase 1) | 0.90 | 0.517 | 1.00 | 0.533 | 0.083 |
-| bm25 | 0.80 | 0.683 | 0.90 | 0.696 | 0.000 |
-| hybrid | 0.90 | 0.658 | 0.90 | 0.658 | 0.005 |
-| **hybrid + rerank** | **0.90** | **0.820** | **1.00** | **0.832** | 0.784 |
+| mode | Hit@5 | MRR@5 | P@5 | sec/query |
+|---|---|---|---|---|
+| dense (Phase 1 behaviour) | 0.82 | 0.705 | 0.50 | 0.019 |
+| bm25 | 0.95 | 0.813 | 0.54 | 0.001 |
+| hybrid | 0.92 | 0.787 | 0.53 | 0.004 |
+| **hybrid + rerank** | **0.97** | **0.881** | **0.58** | 0.247 |
 
 Reproduce with:
 
@@ -85,21 +91,26 @@ python -m scripts.compare_retrieval --k 5 --verbose
 
 Reading the numbers honestly:
 
-- **Re-ranking is where most of the gain is.** Hit rate barely moves — dense
-  retrieval usually finds *something* relevant within five passages — but MRR
-  climbs from 0.52 to 0.82, meaning the right passage moves to the top rather
-  than sitting at rank 3 or 4. That matters because LLM attention degrades
-  over long contexts: evidence at rank 1 gets used, evidence at rank 5 often
-  doesn't.
-- **Fusion alone can lose a result that dense retrieval found.** On the
-  `henry-law` query — where the answer term never appears in the question —
-  BM25 contributes nothing useful, and its noise pushes the correct chunk out
-  of the fused top 10. The cross-encoder recovers it from the wider candidate
-  pool. This is the argument for the two-stage design (wide pool, then
-  re-rank) over fusion alone, and it is why the pool is deliberately larger
-  than the number of passages returned.
-- **The re-ranker costs ~0.8s per query.** Irrelevant next to 10-30s of LLM
+- **Scale is what justifies hybrid retrieval.** Dense-only search — the whole
+  Phase 1 strategy — drops to 0.82 Hit@5 once 16 unrelated papers share one
+  index, while BM25 rises to 0.95. On a single paper the two were nearly
+  tied; the gap only opens at library scale, because exact terms are what
+  distinguish one paper from another.
+- **Re-ranking buys ranking quality, not recall.** It lifts MRR from 0.787 to
+  0.881 — the right passage moves to rank 1 instead of sitting at 3 or 4.
+  That matters because LLM attention degrades over long contexts: evidence at
+  rank 1 gets used, evidence at rank 5 often doesn't.
+- **Fusion alone can lose a result one retriever found.** When the answer
+  term never appears in the question, the other retriever contributes noise
+  that pushes the correct chunk out of the fused top-k; the cross-encoder
+  recovers it from the wider candidate pool. This is the argument for the
+  two-stage design (wide pool, then re-rank) over fusion alone.
+- **The re-ranker costs ~0.25s per query.** Irrelevant next to 3-30s of LLM
   generation, which is why it is the default.
+
+The pool size behind those numbers was tuned by sweep, not intuition:
+widening it from 20 to 30 lifts MRR@5 from 0.861 to 0.881, while weighting
+BM25 above dense in fusion never helps — so RRF stays parameter-free.
 
 ## Tech stack
 
@@ -204,11 +215,15 @@ research-paper-rag/
 │   ├── llm.py               # Ollama call + grounded-answer prompting
 │   └── rag_pipeline.py      # ties the above into one pipeline object
 ├── scripts/
-│   └── compare_retrieval.py # retrieval benchmark
+│   ├── compare_retrieval.py # retrieval benchmark
+│   └── validate_queries.py  # checks a test set is actually answerable
 ├── eval/
-│   └── venus_queries.json   # labelled retrieval test set
-├── tests/                   # 77 unit tests
+│   ├── corpus_queries.json  # 39-query, 16-paper retrieval test set
+│   └── venus_queries.json   # single-paper test set (Phase 1 comparison)
+├── tests/                   # 82 unit tests
 ├── app.py                   # Gradio UI, entry point
+├── EVALUATION.md            # 16-paper test results and fixes
+├── RUNNING.md               # setup, start/stop, troubleshooting
 ├── requirements.txt
 └── README.md
 ```
@@ -236,11 +251,17 @@ research-paper-rag/
 ## Known limitations
 
 - **Re-ranking is not domain-adapted.** The cross-encoder is trained on MS
-  MARCO web passages. On the `henry-law` query it recovers the right chunk
-  only to rank 8 — good enough to be retrieved, not good enough to lead.
-- **Section detection is heuristic.** It reads numbered headings and a list of
-  known section names; unconventional heading styles leave a chunk labelled
-  with the previous section.
+  MARCO web passages. When the answer term never appears in the question
+  ("what does *Adam* stand for?" → "adaptive moment estimation") it can
+  demote the single relevant chunk out of the top 5 even when BM25 ranked it
+  2nd. This is the only outright failure in 39 test questions.
+- **Equation-heavy content degrades.** Symbols, subscripts, and Unicode maths
+  do not survive PDF text extraction intact, so questions whose answer *is*
+  an equation get vague or garbled responses. This is a limit of the source
+  text, not of retrieval.
+- **Section detection is heuristic.** It combines numbered headings, known
+  section names, and font size relative to body text. Scanned papers with
+  unstable typography still produce some odd section labels.
 - **Scanned PDFs are rejected**, not OCR'd — indexing fails with a clear
   message rather than silently indexing nothing.
 - **No conversational memory.** Each question is answered independently;

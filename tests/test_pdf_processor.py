@@ -15,6 +15,18 @@ from src.pdf_processor import (
 )
 
 
+def body(lead: str, words: int = 45) -> str:
+    """
+    A block of prose long enough to count as a real section body.
+
+    Sections shorter than _MIN_SECTION_WORDS are treated as detection
+    artifacts and folded into the preceding section, so fixtures that
+    exercise section labelling need a realistic amount of text under
+    each heading.
+    """
+    return lead + " " + " ".join(["filler"] * words) + "."
+
+
 class TestCleanText:
     def test_rejoins_words_broken_across_lines(self):
         assert clean_text("atmo-\nsphere") == "atmosphere"
@@ -108,35 +120,80 @@ class TestSegmentation:
 
     def test_carries_the_section_heading_onto_following_text(self):
         segments = segment_pages([
-            RawPage(1, "1 Introduction\nVenus has a dense atmosphere.\n")
+            RawPage(1, f"1 Introduction\n{body('Venus has a dense atmosphere.')}\n")
         ])
         assert len(segments) == 1
         assert segments[0].section == "1 Introduction"
-        assert segments[0].text == "Venus has a dense atmosphere."
+        assert "Venus has a dense atmosphere." in segments[0].text
+
+    def test_keeps_the_heading_text_in_the_segment_it_introduces(self):
+        # A heading describes its section better than any sentence inside
+        # it, so it is retrieval signal worth indexing, not furniture to
+        # discard. Dropping it would also delete real text whenever
+        # detection misfires.
+        segments = segment_pages([
+            RawPage(1, f"2.2 Atmospheric chemistry\n{body('Reactions proceed quickly.')}\n")
+        ])
+        assert segments[0].text.startswith("2.2 Atmospheric chemistry")
 
     def test_starts_a_new_segment_at_each_heading(self):
         segments = segment_pages([
-            RawPage(1, "1 Introduction\nFirst part.\n2 Methods\nSecond part.\n")
+            RawPage(1, f"1 Introduction\n{body('First part.')}\n"
+                       f"2 Methods\n{body('Second part.')}\n")
         ])
-        assert [(s.section, s.text) for s in segments] == [
-            ("1 Introduction", "First part."),
-            ("2 Methods", "Second part."),
-        ]
+        assert [s.section for s in segments] == ["1 Introduction", "2 Methods"]
+        assert "First part." in segments[0].text
+        assert "Second part." in segments[1].text
 
     def test_text_before_the_first_heading_has_no_section(self):
-        segments = segment_pages([RawPage(1, "Journal banner text.\n1 Introduction\nBody.\n")])
+        segments = segment_pages([
+            RawPage(1, f"{body('Journal banner text.')}\n1 Introduction\n{body('Body.')}\n")
+        ])
         assert segments[0].section is None
         assert segments[1].section == "1 Introduction"
 
     def test_a_section_continues_across_a_page_break(self):
         segments = segment_pages([
-            RawPage(1, "2 Methods\nFirst half of the method.\n"),
-            RawPage(2, "Second half of the method.\n"),
+            RawPage(1, f"2 Methods\n{body('First half of the method.')}\n"),
+            RawPage(2, f"{body('Second half of the method.')}\n"),
         ])
         assert [s.section for s in segments] == ["2 Methods", "2 Methods"]
         assert [s.page_number for s in segments] == [1, 2]
 
     def test_drops_page_furniture(self):
         # Bare page numbers and stray one-character lines are not prose.
-        segments = segment_pages([RawPage(1, "7\nReal body text here.\n|\n")])
-        assert [s.text for s in segments] == ["Real body text here."]
+        segments = segment_pages([RawPage(1, f"7\n{body('Real body text here.')}\n|\n")])
+        assert segments[0].text.startswith("Real body text here.")
+        assert "|" not in segments[0].text
+
+
+class TestUndersizedSectionMerging:
+    """
+    Font-based heading detection is loose on papers with inconsistent
+    typography, so a section is also judged by whether it has a body.
+    """
+
+    def test_folds_a_bodyless_heading_into_the_previous_section(self):
+        # "2 Methods" here is a stray label, not a section: nothing follows
+        # it. Merging relabels the affected segments rather than joining
+        # them, which is what stops the chunker splitting at that point.
+        segments = segment_pages([
+            RawPage(1, f"1 Introduction\n{body('Real introduction text.')}\n"
+                       f"2 Methods\nstray label\n")
+        ])
+        assert {s.section for s in segments} == {"1 Introduction"}
+        assert "stray label" in " ".join(s.text for s in segments)
+
+    def test_keeps_a_section_that_has_a_real_body(self):
+        segments = segment_pages([
+            RawPage(1, f"1 Introduction\n{body('Intro text.')}\n"
+                       f"2 Methods\n{body('Method text.')}\n")
+        ])
+        assert [s.section for s in segments] == ["1 Introduction", "2 Methods"]
+
+    def test_a_bodyless_heading_before_any_section_stays_unlabelled(self):
+        segments = segment_pages([
+            RawPage(1, f"1 Introduction\nstray\n{body('Text under introduction.')}\n")
+        ])
+        # The stray line is absorbed rather than deleted.
+        assert "stray" in " ".join(s.text for s in segments)
