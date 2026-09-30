@@ -16,33 +16,33 @@ stopping everything, and troubleshooting.
 
 ## How it works
 
+**Indexing, once per paper**
+
 ```mermaid
 flowchart TD
-    subgraph INDEXING["Indexing: once per paper"]
-        direction TB
-        A["PDF Upload"] --> B["Text Extraction: PyMuPDF"]
-        B --> C["Reference Stripping"]
-        C --> D["Page and Section Segmentation"]
-        D --> E["Sentence-aware Chunking"]
-        E --> F["Embedding: all-MiniLM-L6-v2"]
-        E --> T["Tokenization"]
-        F --> G[("FAISS Index")]
-        T --> H[("BM25 Lexical Index")]
-    end
+    A["PDF Upload"] --> B["Text Extraction: PyMuPDF"]
+    B --> C["Reference Stripping"]
+    C --> D["Page and Section Segmentation"]
+    D --> E["Sentence-aware Chunking"]
+    E --> F["Embedding: all-MiniLM-L6-v2"]
+    E --> T["Tokenization"]
+    F --> G[("FAISS Index")]
+    T --> H[("BM25 Lexical Index")]
+```
 
-    subgraph ANSWERING["Answering: once per question"]
-        direction TB
-        Q(["User Question"]) --> R1["Dense Search"]
-        Q --> R2["Lexical Search"]
-        R1 --> RRF["Reciprocal Rank Fusion"]
-        R2 --> RRF
-        RRF --> RR["Cross-Encoder Re-ranking"]
-        RR --> L["Local LLM: Llama 3.1 8B via Ollama"]
-        L --> ANS["Grounded Answer with Page-Level Citations"]
-    end
+**Answering, once per question**
 
-    G -.-> R1
-    H -.-> R2
+```mermaid
+flowchart TD
+    G[("FAISS Index")] --> R1["Dense Search"]
+    Q(["User Question"]) --> R1
+    Q --> R2["Lexical Search"]
+    H[("BM25 Lexical Index")] --> R2
+    R1 --> RRF["Reciprocal Rank Fusion"]
+    R2 --> RRF
+    RRF --> RR["Cross-Encoder Re-ranking"]
+    RR --> L["Local LLM: Llama 3.1 8B via Ollama"]
+    L --> ANS["Grounded Answer with Page-Level Citations"]
 ```
 
 1. **Extraction:** PyMuPDF pulls text page by page, then the reference list is
