@@ -18,23 +18,31 @@ stopping everything, and troubleshooting.
 
 ```mermaid
 flowchart TD
-    A[PDF Upload] --> B[Text Extraction - PyMuPDF]
-    B --> C[Reference Stripping]
-    C --> D[Page and Section Segmentation]
-    D --> E[Sentence-aware Chunking]
-    E --> F[Embedding - all-MiniLM-L6-v2]
-    F --> G[(FAISS Index)]
-    E --> H[(BM25 Lexical Index)]
+    subgraph INDEXING["Indexing: once per paper"]
+        direction TB
+        A["PDF Upload"] --> B["Text Extraction: PyMuPDF"]
+        B --> C["Reference Stripping"]
+        C --> D["Page and Section Segmentation"]
+        D --> E["Sentence-aware Chunking"]
+        E --> F["Embedding: all-MiniLM-L6-v2"]
+        E --> T["Tokenization"]
+        F --> G[("FAISS Index")]
+        T --> H[("BM25 Lexical Index")]
+    end
 
-    Q[User Question] --> R1[Dense Search]
-    Q --> R2[Lexical Search]
-    G --> R1
-    H --> R2
-    R1 --> RRF[Reciprocal Rank Fusion]
-    R2 --> RRF
-    RRF --> RR[Cross-Encoder Re-ranking]
-    RR --> L[Local LLM - Llama 3.1 8B via Ollama]
-    L --> ANS[Grounded Answer with Page-Level Citations]
+    subgraph ANSWERING["Answering: once per question"]
+        direction TB
+        Q(["User Question"]) --> R1["Dense Search"]
+        Q --> R2["Lexical Search"]
+        R1 --> RRF["Reciprocal Rank Fusion"]
+        R2 --> RRF
+        RRF --> RR["Cross-Encoder Re-ranking"]
+        RR --> L["Local LLM: Llama 3.1 8B via Ollama"]
+        L --> ANS["Grounded Answer with Page-Level Citations"]
+    end
+
+    G -.-> R1
+    H -.-> R2
 ```
 
 1. **Extraction:** PyMuPDF pulls text page by page, then the reference list is
