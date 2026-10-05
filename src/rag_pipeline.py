@@ -59,14 +59,18 @@ class RAGPipeline:
     the app with re-ranking switched off costs nothing.
     """
 
-    def __init__(self, top_k: int = 5, candidate_pool: int = 20):
+    def __init__(self, top_k: int = 5, candidate_pool: Optional[int] = None):
         self.embedder = Embedder()
         self.corpus = Corpus(self.embedder)
+        # candidate_pool deliberately defaults to None rather than a number:
+        # the tuned value lives in HybridRetriever and repeating it here
+        # would shadow it, which is exactly what happened before - the
+        # benchmark measured a pool of 30 while the app quietly ran 20.
         self.retriever = HybridRetriever(
             embedder=self.embedder,
             store=self.corpus.store,
             reranker=CrossEncoderReranker(),
-            candidate_pool=candidate_pool,
+            **({} if candidate_pool is None else {"candidate_pool": candidate_pool}),
         )
         self.top_k = top_k
 

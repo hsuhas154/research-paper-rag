@@ -212,6 +212,7 @@ research-paper-rag/
 │   ├── uploads/             # PDFs, stored under their document id
 │   └── corpus/              # persistent index (generated, gitignored)
 ├── src/
+│   ├── api.py               # FastAPI backend over the pipeline
 │   ├── pdf_processor.py     # extraction, reference stripping, page/section segmentation
 │   ├── chunker.py           # sentence-aware chunking with page/section provenance
 │   ├── embedder.py          # Sentence Transformer wrapper
@@ -228,7 +229,7 @@ research-paper-rag/
 ├── eval/
 │   ├── corpus_queries.json  # 39-query, 16-paper retrieval test set
 │   └── venus_queries.json   # single-paper test set (Phase 1 comparison)
-├── tests/                   # 82 unit tests
+├── tests/                   # 111 unit tests
 ├── app.py                   # Gradio UI, entry point
 ├── EVALUATION.md            # 16-paper test results and fixes
 ├── RUNNING.md               # setup, start/stop, troubleshooting
@@ -301,7 +302,8 @@ Everything else in Phase 3 adds measurement or surface area, not correctness.
       since applying it to every question costs Hit@5 0.97 to 0.92)
 - [ ] RAGAS-based answer faithfulness and groundedness evaluation (Phase 3)
 - [ ] Conversational multi-turn memory with query rewriting (Phase 3)
-- [ ] FastAPI backend, replacing direct Gradio-to-pipeline calls (Phase 3)
+- [x] ~~FastAPI backend, replacing direct Gradio-to-pipeline calls~~
+      (Phase 3, done: `src/api.py`, see [RUNNING.md](RUNNING.md) section 9)
 
 **Phase 4 - deployment.**
 

@@ -312,3 +312,73 @@ pkill -f "ollama serve"
 ```bash
 nvidia-smi
 ```
+
+---
+
+## 9. Running the HTTP API
+
+The same pipeline is also available as an HTTP service, so something other
+than the Gradio UI can use it.
+
+Start Ollama first (section 2, step 1), then:
+
+```bash
+cd ~/research-paper-rag && python -m src.api
+```
+
+Or with uvicorn directly, which is what you want if you need a different port
+or auto-reload while developing:
+
+```bash
+cd ~/research-paper-rag && uvicorn src.api:app --port 8000
+```
+
+Open **http://127.0.0.1:8000/docs** for interactive documentation where you
+can try every endpoint from the browser.
+
+### Endpoints
+
+| Method | Path | Does |
+|---|---|---|
+| GET | `/health` | Whether models are loaded, and library size |
+| GET | `/documents` | List indexed papers |
+| POST | `/documents` | Upload and index a PDF |
+| DELETE | `/documents/{doc_id}` | Remove a paper |
+| POST | `/ask` | Ask a question |
+
+### Examples
+
+```bash
+curl -s http://127.0.0.1:8000/health
+```
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/ask -H 'Content-Type: application/json' -d '{"question":"How many attention heads does the base model use?"}'
+```
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/documents -F 'file=@data/uploads/GANs.pdf'
+```
+
+```bash
+curl -s -X DELETE http://127.0.0.1:8000/documents/<doc_id>
+```
+
+### Stopping it
+
+Press `Ctrl + C` in its terminal, or if you backgrounded it:
+
+```bash
+pkill -f "src.api:app"
+```
+
+### What the status codes mean
+
+| Code | Meaning |
+|---|---|
+| 409 | The library is empty; add a PDF first |
+| 415 | The uploaded file is not a PDF |
+| 422 | Bad request: unknown retrieval mode, out-of-range `top_k`, or a PDF with no text layer |
+| 404 | Unknown document id |
+| 502 | Ollama is unreachable; start it and retry |
+| 503 | The server is still loading models |

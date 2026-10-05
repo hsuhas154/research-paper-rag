@@ -272,3 +272,15 @@ class TestComparativeDetection:
 
     def test_handles_empty_input(self):
         assert not looks_comparative("")
+
+
+class TestTunedDefaultsReachThePipeline:
+    def test_pipeline_does_not_shadow_the_tuned_candidate_pool(self):
+        # RAGPipeline used to hardcode candidate_pool=20, so the benchmark
+        # measured a pool of 30 while the app and API quietly ran 20. The
+        # tuned value must live in exactly one place.
+        import inspect
+        from src import rag_pipeline
+
+        signature = inspect.signature(rag_pipeline.RAGPipeline.__init__)
+        assert signature.parameters["candidate_pool"].default is None
