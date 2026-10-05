@@ -11,3 +11,14 @@ data/uploads/*
 # Phase 2: the persistent corpus is generated data, rebuilt by re-indexing PDFs
 data/corpus/
 .pytest_cache/
+
+# Phase 3: fine-tuned re-ranker weights are a build artifact, rebuilt by
+# scripts.build_rerank_dataset then scripts.train_reranker
+models/
+
+# The mined training set holds thousands of verbatim passages from the
+# indexed papers. Those are copyrighted journal articles, which is why the
+# PDFs themselves are not committed either. Regenerate it locally with
+# scripts.build_rerank_dataset rather than redistributing the text.
+eval/rerank_train.jsonl
+eval/rerank_train.heldout.json

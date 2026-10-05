@@ -105,6 +105,95 @@ Test suite: **82 unit tests**, all passing.
 
 ---
 
+## Re-ranker study: does domain adaptation help?
+
+The Phase 2 evaluation blamed the stock re-ranker, `cross-encoder/ms-marco-MiniLM-L-6-v2`,
+for its single outright failure, and Phase 3 scoped a domain-adapted
+replacement. That turned out to be the wrong diagnosis, and the work to
+establish it is worth keeping.
+
+### Step 1: do bigger off-the-shelf re-rankers help? No.
+
+Every model re-ranks an identical candidate pool, so differences are the
+model and nothing else (`python -m scripts.compare_rerankers`):
+
+| model | params | Hit@5 | MRR@5 | P@5 | sec/query |
+|---|---|---|---|---|---|
+| no re-rank (fusion order) | - | 0.923 | 0.787 | 0.533 | 0.000 |
+| **ms-marco-MiniLM-L-6-v2 (current)** | 22M | **0.974** | **0.881** | 0.585 | **0.273** |
+| ms-marco-MiniLM-L-12-v2 | 33M | 0.974 | 0.876 | 0.595 | 0.932 |
+| BAAI/bge-reranker-base | 278M | 0.974 | 0.876 | 0.600 | 4.513 |
+
+A model twelve times larger is sixteen times slower for no gain in Hit@5
+and a slightly worse MRR. Hit@5 is saturated at 0.974 across all three,
+which says the ceiling is set by what the first stage proposes, not by
+how well it is re-ranked.
+
+### Step 2: does fine-tuning on this corpus help? Also no.
+
+In-domain data was built from the corpus itself
+(`scripts.build_rerank_dataset`): the local LLM reads each chunk and
+writes a question that chunk answers, giving 565 positives across 12
+papers, and the project's own retrievers mine 2,260 hard negatives, which
+are by construction the passages the deployed system actually confuses
+with the right answer.
+
+**Four papers were held out of training entirely** (Attention, Dai,
+Sepsis, EDT), covering 11 of the 39 benchmark queries. This is the part
+that matters: training and testing on the same papers measures
+memorisation.
+
+First attempt, 2 epochs at lr 2e-5:
+
+| split | stock | fine-tuned |
+|---|---|---|
+| trained papers (28 queries) | 0.964 / MRR 0.887 | **1.000 / MRR 0.890** |
+| **held-out papers (11 queries)** | **1.000 / MRR 0.867** | **0.818 / MRR 0.758** |
+
+Textbook overfitting. The model learned these twelve papers and got
+materially worse on the four it had never seen. Reported on trained
+papers alone it would have looked like a 3.6 point Hit@5 win.
+
+Lowering the learning rate removes the damage but adds nothing. The best
+configuration found, 1 epoch at lr 5e-6:
+
+| split | stock | best fine-tuned |
+|---|---|---|
+| all (39) | 0.974 / **MRR 0.881** / 0.068 s | 0.974 / MRR 0.864 / 0.069 s |
+| held-out (11) | 1.000 / **MRR 0.867** / 0.068 s | 1.000 / MRR 0.821 / 0.067 s |
+| trained (28) | 0.964 / **MRR 0.887** / 0.068 s | 0.964 / MRR 0.881 / 0.068 s |
+
+Identical Hit@5, identical precision, identical latency, consistently
+worse MRR.
+
+### Conclusion: the stock re-ranker ships
+
+Fine-tuning is not adopted. `scripts/train_reranker.py` and the dataset
+builder stay in the repository because the finding is only credible with
+the apparatus that produced it, and because both become useful again at a
+larger corpus size, but a locally trained model is **not** picked up
+automatically. Doing so would silently ship a worse re-ranker to anyone
+who ran the script. It has to be opted into with `RERANKER_MODEL`.
+
+What this changes about the earlier diagnosis: the re-ranker was blamed
+for the `adam-name` failure, but no re-ranker tested fixes it, including
+one trained on this very corpus. Hit@5 sits at 0.974 for all of them.
+The passage either reaches the candidate pool or it does not, and that is
+a first-stage question. Retrieval breadth, not re-ranking quality, is
+where the remaining accuracy is.
+
+### A measurement bug worth recording
+
+The first latency figures showed the fine-tuned model three to ten times
+faster than stock, which is impossible: identical architecture, identical
+weights shape. The re-ranker loads lazily on first use, and that load sat
+inside the timed loop, so on an 11-query split several seconds of model
+loading were being divided across 11 queries. The harness now forces the
+load before timing, after which both models measure 0.068 s/query as
+they should.
+
+---
+
 ## Known limitations, stated plainly
 
 1. **The cross-encoder occasionally demotes the one correct passage.** It is

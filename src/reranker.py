@@ -24,6 +24,8 @@ re-ranking on never pays the load cost, and a machine that cannot
 reach the model hub can still run dense and hybrid retrieval.
 """
 
+import os
+from pathlib import Path
 from typing import List, Optional
 
 from src.vector_store import RetrievedChunk
@@ -31,7 +33,34 @@ from src.vector_store import RetrievedChunk
 # ~22M parameters, trained on MS MARCO passage ranking. Small enough to
 # sit in VRAM next to both the bi-encoder and an 8B LLM on an 8GB card,
 # which is the binding constraint on this project's model choices.
-RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+STOCK_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+# Where scripts.train_reranker writes a fine-tuned model. It is NOT
+# picked up automatically. Domain adaptation was tried on this corpus and
+# measured against papers held out of training: the fine-tuned model
+# matched the stock one on Hit@5 and precision and was consistently worse
+# on MRR, and at a higher learning rate it overfitted badly, scoring 1.000
+# on papers it trained on and 0.818 on papers it had not seen. Auto-
+# adopting a local model would therefore silently ship a worse re-ranker
+# to anyone who ran the training script. Opt in deliberately, with
+# RERANKER_MODEL, after measuring on your own corpus.
+DOMAIN_RERANKER_PATH = Path("models/reranker-domain")
+
+
+def default_reranker_model() -> str:
+    """
+    The re-ranker to use unless one is named explicitly.
+
+    The RERANKER_MODEL environment variable overrides; otherwise the stock
+    MS MARCO cross-encoder is used. See DOMAIN_RERANKER_PATH for why a
+    locally trained model is not adopted automatically.
+    """
+    override = os.environ.get("RERANKER_MODEL", "").strip()
+    return override or STOCK_RERANKER_MODEL
+
+
+# Kept as a module-level name for callers that import it directly.
+RERANKER_MODEL_NAME = STOCK_RERANKER_MODEL
 
 
 class CrossEncoderReranker:
@@ -44,8 +73,8 @@ class CrossEncoderReranker:
     calibrated to any absolute scale.
     """
 
-    def __init__(self, model_name: str = RERANKER_MODEL_NAME, device: Optional[str] = None):
-        self.model_name = model_name
+    def __init__(self, model_name: Optional[str] = None, device: Optional[str] = None):
+        self.model_name = model_name or default_reranker_model()
         self.device = device
         self._model = None  # loaded on first rerank() call
 

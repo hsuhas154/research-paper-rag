@@ -382,3 +382,64 @@ pkill -f "src.api:app"
 | 404 | Unknown document id |
 | 502 | Ollama is unreachable; start it and retry |
 | 503 | The server is still loading models |
+
+---
+
+## 10. Re-ranker experiments
+
+The re-ranker was studied rather than assumed. These are the commands that
+produced the [re-ranker study](EVALUATION.md), if you want to repeat it or
+run it against a different corpus.
+
+### Compare re-ranking models
+
+Every model re-ranks an identical candidate pool, so what you see is the
+model and nothing else:
+
+```bash
+python -m scripts.compare_rerankers
+```
+
+Restrict to papers that were held out of training, which is the honest test
+of whether a fine-tuned model generalises:
+
+```bash
+python -m scripts.compare_rerankers --split heldout
+```
+
+### Build in-domain training data
+
+The local LLM writes a question for each chunk, and hard negatives are mined
+with the project's own retrievers. Needs Ollama running. Takes about 7
+minutes for this corpus:
+
+```bash
+python -m scripts.build_rerank_dataset
+```
+
+The output is gitignored on purpose: it contains thousands of verbatim
+passages from copyrighted papers, which is also why the PDFs are not
+committed.
+
+### Fine-tune a re-ranker
+
+```bash
+python -m scripts.train_reranker --epochs 1 --lr 5e-6
+```
+
+Training takes well under a minute on an 8 GB GPU.
+
+### Use a different re-ranker
+
+A fine-tuned model is **not** picked up automatically, because on this
+corpus it measured worse than the stock one. Opt in explicitly:
+
+```bash
+RERANKER_MODEL=models/reranker-domain python app.py
+```
+
+The same variable accepts any Hugging Face cross-encoder:
+
+```bash
+RERANKER_MODEL=BAAI/bge-reranker-base python app.py
+```

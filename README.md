@@ -129,7 +129,7 @@ BM25 above dense in fusion never helps - so RRF stays parameter-free.
 | Dense search | FAISS (`IndexFlatIP`) | Exact cosine-similarity search; brute-force is correct at this scale |
 | Lexical search | Okapi BM25, implemented in `src/bm25.py` | ~60 lines, no dependency, and the scoring formula is worth being able to explain |
 | Fusion | Reciprocal Rank Fusion | Cosine scores and BM25 scores aren't on comparable scales; RRF fuses on rank and sidesteps the problem |
-| Re-ranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Reads question and passage jointly; too slow for full search, ideal as a second stage |
+| Re-ranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Reads question and passage jointly; too slow for full search, ideal as a second stage. Kept after a [study](EVALUATION.md#re-ranker-study-does-domain-adaptation-help) found neither larger models nor fine-tuning on this corpus beat it |
 | Persistence | FAISS + numpy + JSON | See below |
 | LLM | Llama 3.1 8B, via Ollama | Fully local inference, no API cost or external data exposure |
 | UI | Gradio | Fast to build for a Python-only prototype |
@@ -224,12 +224,15 @@ research-paper-rag/
 │   ├── llm.py               # Ollama call + grounded-answer prompting
 │   └── rag_pipeline.py      # ties the above into one pipeline object
 ├── scripts/
-│   ├── compare_retrieval.py # retrieval benchmark
-│   └── validate_queries.py  # checks a test set is actually answerable
+│   ├── compare_retrieval.py    # retrieval benchmark
+│   ├── compare_rerankers.py    # re-ranker benchmark, with held-out splits
+│   ├── build_rerank_dataset.py # mines in-domain training data from the corpus
+│   ├── train_reranker.py       # cross-encoder fine-tuning
+│   └── validate_queries.py     # checks a test set is actually answerable
 ├── eval/
 │   ├── corpus_queries.json  # 39-query, 16-paper retrieval test set
 │   └── venus_queries.json   # single-paper test set (Phase 1 comparison)
-├── tests/                   # 111 unit tests
+├── tests/                   # 120 unit tests
 ├── app.py                   # Gradio UI, entry point
 ├── EVALUATION.md            # 16-paper test results and fixes
 ├── RUNNING.md               # setup, start/stop, troubleshooting
@@ -291,9 +294,16 @@ measured weaknesses from the [16-paper evaluation](EVALUATION.md); they are
 listed first because they are the only items that move answer accuracy.
 Everything else in Phase 3 adds measurement or surface area, not correctness.
 
-- [ ] Domain-adapted re-ranking, replacing the MS MARCO cross-encoder that
-      demotes correct passages when the answer term is absent from the
-      question (Phase 3)
+- [x] ~~Domain-adapted re-ranking, replacing the MS MARCO cross-encoder~~
+      (Phase 3, investigated and **rejected on evidence**: fine-tuning on
+      565 in-domain examples overfits, scoring 1.000 on papers it trained
+      on and 0.818 on held-out papers, and the best-regularised version
+      only matches stock while scoring worse on MRR. Bigger off-the-shelf
+      re-rankers do not help either. See the
+      [re-ranker study](EVALUATION.md#re-ranker-study-does-domain-adaptation-help).)
+- [ ] Widen first-stage retrieval, which the re-ranker study identified as
+      the real ceiling: Hit@5 is 0.974 for every re-ranker tested, so the
+      limit is what reaches the candidate pool (Phase 3)
 - [ ] Equation, symbol, and table extraction, so answers that *are* a
       formula stop degrading into garbled Unicode (Phase 3)
 - [x] ~~Per-document retrieval quotas, so a question spanning two papers can
