@@ -119,44 +119,96 @@ Test suite: **82 unit tests**, all passing.
    *is* an equation (EDT model, sepsis posterior) get vague or garbled
    answers. Affects the source text, not the retrieval logic.
    **Scoped into Phase 3:** dedicated equation, symbol, and table extraction.
-3. **Section detection remains heuristic** on scanned papers with unstable
+3. **Comparative questions cannot be served by a single top-k budget.**
+   "Compare Adam and the Transformer paper" fills all five passage slots
+   from whichever paper matches more strongly, leaving nothing for the
+   second, so the system correctly reports it cannot compare. Re-ranking
+   cannot fix this: the passages that would answer it never enter the pool.
+   Surfaced by Table 2, invisible to Table 1 because every Table 1 question
+   targeted one paper. **Scoped into Phase 3:** per-document retrieval
+   quotas when a question names or implies more than one paper.
+4. **Cross-paper contamination when routing is ambiguous.** All three wrong
+   answers in Table 2 came from the system retrieving a neighbouring paper
+   and reporting its numbers, for example quoting Venus cloud aerosol
+   particle sizes for a question about conductive adhesive. It is not
+   invention, every number existed somewhere in the corpus, but it is the
+   dominant error mode now that hallucination is absent. It tracks routing
+   directly: every contaminated answer had a wrong-paper top-1 passage.
+5. **Section detection remains heuristic** on scanned papers with unstable
    fonts. The 40-word floor suppresses most false headings, but the 2003
    ultrasound paper still yields some odd section labels.
-4. **No answer-faithfulness metric.** Correctness here was verified by hand
-   against the PDFs. Automated groundedness scoring (RAGAS) is Phase 3.
-5. **Single-turn only.** Follow-ups like "and at 60 km?" carry no context.
+6. **No answer-faithfulness metric.** Correctness in both tables was
+   verified by hand against the PDFs. Automated groundedness scoring (RAGAS)
+   is Phase 3.
+7. **Single-turn only.** Follow-ups like "and at 60 km?" carry no context.
 
 ---
 
 ## Table 2 - Independent test set (for your own testing)
 
 A completely separate set of questions, with no overlap with Table 1: none of
-these target the same fact, section, or figure as any question above. Results
-column left blank for you to fill in.
+these target the same fact, section, or figure as any question in it. Run
+against the same corpus, unscoped across all 16 papers, on `hybrid+rerank`
+with top-5 passages, and graded by hand against the source PDFs.
 
-**How to run these:** start the app (`python app.py`, see
+**Results across the 58 questions**
+
+| Metric | Result |
+|---|---|
+| Top-1 passage from the correct paper | 43/48 (90%) |
+| Correct paper within top 5 | 46/48 (96%) |
+| Answers fully correct | 35/48 (73%) |
+| Answers partially correct | 10/48 (21%) |
+| Answers wrong | 3/48 (6%) |
+| Facts invented from outside the corpus | **0/58** |
+| Should-fail questions correctly declined | **4/4** |
+| Mean latency | 5.3 s |
+
+Harder than Table 1 by design, and the drop from 92% to 73% fully correct is
+mostly a change in question type rather than a regression. Table 1 asked for
+headline facts; Table 2 asks for parameter values, method details, and figure
+contents, which sit in exactly the equation-heavy and table-heavy text that
+survives PDF extraction worst.
+
+**The dominant failure mode has changed, and it is not hallucination.** All
+three wrong answers are cross-paper contamination: the system retrieved a
+passage from a neighbouring paper and reported its numbers. Not one answer
+invented a fact that is absent from the corpus, and all four should-fail
+questions were declined cleanly. Contamination tracks routing: every
+contaminated answer came from a question whose top-1 passage was from the
+wrong paper.
+
+**Comparative questions are a newly exposed structural limit.** "Compare Adam
+and the Transformer paper" and "the eddy diffusion coefficient according to
+each paper that mentions it" both failed the same way: a single top-5 budget
+gets filled by whichever paper matches most strongly, leaving nothing for the
+second. No amount of re-ranking fixes this, because the passages that would
+answer it are never all in the pool. It needs per-document retrieval quotas,
+which is Phase 3 work.
+
+**How to re-run these:** start the app (`python app.py`, see
 [RUNNING.md](RUNNING.md)), leave **Search which papers** on all-selected so
 each question has to find its own paper, keep the strategy on
-`hybrid+rerank`, and compare the answer against the source PDF.
+`hybrid+rerank`, and compare each answer against the source PDF.
 
 | Paper | Questions | Results and Metrics |
 |---|---|---|
-| **Attention Is All You Need** | 1. What is the computational complexity per layer of self-attention versus a recurrent layer?<br>2. How many attention heads does the base model use, and what is the dimension of each?<br>3. What positional encoding scheme is used, and why that one? | |
-| **Adam: A Method for Stochastic Optimization** | 1. What is the regret bound proved for Adam in the convex case?<br>2. How does AdaMax differ from Adam?<br>3. Which datasets and model types were used in the experiments? | |
-| **Generative Adversarial Nets** | 1. How many steps is the discriminator trained for per generator step?<br>2. What are the stated disadvantages of adversarial nets?<br>3. How was the log-likelihood of test data estimated? | |
-| **Deep Learning** (Nature review) | 1. What problem do distributed representations solve that a classical n-gram model cannot?<br>2. What is LSTM and what problem does it address?<br>3. What role do the authors assign to attention mechanisms? | |
-| **A Few Useful Things to Know About Machine Learning** | 1. What are the three sources of error that bias and variance decompose?<br>2. Why does the author say intuition fails in high dimensions?<br>3. What is said about theoretical guarantees in machine learning? | |
-| **Dai et al. 2024** - Venusian atmospheric chemistry | 1. What is the vertical resolution and grid structure of the model?<br>2. How is the CO abundance profile compared against observations?<br>3. What boundary conditions were set at the lower boundary? | |
-| **Jiang et al. 2024** - Iron-sulfur UV absorber | 1. What sulfuric acid concentrations were tested?<br>2. What thermodynamic calculations support the mineral stability?<br>3. How does the proposed absorber compare with previously suggested candidates? | |
-| **Spacek et al. 2026** - UV-blue absorbance model | 1. What organic compounds were compared against the model?<br>2. How is the absorber's concentration in the cloud droplets constrained?<br>3. What does the paper conclude about biological versus abiotic origins? | |
-| **Mahieux et al. 2024** - Venus trace-gas upper limits | 1. What is the spectral resolving power of the instrument?<br>2. How is the noise level of a spectrum computed?<br>3. What upper limit was derived for ammonia? | |
-| **Trabelsi et al. 2026** - Chlorine-sulfur isomers | 1. What level of theory was used for the electronic structure calculations?<br>2. What are the predicted vibrational frequencies of SSCl₂?<br>3. What are the astrophysical implications for detection on Venus? | |
-| **64-channel ultrasound transducer amplifier** | 1. What CMOS process technology was the ASIC fabricated in?<br>2. What is the power consumption per channel?<br>3. How was the chip packaged and tested on the PCB? | |
-| **Characterization and modeling of EDT leakage** | 1. What gate oxide thicknesses were characterised?<br>2. How does EDT leakage vary with gate voltage?<br>3. What is the Franz-type dispersion relation used for? | |
-| **A Sub-λ-Size Modulator** | 1. What extinction ratio does the modulator achieve?<br>2. What is the device's energy consumption per bit?<br>3. How does the plasmonic mode confinement work? | |
-| **Magnetically Aligned Anisotropic Conductive Adhesive** | 1. What particle size and volume fraction were used?<br>2. What insertion loss was measured, and over what frequency band?<br>3. How does the aligned adhesive compare against solder bumping? | |
-| **Modular Multilevel Converters** | 1. What is a half-bridge submodule and how does it differ from a full-bridge?<br>2. What is meant by black-start capability?<br>3. Which real-world HVdc projects are cited? | |
-| **Predicting Sepsis Onset in ICUs** | 1. Which clinical datasets were used for training and evaluation?<br>2. What baseline methods was the model compared against?<br>3. How far in advance of onset can sepsis be predicted, and at what performance? | |
+| **Attention Is All You Need** | 1. What is the computational complexity per layer of self-attention versus a recurrent layer?<br>2. How many attention heads does the base model use, and what is the dimension of each?<br>3. What positional encoding scheme is used, and why that one? | **3/3 correct · routing 3/3** ✅<br>Q1 exact: O(n²·d) for self-attention against O(n·d²) for recurrent. Q2 exact: h = 8 heads, d_k = d_v = d_model/h = 64. Q3 gave the sinusoidal scheme with the correct rationale, that PE(pos+k) is a linear function of PE(pos) so relative positions are easy to attend to. |
+| **Adam: A Method for Stochastic Optimization** | 1. What is the regret bound proved for Adam in the convex case?<br>2. How does AdaMax differ from Adam?<br>3. Which datasets and model types were used in the experiments? | **2/3 correct, 1 partial · routing 3/3** ⚠️<br>Q1 exact: R(T) = O(√T). Q2 exact: AdaMax is the infinity-norm variant. **Q3 contaminated**: the logistic regression, MLP and CNN list is right, but it then appended TFD and the GAN generator details, which belong to the GANs paper. Cross-paper bleed, not invention. |
+| **Generative Adversarial Nets** | 1. How many steps is the discriminator trained for per generator step?<br>2. What are the stated disadvantages of adversarial nets?<br>3. How was the log-likelihood of test data estimated? | **3/3 correct · routing 3/3** ✅<br>Q1 exact: k = 1, the least expensive option. Q2 named both stated disadvantages, including the Helvetica scenario by name. Q3 exact: Gaussian Parzen window with σ by cross-validation, and it carried through the paper's own caveat about high variance in high dimensions. |
+| **Deep Learning** (Nature review) | 1. What problem do distributed representations solve that a classical n-gram model cannot?<br>2. What is LSTM and what problem does it address?<br>3. What role do the authors assign to attention mechanisms? | **2/3 correct, 1 wrong paper · routing 2/3** ⚠️<br>Q1 and Q2 exact, including the LSTM memory cell as a gated leaky accumulator. **Q3 answered from the wrong paper**: it retrieved Attention Is All You Need and described the Transformer. The content is accurate, just not this paper. Defensible given the question says "attention mechanisms" and the corpus holds a paper by that name, but it is a genuine routing miss. |
+| **A Few Useful Things to Know About Machine Learning** | 1. What are the three sources of error that bias and variance decompose?<br>2. Why does the author say intuition fails in high dimensions?<br>3. What is said about theoretical guarantees in machine learning? | **2/3 correct, 1 honest miss · routing 3/3** ⚠️<br>Q2 and Q3 exact, including that theoretical guarantees drive algorithm design rather than practical decisions. **Q1 declined**: it defined bias and variance correctly from the paper but said the three-way decomposition is not stated. Correct behaviour, the paper does not present it that way. |
+| **Dai et al. 2024** - Venusian atmospheric chemistry | 1. What is the vertical resolution and grid structure of the model?<br>2. How is the CO abundance profile compared against observations?<br>3. What boundary conditions were set at the lower boundary? | **3/3 correct · routing 2/3** ✅<br>Q1 exact: 2 km vertical resolution, surface to 112 km, and it said plainly that grid structure is not described. Q2 exact: agreement below 90 km, larger than observations near 100 km by a factor of about 2. Q3 exact: fixed VMRs at the bottom boundary, zero flux for unlisted species, NO at 5.5 ppb. |
+| **Jiang et al. 2024** - Iron-sulfur UV absorber | 1. What sulfuric acid concentrations were tested?<br>2. What thermodynamic calculations support the mineral stability?<br>3. How does the proposed absorber compare with previously suggested candidates? | **2/3 correct, 1 partial · routing 2/3** ⚠️<br>Q2 and Q3 correct, Q3 quantitatively so, giving 1278 cm⁻¹ at 375 nm against the 5 to 73 g/L needed by known efficient absorbers. **Q1 partial**: it returned the chloride concentration table and said the H₂SO₄ concentrations are not stated there, missing the 70 to 98 wt % range that appears elsewhere in the paper. |
+| **Spacek et al. 2026** - UV-blue absorbance model | 1. What organic compounds were compared against the model?<br>2. How is the absorber's concentration in the cloud droplets constrained?<br>3. What does the paper conclude about biological versus abiotic origins? | **2/3 correct, 1 partial · routing 3/3** ⚠️<br>Q1 exact: croconic acid, with the Hartley and Colmenero attributions. Q2 exact, including the molar absorptivity threshold used to bound the concentration. **Q3 partial**: it reported the abiotic-pathway discussion and then said there is no explicit conclusion on biological versus abiotic origin. |
+| **Mahieux et al. 2024** - Venus trace-gas upper limits | 1. What is the spectral resolving power of the instrument?<br>2. How is the noise level of a spectrum computed?<br>3. What upper limit was derived for ammonia? | **3/3 correct · routing 3/3** ✅<br>Q1 exact: resolution 0.11 to 0.21 cm⁻¹, resolving power about 21,000. Q2 correct on photon random noise plus signal drift. Q3 exact: 28.4 ± 0.6 ppt at 65 km, with number densities. Largest paper in the corpus at 90 chunks. |
+| **Trabelsi et al. 2026** - Chlorine-sulfur isomers | 1. What level of theory was used for the electronic structure calculations?<br>2. What are the predicted vibrational frequencies of SSCl₂?<br>3. What are the astrophysical implications for detection on Venus? | **2/3 correct, 1 partial · routing 3/3** ⚠️<br>Q1 exact and complete: CCSD(T)-F12 for ground state, CASSCF then MRCI for excited states. Q3 correct on the near-UV absorber implication. **Q2 partial**: it gave ν₃ at 701.3 cm⁻¹ and 2ν₁ at 1395.8 cm⁻¹ from Table III rather than the full frequency set. |
+| **64-channel ultrasound transducer amplifier** | 1. What CMOS process technology was the ASIC fabricated in?<br>2. What is the power consumption per channel?<br>3. How was the chip packaged and tested on the PCB? | **3/3 correct · routing 3/3** ✅<br>Q1 exact: AMI 0.5 µm double poly, triple level metal CMOS. Q2 did arithmetic the paper does not state, dividing 960 mW across 64 channels to give 15 mW per channel, correctly shown. Q3 exact: 144-pin PQFP with the coax and probe test setup. Oldest and worst-scanned paper in the corpus. |
+| **Characterization and modeling of EDT leakage** | 1. What gate oxide thicknesses were characterised?<br>2. How does EDT leakage vary with gate voltage?<br>3. What is the Franz-type dispersion relation used for? | **2/3 correct, 1 honest miss · routing 3/3** ⚠️<br>Q1 correct: 1.4 to 2.4 nm. Q3 correct, including the 6.25 nm tunnelling path width from the gate edge. **Q2 declined**: the gate-voltage dependence is carried in figures and equations whose symbols do not survive extraction, so it said so rather than guessing. |
+| **A Sub-λ-Size Modulator** | 1. What extinction ratio does the modulator achieve?<br>2. What is the device's energy consumption per bit?<br>3. How does the plasmonic mode confinement work? | **1/3 correct, 1 partial, 1 contaminated · routing 1/3** ❌<br>Weakest paper in the set. Q1 correct, 6 dB extinction, though printed as "6 dB=m" from a broken glyph. Q3 partial on the MOS-gap mode confinement. **Q2 contaminated**: it pulled 960 mW from the ultrasound paper before admitting it had no answer. Routing failed here more than generation did. |
+| **Magnetically Aligned Anisotropic Conductive Adhesive** | 1. What particle size and volume fraction were used?<br>2. What insertion loss was measured, and over what frequency band?<br>3. How does the aligned adhesive compare against solder bumping? | **2/3 correct, 1 contaminated · routing 2/3** ⚠️<br>Q2 correct: 1.33 dB at 50 GHz. Q3 correct, comparing against solder bumps with per-formulation losses to 30 GHz. **Q1 contaminated**: it reported r_eff = 0.43 µm and v_eff = 0.52, which are Venus cloud aerosol size parameters from the Spacek paper, not adhesive particles. It did hedge first, but the numbers are from the wrong paper. |
+| **Modular Multilevel Converters** | 1. What is a half-bridge submodule and how does it differ from a full-bridge?<br>2. What is meant by black-start capability?<br>3. Which real-world HVdc projects are cited? | **2/3 correct, 1 partial · routing 3/3** ✅<br>Q3 was the strongest answer in the whole set: six real projects with voltage and power ratings, Trans Bay Cable, Nan'ao, Skagerrak 4, Kriegers Flak, Rudong, Zhangbei. Q2 inferred black-start correctly from context. **Q1 partial**: it said the half-bridge is not explicitly defined and reasoned from the figure caption. |
+| **Predicting Sepsis Onset in ICUs** | 1. Which clinical datasets were used for training and evaluation?<br>2. What baseline methods was the model compared against?<br>3. How far in advance of onset can sepsis be predicted, and at what performance? | **3/3 correct · routing 3/3** ✅<br>Q1 correct: MIMIC-IV with the Sepsis-3 derived groups. Q2 exact: GCN and GRU baselines, with the stated reason for each. Q3 exact: 1, 2 and 3 hour horizons with the relative AUC ordering. |
 
 ### Suggested cross-paper questions
 
@@ -165,12 +217,12 @@ more than one source or correctly declines:
 
 | Question | Results and Metrics |
 |---|---|
-| Which papers propose a candidate for the Venus UV absorber, and do they agree? | |
-| Compare how Adam and the Transformer paper describe their optimizer settings. | |
-| What do the machine learning papers say about the role of unsupervised learning? | |
-| Which papers use a Gaussian process, and for what purpose? | |
-| What is the eddy diffusion coefficient on Venus according to each paper that mentions it? | |
-| Do any two papers in this library disagree with each other, and about what? | |
+| Which papers propose a candidate for the Venus UV absorber, and do they agree? | **Partial** ⚠️ Drew on all three Venus absorber papers (Jiang, Spacek, Trabelsi) and described the iron-sulfur candidate well, but did not actually adjudicate the "do they agree" half. |
+| Compare how Adam and the Transformer paper describe their optimizer settings. | **Failed, honestly** ❌ All five passages came from the Adam paper, so it correctly reported that it could not compare. The clearest instance of the comparative-question limitation: one top-5 budget cannot cover two papers. |
+| What do the machine learning papers say about the role of unsupervised learning? | **Correct** ✅ Spanned the Nature review and Domingos, covering layerwise unsupervised pre-training and autoencoders. |
+| Which papers use a Gaussian process, and for what purpose? | **Correct** ✅ Identified the sepsis paper only, which is right. It did not mistake the GAN paper's Gaussian Parzen window for a Gaussian process. |
+| What is the eddy diffusion coefficient on Venus according to each paper that mentions it? | **Partial** ⚠️ Gave the Dai profile exactly (1.7×10⁴ to 5.3×10⁴ cm² s⁻¹) but only reached that one paper, so the per-paper comparison the question asks for was not delivered. |
+| Do any two papers in this library disagree with each other, and about what? | **Partial** ⚠️ Found no cross-paper disagreement and instead surfaced a within-paper nuance about overfitting and noise. Honest, but the question is beyond what top-5 retrieval can support. |
 
 ### Questions that *should* fail
 
@@ -179,7 +231,7 @@ here is an explicit "the context does not contain this":
 
 | Question | Results and Metrics |
 |---|---|
-| What is the capital of France? | |
-| What learning rate did the sepsis paper use for the Transformer architecture in the attention paper? | |
-| What does this library say about quantum error correction? | |
-| Who won the 2024 Nobel Prize in Physics? | |
+| What is the capital of France? | **Correct refusal** ✅ Declined and named the unrelated topics it had retrieved instead. |
+| What learning rate did the sepsis paper use for the Transformer architecture in the attention paper? | **Correct refusal** ✅ Declined and additionally flagged that the premise conflates two papers. |
+| What does this library say about quantum error correction? | **Correct refusal** ✅ Declined and listed the actual topics of the retrieved passages. |
+| Who won the 2024 Nobel Prize in Physics? | **Correct refusal** ✅ Declined; no attempt to answer from pretrained knowledge. |
