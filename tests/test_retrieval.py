@@ -12,7 +12,7 @@ import pytest
 
 from src.bm25 import BM25Index, tokenize
 from src.chunker import Chunk
-from src.retriever import reciprocal_rank_fusion
+from src.retriever import diversify_by_document, looks_comparative, reciprocal_rank_fusion
 from src.vector_store import VectorStore
 
 
@@ -199,3 +199,76 @@ class TestVectorStore:
 
     def test_empty_store_searches_return_nothing(self):
         assert VectorStore(embedding_dim=2).search(np.array([1.0, 0.0], dtype="float32")) == []
+
+
+class TestDocumentQuota:
+    """
+    Per-document quotas, for questions that span papers.
+
+    A single top-k budget is spent entirely on whichever paper matches
+    most strongly, so a comparative question never sees the second paper's
+    evidence and the generator correctly reports it cannot compare.
+    """
+
+    @staticmethod
+    def hits(*doc_ids):
+        """(chunk index, score) pairs with descending scores."""
+        return [(i, 1.0 - i * 0.01) for i in range(len(doc_ids))]
+
+    @staticmethod
+    def chunks_for(*doc_ids):
+        return [make_chunk(i, f"text {i}", doc) for i, doc in enumerate(doc_ids)]
+
+    def test_no_quota_leaves_ranking_untouched(self):
+        docs = ("a", "a", "a", "b")
+        got = diversify_by_document(self.hits(*docs), self.chunks_for(*docs), 3, None)
+        assert [i for i, _ in got] == [0, 1, 2]
+
+    def test_quota_promotes_a_second_document(self):
+        docs = ("a", "a", "a", "b")
+        got = diversify_by_document(self.hits(*docs), self.chunks_for(*docs), 3, 2)
+        assert [self.chunks_for(*docs)[i].doc_id for i, _ in got] == ["a", "a", "b"]
+
+    def test_quota_preserves_rank_order_within_a_document(self):
+        docs = ("a", "b", "a", "b")
+        got = diversify_by_document(self.hits(*docs), self.chunks_for(*docs), 4, 1)
+        assert [i for i, _ in got][:2] == [0, 1]
+
+    def test_backfills_when_too_few_documents_to_fill_top_k(self):
+        # Only one document exists, so the quota cannot be honoured without
+        # returning fewer passages than asked for. Rank order wins.
+        docs = ("a", "a", "a", "a")
+        got = diversify_by_document(self.hits(*docs), self.chunks_for(*docs), 3, 1)
+        assert [i for i, _ in got] == [0, 1, 2]
+
+    def test_single_document_corpus_is_unaffected_by_a_quota(self):
+        docs = ("a", "a")
+        with_quota = diversify_by_document(self.hits(*docs), self.chunks_for(*docs), 2, 1)
+        without = diversify_by_document(self.hits(*docs), self.chunks_for(*docs), 2, None)
+        assert with_quota == without
+
+    def test_quota_below_one_is_treated_as_no_quota(self):
+        docs = ("a", "a", "b")
+        got = diversify_by_document(self.hits(*docs), self.chunks_for(*docs), 2, 0)
+        assert [i for i, _ in got] == [0, 1]
+
+
+class TestComparativeDetection:
+    def test_detects_explicit_comparison(self):
+        assert looks_comparative("Compare how Adam and the Transformer paper describe settings")
+        assert looks_comparative("What is X versus Y?")
+
+    def test_detects_per_paper_phrasing(self):
+        assert looks_comparative("The eddy diffusion coefficient according to each paper")
+        assert looks_comparative("Which papers use a Gaussian process?")
+        assert looks_comparative("Do any two papers in this library disagree?")
+
+    def test_ignores_ordinary_single_paper_questions(self):
+        # A false positive splits the passage budget on a question that
+        # needed all of it on one paper, which measurably costs accuracy.
+        assert not looks_comparative("What eddy diffusion coefficient Kzz was used?")
+        assert not looks_comparative("How many attention heads does the base model use?")
+        assert not looks_comparative("What is the die size of the ASIC?")
+
+    def test_handles_empty_input(self):
+        assert not looks_comparative("")

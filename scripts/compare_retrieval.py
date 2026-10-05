@@ -73,6 +73,7 @@ def evaluate_mode(
     mode: str,
     k: int,
     titles: Optional[Dict[str, str]] = None,
+    max_per_document: Optional[int] = None,
 ) -> Dict[str, float]:
     """Runs every query through one retrieval mode and aggregates metrics."""
     hits = 0
@@ -83,7 +84,9 @@ def evaluate_mode(
 
     for query in queries:
         start = time.perf_counter()
-        results = retriever.retrieve(query["question"], top_k=k, mode=mode).chunks
+        results = retriever.retrieve(
+            query["question"], top_k=k, mode=mode, max_per_document=max_per_document
+        ).chunks
         elapsed += time.perf_counter() - start
 
         relevant_ranks = [
@@ -115,6 +118,8 @@ def main() -> int:
     parser.add_argument("--queries", type=Path, default=DEFAULT_QUERY_FILE)
     parser.add_argument("--k", type=int, default=5, help="passages retrieved per query")
     parser.add_argument("--modes", nargs="*", default=RETRIEVAL_MODES)
+    parser.add_argument("--max-per-doc", type=int, default=None,
+                        help="cap passages from any one document (None = no quota)")
     parser.add_argument("--verbose", action="store_true",
                         help="show the rank of the first relevant chunk per query")
     args = parser.parse_args()
@@ -139,7 +144,7 @@ def main() -> int:
 
     titles = {d.doc_id: d.title for d in corpus.documents}
     results = {
-        mode: evaluate_mode(retriever, queries, mode, args.k, titles)
+        mode: evaluate_mode(retriever, queries, mode, args.k, titles, args.max_per_doc)
         for mode in args.modes
     }
 

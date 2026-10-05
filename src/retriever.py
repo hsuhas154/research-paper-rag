@@ -42,6 +42,7 @@ possible - and that comparison is the evidence that any of this is
 actually an improvement.
 """
 
+import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -104,6 +105,92 @@ def reciprocal_rank_fusion(
     )
 
 
+# Phrases that signal a question is asking across documents rather than
+# about one. Kept deliberately narrow: a false positive splits the passage
+# budget on a question that needed all of it on one paper, which measurably
+# costs accuracy (Hit@5 0.97 -> 0.92 when the quota is applied to every
+# query), while a false negative only leaves behaviour as it was.
+_COMPARATIVE_PATTERNS = re.compile(
+    r"\b("
+    r"compare|comparison|contrast|versus|vs\.?|"
+    r"each (?:paper|study|article|author)|"
+    r"which (?:papers|studies|articles)|"
+    r"any (?:two|other) papers?|"
+    r"both papers|across (?:the )?papers|"
+    r"between (?:the )?(?:two )?papers|"
+    r"do (?:they|the papers) (?:agree|disagree)|"
+    r"disagree"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def looks_comparative(question: str) -> bool:
+    """
+    Whether a question appears to span several documents.
+
+    Used to decide when to spend the passage budget across papers instead
+    of on the single best-matching one. Measured on this project's own
+    benchmark, applying the quota unconditionally costs accuracy on
+    ordinary single-paper questions, so it is switched on by this signal
+    rather than left on by default.
+    """
+    return bool(_COMPARATIVE_PATTERNS.search(question or ""))
+
+
+def diversify_by_document(
+    hits: Sequence[Tuple[int, float]],
+    chunks: Sequence,
+    top_k: int,
+    max_per_document: Optional[int],
+) -> List[Tuple[int, float]]:
+    """
+    Picks top_k results in rank order while allowing at most
+    `max_per_document` of them to come from any single document.
+
+    Why this exists: a question spanning two papers ("compare how Adam and
+    the Transformer paper describe their optimizer settings") fills every
+    passage slot from whichever paper matches more strongly, and the
+    generator then correctly reports that it cannot compare, because the
+    other paper's evidence was never retrieved. Re-ranking cannot fix
+    that - it only reorders what the first stage proposed, and the
+    missing passages are not in the pool at all. The budget has to be
+    shared before ranking is allowed to spend it.
+
+    Results that overflow a document's quota are not discarded; they are
+    kept in order and used to backfill if there are not enough other
+    documents to fill top_k. A corpus of one paper, or a question scoped
+    to one paper, therefore behaves exactly as if no quota were set.
+
+    `max_per_document` of None disables the quota entirely.
+    """
+    if max_per_document is None or max_per_document < 1:
+        return list(hits)[:top_k]
+
+    selected: List[Tuple[int, float]] = []
+    overflow: List[Tuple[int, float]] = []
+    taken: Dict[str, int] = {}
+
+    for index, score in hits:
+        doc_id = chunks[index].doc_id
+        if taken.get(doc_id, 0) < max_per_document:
+            selected.append((index, score))
+            taken[doc_id] = taken.get(doc_id, 0) + 1
+            if len(selected) == top_k:
+                return selected
+        else:
+            overflow.append((index, score))
+
+    # Not enough documents to fill top_k under the quota: backfill in rank
+    # order rather than returning fewer passages than asked for.
+    for item in overflow:
+        if len(selected) == top_k:
+            break
+        selected.append(item)
+
+    return selected
+
+
 class HybridRetriever:
     """
     Owns the retrieval half of the RAG pipeline: the dense index, the
@@ -145,6 +232,7 @@ class HybridRetriever:
         top_k: int = 5,
         mode: str = MODE_HYBRID_RERANK,
         doc_ids: Optional[Sequence[str]] = None,
+        max_per_document: Optional[int] = None,
     ) -> RetrievalResult:
         """
         Retrieves the top_k most relevant chunks for a question.
@@ -155,6 +243,10 @@ class HybridRetriever:
             mode: one of RETRIEVAL_MODES
             doc_ids: restrict retrieval to these documents; None searches
                 the whole corpus
+            max_per_document: at most this many of the returned passages
+                may come from any one document. None means no quota, which
+                is the right default for the ordinary case of a question
+                about a single paper. See diversify_by_document.
 
         Returns:
             A RetrievalResult holding the passages and the candidate
@@ -167,16 +259,24 @@ class HybridRetriever:
             return RetrievalResult(chunks=[], mode=mode)
 
         # Single-strategy modes need no fusion and no candidate pool.
+        # Single-strategy modes over-retrieve when a quota is in force, so
+        # the quota has candidates from other documents to promote.
+        single_limit = top_k if max_per_document is None else max(top_k, self.candidate_pool)
+
         if mode == MODE_DENSE:
-            hits = self._dense(question, top_k, doc_ids)
+            hits = self._dense(question, single_limit, doc_ids)
             return RetrievalResult(
-                chunks=self._to_chunks(hits), mode=mode, n_dense_candidates=len(hits)
+                chunks=self._to_chunks(self._select(hits, top_k, max_per_document)),
+                mode=mode,
+                n_dense_candidates=len(hits),
             )
 
         if mode == MODE_BM25:
-            hits = self._lexical(question, top_k, doc_ids)
+            hits = self._lexical(question, single_limit, doc_ids)
             return RetrievalResult(
-                chunks=self._to_chunks(hits), mode=mode, n_lexical_candidates=len(hits)
+                chunks=self._to_chunks(self._select(hits, top_k, max_per_document)),
+                mode=mode,
+                n_lexical_candidates=len(hits),
             )
 
         # Hybrid modes: over-retrieve from both arms, then fuse. The pool
@@ -206,17 +306,25 @@ class HybridRetriever:
         )
 
         if mode == MODE_HYBRID:
+            fused_hits = [(i, best_score[i]) for i in fused_indices[:pool]]
             return RetrievalResult(
-                chunks=candidates[:top_k],
+                chunks=self._to_chunks(self._select(fused_hits, top_k, max_per_document)),
                 mode=mode,
                 n_dense_candidates=len(dense_hits),
                 n_lexical_candidates=len(lexical_hits),
                 n_fused_candidates=len(candidates),
             )
 
-        reranked = self.reranker.rerank(question, candidates, top_k=top_k)
+        # Re-rank the whole pool, then apply the quota to the re-ranked
+        # order, so the quota picks the best passage per document rather
+        # than whatever the first stage happened to rank highest.
+        reranked = self.reranker.rerank(question, candidates)
+        position_of = {id(c.chunk): i for i, c in enumerate(candidates)}
+        reranked_hits = [
+            (fused_indices[position_of[id(r.chunk)]], r.score) for r in reranked
+        ]
         return RetrievalResult(
-            chunks=reranked,
+            chunks=self._to_chunks(self._select(reranked_hits, top_k, max_per_document)),
             mode=mode,
             n_dense_candidates=len(dense_hits),
             n_lexical_candidates=len(lexical_hits),
@@ -241,6 +349,15 @@ class HybridRetriever:
         allowed = self._allowed_indices(doc_ids)
         results = self.bm25.search(question, top_k=limit, allowed_indices=allowed)
         return [(r.chunk_index, r.score) for r in results]
+
+    def _select(
+        self,
+        hits: List[Tuple[int, float]],
+        top_k: int,
+        max_per_document: Optional[int],
+    ) -> List[Tuple[int, float]]:
+        """Applies the per-document quota and truncates to top_k."""
+        return diversify_by_document(hits, self.store.chunks, top_k, max_per_document)
 
     def _to_chunks(self, hits: List[Tuple[int, float]]) -> List[RetrievedChunk]:
         """Turns (chunk index, score) pairs back into citable results."""

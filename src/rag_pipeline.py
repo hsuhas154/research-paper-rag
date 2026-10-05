@@ -19,7 +19,7 @@ from src.corpus import Corpus, DocumentRecord
 from src.embedder import Embedder
 from src.llm import generate_answer
 from src.reranker import CrossEncoderReranker
-from src.retriever import MODE_HYBRID_RERANK, HybridRetriever
+from src.retriever import MODE_HYBRID_RERANK, HybridRetriever, looks_comparative
 from src.vector_store import RetrievedChunk
 
 
@@ -30,17 +30,22 @@ class Answer:
     sources: List[RetrievedChunk]
     mode: str
     document_titles: Dict[str, str]
+    max_per_document: Optional[int] = None
     n_dense_candidates: int = 0
     n_lexical_candidates: int = 0
     n_fused_candidates: int = 0
 
     def retrieval_summary(self) -> str:
         """One line describing how the passages were found."""
+        quota = (
+            f", quota {self.max_per_document}/paper" if self.max_per_document else ""
+        )
         if self.mode in ("dense", "bm25"):
-            return f"{self.mode} retrieval -> {len(self.sources)} passages"
+            return f"{self.mode} retrieval -> {len(self.sources)} passages{quota}"
         return (
             f"{self.n_dense_candidates} dense + {self.n_lexical_candidates} lexical "
-            f"candidates -> {self.n_fused_candidates} fused -> {len(self.sources)} passages"
+            f"candidates -> {self.n_fused_candidates} fused -> "
+            f"{len(self.sources)} passages{quota}"
         )
 
 
@@ -111,6 +116,7 @@ class RAGPipeline:
         doc_ids: Optional[Sequence[str]] = None,
         mode: str = MODE_HYBRID_RERANK,
         top_k: Optional[int] = None,
+        max_per_document: Optional[int] = None,
     ) -> Answer:
         """
         Answers a question against the corpus.
@@ -121,6 +127,11 @@ class RAGPipeline:
             mode: retrieval strategy (see retriever.RETRIEVAL_MODES)
             top_k: passages to ground the answer in; defaults to the
                 pipeline's configured value
+            max_per_document: cap on passages from any one paper. Left
+                unset, the pipeline applies a cap only when the question
+                reads as comparative, because applying one to every
+                question measurably costs accuracy on ordinary
+                single-paper questions.
 
         Returns:
             An Answer carrying the generated text, the source passages,
@@ -129,11 +140,23 @@ class RAGPipeline:
         if self.corpus.is_empty():
             raise ValueError("No documents in the corpus. Add a PDF first.")
 
+        passages = top_k or self.top_k
+
+        # A comparative question has to reach more than one paper, so the
+        # passage budget is shared rather than spent on the single
+        # strongest match. Half the budget per paper lets two papers be
+        # covered without starving either.
+        if max_per_document is None and looks_comparative(question):
+            searching = len(doc_ids) if doc_ids is not None else len(self.corpus.documents)
+            if searching > 1:
+                max_per_document = max(1, passages // 2)
+
         retrieval = self.retriever.retrieve(
             question,
-            top_k=top_k or self.top_k,
+            top_k=passages,
             mode=mode,
             doc_ids=doc_ids,
+            max_per_document=max_per_document,
         )
         titles = self.document_titles()
         text = generate_answer(question, retrieval.chunks, document_titles=titles)
@@ -143,6 +166,7 @@ class RAGPipeline:
             sources=retrieval.chunks,
             mode=retrieval.mode,
             document_titles=titles,
+            max_per_document=max_per_document,
             n_dense_candidates=retrieval.n_dense_candidates,
             n_lexical_candidates=retrieval.n_lexical_candidates,
             n_fused_candidates=retrieval.n_fused_candidates,

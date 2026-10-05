@@ -295,9 +295,10 @@ Everything else in Phase 3 adds measurement or surface area, not correctness.
       question (Phase 3)
 - [ ] Equation, symbol, and table extraction, so answers that *are* a
       formula stop degrading into garbled Unicode (Phase 3)
-- [ ] Per-document retrieval quotas, so a question spanning two papers can
-      reach both instead of spending its whole passage budget on one
-      (Phase 3)
+- [x] ~~Per-document retrieval quotas, so a question spanning two papers can
+      reach both instead of spending its whole passage budget on one~~
+      (Phase 3, done: applied only to questions that read as comparative,
+      since applying it to every question costs Hit@5 0.97 to 0.92)
 - [ ] RAGAS-based answer faithfulness and groundedness evaluation (Phase 3)
 - [ ] Conversational multi-turn memory with query rewriting (Phase 3)
 - [ ] FastAPI backend, replacing direct Gradio-to-pipeline calls (Phase 3)
