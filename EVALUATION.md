@@ -310,12 +310,17 @@ claims an answer makes, how many the retrieved context actually supports.
 Claims are extracted from the answer and judged against the context
 alone. On 25 validation questions, 126 claims:
 
-| metric | value | meaning |
-|---|---|---|
-| faithfulness | **0.906** | claims supported by the retrieved context |
-| contradiction rate | **0.0** | no claim contradicted its own context |
-| citation validity | **1.0** | every [Excerpt N] pointed at a real excerpt |
-| context utilisation | 0.28 | fraction of supplied passages actually cited |
+| metric | validation | test | meaning |
+|---|---|---|---|
+| faithfulness | **0.906** | **0.903** | claims supported by the retrieved context |
+| contradiction rate | **0.0** | **0.0** | no claim contradicted its own context |
+| citation validity | **1.0** | **1.0** | every [Excerpt N] pointed at a real excerpt |
+| context utilisation | 0.28 | 0.22 | fraction of supplied passages actually cited |
+| claims judged | 126 | 115 | |
+
+Validation and test agree to within 0.003 on faithfulness, across
+different papers in different fields, which is a better generalisation
+signal than any single number.
 
 Citation validity at 1.0 matters more than it looks: a fabricated
 citation is worse than an uncited claim, because the answer looks sourced
