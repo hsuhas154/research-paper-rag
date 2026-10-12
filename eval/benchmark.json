@@ -2,605 +2,408 @@
  "description": "Auto-generated retrieval benchmark over the 50-paper corpus. Questions written by the local LLM from individual chunks; evidence terms chosen as the rarest chunk terms absent from the question, then verified answerable. Split labels come from eval/splits.json.",
  "relevance_rule": "A retrieved chunk is relevant if it comes from the paper named in `paper` AND contains every phrase in `must_contain` (case-insensitive).",
  "counts": {
-  "train": 120,
-  "val": 40,
-  "test": 37
+  "train": 96,
+  "val": 34,
+  "test": 32
  },
  "queries": [
   {
    "id": "11a4f7-000",
+   "lexical_overlap": 0.222,
    "split": "train",
    "paper": "64-channel ultrasound transducer amplifier",
    "doc_id": "11a4f7393d29",
-   "question": "What is the measured voltage difference between the receive signals in the unbuffered and buffered test setups?",
+   "question": "What is the value of the output voltage swing for a circuit operating at 7 MHz?",
    "must_contain": [
-    "flattening",
-    "200mvp"
-   ],
-   "source_chunk": 14
-  },
-  {
-   "id": "11a4f7-001",
-   "split": "train",
-   "paper": "64-channel ultrasound transducer amplifier",
-   "doc_id": "11a4f7393d29",
-   "question": "What is the frequency at which the low-pass poles are out of band due to the buffered signal paths?",
-   "must_contain": [
-    "attenuated",
-    "coax"
-   ],
-   "source_chunk": 15
-  },
-  {
-   "id": "11a4f7-002",
-   "split": "train",
-   "paper": "64-channel ultrasound transducer amplifier",
-   "doc_id": "11a4f7393d29",
-   "question": "What is the specific CMOS technology used to implement the 64-channel ultrasound preamplifier device?",
-   "must_contain": [
-    "0.5um",
-    "measwed"
-   ],
-   "source_chunk": 1
-  },
-  {
-   "id": "11a4f7-003",
-   "split": "train",
-   "paper": "64-channel ultrasound transducer amplifier",
-   "doc_id": "11a4f7393d29",
-   "question": "What is the selected value for the overall voltage gain transfer function (AV) in this circuit design?",
-   "must_contain": [
-    "1pf",
-    "4gml"
-   ],
-   "source_chunk": 5
-  },
-  {
-   "id": "91f718-004",
-   "split": "train",
-   "paper": "A Comprehensive Review of Thermal Energy Storage",
-   "doc_id": "91f718e9d326",
-   "question": "What is the primary advantage of coupling CSP plants with conventional fuels?",
-   "must_contain": [
-    "cloudy",
-    "concentrate"
-   ],
-   "source_chunk": 73
-  },
-  {
-   "id": "91f718-005",
-   "split": "train",
-   "paper": "A Comprehensive Review of Thermal Energy Storage",
-   "doc_id": "91f718e9d326",
-   "question": "What is the percentage improvement in thermal conductivity achieved with a 0.1 wt% activated carbon dispersed PCM?",
-   "must_contain": [
-    "beeswax",
-    "constantinescu"
-   ],
-   "source_chunk": 69
-  },
-  {
-   "id": "91f718-006",
-   "split": "train",
-   "paper": "A Comprehensive Review of Thermal Energy Storage",
-   "doc_id": "91f718e9d326",
-   "question": "How many approaches have been developed for preparing encapsulated organic PCMs as a new kind of thermal energy storage medium?",
-   "must_contain": [
-    "physic-chemically",
-    "physic-mechanically"
-   ],
-   "source_chunk": 58
-  },
-  {
-   "id": "91f718-007",
-   "split": "train",
-   "paper": "A Comprehensive Review of Thermal Energy Storage",
-   "doc_id": "91f718e9d326",
-   "question": "What are the required thermo-physical properties for high-performance PCMs?",
-   "must_contain": [
-    "desorbing",
-    "proprieties"
-   ],
-   "source_chunk": 44
-  },
-  {
-   "id": "90d903-008",
-   "split": "train",
-   "paper": "A Data\u2010Driven Review of Soft Robotics",
-   "doc_id": "90d90380c8a2",
-   "question": "How many studies were cited in the 2022 paper \"Adv. Intell. Syst.\" as evidence for their claims?",
-   "must_contain": [
-    "boyraz",
-    "harbel"
-   ],
-   "source_chunk": 126
-  },
-  {
-   "id": "90d903-009",
-   "split": "train",
-   "paper": "A Data\u2010Driven Review of Soft Robotics",
-   "doc_id": "90d90380c8a2",
-   "question": "What types of power schemes are proposed for facilitating the untethering of soft robots?",
-   "must_contain": [
-    "durations",
-    "furthering"
-   ],
-   "source_chunk": 93
-  },
-  {
-   "id": "90d903-010",
-   "split": "train",
-   "paper": "A Data\u2010Driven Review of Soft Robotics",
-   "doc_id": "90d90380c8a2",
-   "question": "What is the number of references cited in the paper?",
-   "must_contain": [
-    "invernizzi",
-    "jerch"
-   ],
-   "source_chunk": 153
-  },
-  {
-   "id": "90d903-011",
-   "split": "train",
-   "paper": "A Data\u2010Driven Review of Soft Robotics",
-   "doc_id": "90d90380c8a2",
-   "question": "What percentage contraction was achieved by Jia et al.'s assembled hygroscopic silk actuators?",
-   "must_contain": [
-    "adaptability",
-    "structuring"
-   ],
-   "source_chunk": 57
-  },
-  {
-   "id": "115d93-012",
-   "split": "train",
-   "paper": "A Few Useful Things to Know About Machine Learning",
-   "doc_id": "115d932a29c1",
-   "question": "What percentage of effort in a typical machine learning project goes into feature engineering?",
-   "must_contain": [
-    "first-timers",
-    "stuff"
-   ],
-   "source_chunk": 35
-  },
-  {
-   "id": "115d93-013",
-   "split": "train",
-   "paper": "A Few Useful Things to Know About Machine Learning",
-   "doc_id": "115d932a29c1",
-   "question": "How much does cross-validation reduce the amount of available training data when compared to holding out a single subset?",
-   "must_contain": [
-    "insidious",
-    "mitigated"
-   ],
-   "source_chunk": 10
-  },
-  {
-   "id": "115d93-014",
-   "split": "train",
-   "paper": "A Few Useful Things to Know About Machine Learning",
-   "doc_id": "115d932a29c1",
-   "question": "Does adding a regularization term to the evaluation function consistently outperform other methods for combating overfitting?",
-   "must_contain": [
-    "skeptical",
-    "favoring"
-   ],
-   "source_chunk": 20
-  },
-  {
-   "id": "115d93-015",
-   "split": "train",
-   "paper": "A Few Useful Things to Know About Machine Learning",
-   "doc_id": "115d932a29c1",
-   "question": "What types of learning algorithms can potentially extract causal information from observational data?",
-   "must_contain": [
-    "restricted.19",
-    "bought"
-   ],
-   "source_chunk": 52
-  },
-  {
-   "id": "b2011f-016",
-   "split": "val",
-   "paper": "A Model of UV\u2013Blue Absorbance in Bulk Liquid of Venusian Cloud Aerosols Is Consistent with Efficient Organic Absorbers at High Concentrations",
-   "doc_id": "b2011f7a60dd",
-   "question": "What is the wavelength range at which an absence of sharp spectral features indicates that the unknown absorber is associated with cloud particles rather than gaseous species?",
-   "must_contain": [
-    "albedos",
-    "ekonomov"
-   ],
-   "source_chunk": 7
-  },
-  {
-   "id": "b2011f-017",
-   "split": "val",
-   "paper": "A Model of UV\u2013Blue Absorbance in Bulk Liquid of Venusian Cloud Aerosols Is Consistent with Efficient Organic Absorbers at High Concentrations",
-   "doc_id": "b2011f7a60dd",
-   "question": "What is the typical full-width at half-maximum (FWHM) of absorption bands in vacuum?",
-   "must_contain": [
-    "solvatochromic",
-    "broaden"
-   ],
-   "source_chunk": 42
-  },
-  {
-   "id": "b2011f-018",
-   "split": "val",
-   "paper": "A Model of UV\u2013Blue Absorbance in Bulk Liquid of Venusian Cloud Aerosols Is Consistent with Efficient Organic Absorbers at High Concentrations",
-   "doc_id": "b2011f7a60dd",
-   "question": "What is the predicted decadic absorption coefficient of the unknown venusian absorber at a wavelength of 375 nm?",
-   "must_contain": [
-    "chromophoric",
-    "lightabsorbing"
-   ],
-   "source_chunk": 54
-  },
-  {
-   "id": "b2011f-019",
-   "split": "val",
-   "paper": "A Model of UV\u2013Blue Absorbance in Bulk Liquid of Venusian Cloud Aerosols Is Consistent with Efficient Organic Absorbers at High Concentrations",
-   "doc_id": "b2011f7a60dd",
-   "question": "What is the linear decadic absorption coefficient of the bulk liquid forming Venus's cloud aerosol droplets over the 365-455 nm range?",
-   "must_contain": [
-    "observables",
-    "drop-off"
+    "1.8vp-p",
+    "17db"
    ],
    "source_chunk": 17
   },
   {
-   "id": "12e136-020",
+   "id": "11a4f7-001",
+   "lexical_overlap": 0.444,
    "split": "train",
-   "paper": "A New Approach to Linear Filtering and Prediction Problems",
-   "doc_id": "12e13615906d",
-   "question": "What is the initial value of the signal x1(t)?",
+   "paper": "64-channel ultrasound transducer amplifier",
+   "doc_id": "11a4f7393d29",
+   "question": "What was the difference in signal strength between the buffered and unbuffered test setups?",
    "must_contain": [
-    "desire",
-    "ex1"
-   ],
-   "source_chunk": 71
-  },
-  {
-   "id": "12e136-021",
-   "split": "train",
-   "paper": "A New Approach to Linear Filtering and Prediction Problems",
-   "doc_id": "12e13615906d",
-   "question": "What is the specific class of random processes for which the conditional distribution function satisfies the requirements of Theorem 1?",
-   "must_contain": [
-    "2x1",
-    "l-a"
-   ],
-   "source_chunk": 19
-  },
-  {
-   "id": "12e136-022",
-   "split": "train",
-   "paper": "A New Approach to Linear Filtering and Prediction Problems",
-   "doc_id": "12e13615906d",
-   "question": "What is the form of the covariance matrix Ex(t)x'(s) given in the problem statement?",
-   "must_contain": [
-    "experimentation",
-    "sure"
-   ],
-   "source_chunk": 41
-  },
-  {
-   "id": "12e136-023",
-   "split": "train",
-   "paper": "A New Approach to Linear Filtering and Prediction Problems",
-   "doc_id": "12e13615906d",
-   "question": "What is the formula for the transition matrix \u03a6(t + 1; t)?",
-   "must_contain": [
-    "non",
-    "manifold"
+    "200mvp",
+    "8omvpp"
    ],
    "source_chunk": 13
   },
   {
-   "id": "e3bd94-024",
+   "id": "91f718-002",
+   "lexical_overlap": 0.467,
    "split": "train",
-   "paper": "A Randomized Trial of Intensive versus Standard Blood- Pressure Control",
-   "doc_id": "e3bd944888bf",
-   "question": "What was the estimated glomerular filtration rate (eGFR) threshold used to define chronic kidney disease?",
+   "paper": "A Comprehensive Review of Thermal Energy Storage",
+   "doc_id": "91f718e9d326",
+   "question": "What are the key physical and chemical parameters that need to be considered when selecting a phase change material (PCM) for a specific application?",
    "must_contain": [
-    "10-year",
-    "diet"
+    "impregnation",
+    "slurries"
    ],
-   "source_chunk": 11
+   "source_chunk": 71
   },
   {
-   "id": "e3bd94-025",
+   "id": "90d903-003",
+   "lexical_overlap": 0.364,
    "split": "train",
-   "paper": "A Randomized Trial of Intensive versus Standard Blood- Pressure Control",
-   "doc_id": "e3bd944888bf",
-   "question": "What is the comparative risk assessment of burden of disease and injury attributable to high-normal blood pressure?",
+   "paper": "A Data\u2010Driven Review of Soft Robotics",
+   "doc_id": "90d90380c8a2",
+   "question": "What types of light sources are commonly used to induce optical actuation in certain materials?",
    "must_contain": [
-    "flaxman",
-    "anti-hypertensive"
+    "azobenzene",
+    "heatmap"
    ],
-   "source_chunk": 45
+   "source_chunk": 81
   },
   {
-   "id": "e3bd94-026",
+   "id": "90d903-004",
+   "lexical_overlap": 0.0,
    "split": "train",
-   "paper": "A Randomized Trial of Intensive versus Standard Blood- Pressure Control",
-   "doc_id": "e3bd944888bf",
-   "question": "What is the estimated glomerular filtration rate threshold used to define chronic kidney disease in this study?",
+   "paper": "A Data\u2010Driven Review of Soft Robotics",
+   "doc_id": "90d90380c8a2",
+   "question": "What is the most recent year mentioned in this list of references?",
    "must_contain": [
-    "lipoprotein",
-    "body-surface"
+    "baldwin",
+    "konkolewicz"
    ],
-   "source_chunk": 63
+   "source_chunk": 190
   },
   {
-   "id": "e3bd94-027",
+   "id": "90d903-005",
+   "lexical_overlap": 0.2,
    "split": "train",
-   "paper": "A Randomized Trial of Intensive versus Standard Blood- Pressure Control",
-   "doc_id": "e3bd944888bf",
-   "question": "What is the hazard ratio for patients experiencing hypotension as a serious adverse event in the Variable Intensive Treatment group compared to the Standard Treatment group?",
+   "paper": "A Data\u2010Driven Review of Soft Robotics",
+   "doc_id": "90d90380c8a2",
+   "question": "What is the title of the research paper that published in 2018 and was cited by Suo et al.?",
    "must_contain": [
-    "abnormality",
-    "sodium"
+    "cademartiri",
+    "ford"
    ],
-   "source_chunk": 74
+   "source_chunk": 179
   },
   {
-   "id": "e7acdd-028",
+   "id": "90d903-006",
+   "lexical_overlap": 0.5,
    "split": "train",
-   "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
-   "doc_id": "e7acdda3f02f",
-   "question": "What is the optimized device's insertion loss?",
+   "paper": "A Data\u2010Driven Review of Soft Robotics",
+   "doc_id": "90d90380c8a2",
+   "question": "Do researchers tend to rely more on fluidic components as a robotic device becomes increasingly complex?",
    "must_contain": [
-    "opto-electronic",
-    "silicon-on-insulator"
+    "use-case",
+    "diminished"
    ],
-   "source_chunk": 7
+   "source_chunk": 86
   },
   {
-   "id": "e7acdd-029",
+   "id": "90d903-007",
+   "lexical_overlap": 0.133,
    "split": "train",
-   "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
-   "doc_id": "e7acdda3f02f",
-   "question": "Where does the peak field in the plasmonic MOS deployed here occur?",
+   "paper": "A Data\u2010Driven Review of Soft Robotics",
+   "doc_id": "90d90380c8a2",
+   "question": "What percentage of robot-related research papers published between 2005 and 2021 cited at least one paper from the field of robotics?",
    "must_contain": [
-    "light-through",
-    "low-index"
+    "lungarella",
+    "scientometrics"
    ],
-   "source_chunk": 23
+   "source_chunk": 124
   },
   {
-   "id": "e7acdd-030",
+   "id": "90d903-008",
+   "lexical_overlap": 0.0,
    "split": "train",
-   "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
-   "doc_id": "e7acdda3f02f",
-   "question": "What is the wavelength of light used in the numerical simulations?",
+   "paper": "A Data\u2010Driven Review of Soft Robotics",
+   "doc_id": "90d90380c8a2",
+   "question": "What is the total number of research studies referenced in this list?",
    "must_contain": [
-    "0001i",
-    "002i"
+    "e455",
+    "gamstedt"
    ],
-   "source_chunk": 28
+   "source_chunk": 147
   },
   {
-   "id": "e7acdd-031",
+   "id": "90d903-009",
+   "lexical_overlap": 0.429,
    "split": "train",
-   "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
-   "doc_id": "e7acdda3f02f",
-   "question": "What are the experimentally measured refractive indices of ITO in both ON and OFF states?",
+   "paper": "A Data\u2010Driven Review of Soft Robotics",
+   "doc_id": "90d90380c8a2",
+   "question": "What proportion of existing soft controllers in the literature are fluidic?",
    "must_contain": [
-    "nito",
-    "vbias"
+    "desire",
+    "untethering"
    ],
-   "source_chunk": 21
+   "source_chunk": 92
   },
   {
-   "id": "e9e7ff-032",
+   "id": "115d93-010",
+   "lexical_overlap": 0.357,
    "split": "train",
-   "paper": "A review of topology optimization for additive manufacturing: Status and challenges",
-   "doc_id": "e9e7ffac2366",
-   "question": "What is the design and optimization method used for solid lattice hybrid structures fabricated by additive manufacturing?",
+   "paper": "A Few Useful Things to Know About Machine Learning",
+   "doc_id": "115d932a29c1",
+   "question": "What types of machine learning algorithms tend to produce similar results when dealing with complex classification tasks?",
    "must_contain": [
-    "3d-printed",
-    "sunaric"
+    "domingos11",
+    "hulten"
    ],
-   "source_chunk": 88
+   "source_chunk": 42
   },
   {
-   "id": "e9e7ff-033",
+   "id": "115d93-011",
+   "lexical_overlap": 0.417,
    "split": "train",
-   "paper": "A review of topology optimization for additive manufacturing: Status and challenges",
-   "doc_id": "e9e7ffac2366",
-   "question": "What method does Xia Q and Wang MY use to simultaneously optimize the material properties and the topology of functionally graded structures?",
+   "paper": "A Few Useful Things to Know About Machine Learning",
+   "doc_id": "115d932a29c1",
+   "question": "What type of learner tends to be more valuable for organizations due to its ability to produce human-understandable output?",
    "must_contain": [
-    "guessasma",
-    "kamarian"
+    "pays",
+    "harder"
    ],
-   "source_chunk": 91
+   "source_chunk": 43
   },
   {
-   "id": "e9e7ff-034",
+   "id": "b2011f-012",
+   "lexical_overlap": 0.462,
+   "split": "val",
+   "paper": "A Model of UV\u2013Blue Absorbance in Bulk Liquid of Venusian Cloud Aerosols Is Consistent with Efficient Organic Absorbers at High Concentrations",
+   "doc_id": "b2011f7a60dd",
+   "question": "What types of molecules or particles in Venusian clouds are currently considered potential candidates for causing the unknown absorption?",
+   "must_contain": [
+    "toon",
+    "2025a"
+   ],
+   "source_chunk": 6
+  },
+  {
+   "id": "12e136-013",
+   "lexical_overlap": 0.429,
    "split": "train",
-   "paper": "A review of topology optimization for additive manufacturing: Status and challenges",
-   "doc_id": "e9e7ffac2366",
-   "question": "What method did Hu et al. propose to further reduce additional supports in additive manufacturing?",
+   "paper": "A New Approach to Linear Filtering and Prediction Problems",
+   "doc_id": "12e13615906d",
+   "question": "What happens to the matrix X(t) when it is replaced by X\u02c6 '(t) = X\u02c6 '(T \u2013 \u03c4)?",
    "must_contain": [
-    "al.100",
-    "al.99"
-   ],
-   "source_chunk": 32
-  },
-  {
-   "id": "e9e7ff-035",
-   "split": "train",
-   "paper": "A review of topology optimization for additive manufacturing: Status and challenges",
-   "doc_id": "e9e7ffac2366",
-   "question": "Does the use of projection functions achieve a minimum length scale in topology optimization?",
-   "must_contain": [
-    "belytschko",
-    "jee"
-   ],
-   "source_chunk": 80
-  },
-  {
-   "id": "26a4d8-036",
-   "split": "test",
-   "paper": "AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT SCALE",
-   "doc_id": "26a4d86737e7",
-   "question": "What learning rate is required to achieve similar performance between class-token and global average pooling classifiers?",
-   "must_contain": [
-    "learning-rate",
-    "rel"
-   ],
-   "source_chunk": 67
-  },
-  {
-   "id": "26a4d8-037",
-   "split": "test",
-   "paper": "AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT SCALE",
-   "doc_id": "26a4d86737e7",
-   "question": "What is the pre-training compute in exaFLOPs for the ViT-H/14 model?",
-   "must_contain": [
-    "resnet101x1",
-    "resnet152x1"
-   ],
-   "source_chunk": 60
-  },
-  {
-   "id": "26a4d8-038",
-   "split": "test",
-   "paper": "AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT SCALE",
-   "doc_id": "26a4d86737e7",
-   "question": "What is the average attention distance computed for each head at network depth 100?",
-   "must_contain": [
-    "d.5",
-    "attended"
-   ],
-   "source_chunk": 72
-  },
-  {
-   "id": "26a4d8-039",
-   "split": "test",
-   "paper": "AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT SCALE",
-   "doc_id": "26a4d86737e7",
-   "question": "What is the mean attention distance (in pixels) at different network depths?",
-   "must_contain": [
-    "attends",
-    "tiles"
-   ],
-   "source_chunk": 36
-  },
-  {
-   "id": "385b86-040",
-   "split": "train",
-   "paper": "Absence of Diffusion in Certain Random Lattices",
-   "doc_id": "385b86a0ccbb",
-   "question": "What is the order of magnitude of the critical potential value V below which no transport occurs?",
-   "must_contain": [
-    "an.d",
-    "low-concentration"
-   ],
-   "source_chunk": 10
-  },
-  {
-   "id": "385b86-041",
-   "split": "train",
-   "paper": "Absence of Diffusion in Certain Random Lattices",
-   "doc_id": "385b86a0ccbb",
-   "question": "What is the density threshold below which no spin diffusion occurs in this model?",
-   "must_contain": [
-    "randomness",
-    "jersey"
-   ],
-   "source_chunk": 3
-  },
-  {
-   "id": "385b86-042",
-   "split": "train",
-   "paper": "Absence of Diffusion in Certain Random Lattices",
-   "doc_id": "385b86a0ccbb",
-   "question": "What is the expression for VOA in equation (7)?",
-   "must_contain": [
-    "inquire",
-    "ofo"
-   ],
-   "source_chunk": 15
-  },
-  {
-   "id": "385b86-043",
-   "split": "train",
-   "paper": "Absence of Diffusion in Certain Random Lattices",
-   "doc_id": "385b86a0ccbb",
-   "question": "What is the specific form of the Laplace transform, yr(p), that results from convolving the distributions of S and Z?",
-   "must_contain": [
-    "4rr",
-    "nrss"
+    "duality",
+    "ease"
    ],
    "source_chunk": 65
   },
   {
-   "id": "0ff8dd-044",
+   "id": "12e136-014",
+   "lexical_overlap": 0.333,
    "split": "train",
-   "paper": "Adam: A Method for Stochastic Optimization",
-   "doc_id": "0ff8ddc555de",
-   "question": "What is the regret bound on the convergence rate of Adam under the online convex optimization framework?",
+   "paper": "A New Approach to Linear Filtering and Prediction Problems",
+   "doc_id": "12e13615906d",
+   "question": "What types of problems does the new method work particularly well on?",
    "must_contain": [
-    "favorably",
-    "lower-order"
+    "resort",
+    "analogies"
    ],
-   "source_chunk": 1
+   "source_chunk": 9
   },
   {
-   "id": "0ff8dd-045",
+   "id": "12e136-015",
+   "lexical_overlap": 0.364,
    "split": "train",
-   "paper": "Adam: A Method for Stochastic Optimization",
-   "doc_id": "0ff8ddc555de",
-   "question": "What value of p makes the Lp norm based update rule numerically unstable?",
+   "paper": "A New Approach to Linear Filtering and Prediction Problems",
+   "doc_id": "12e13615906d",
+   "question": "What happens to the relationship between x and w when both minimize the quadratic loss?",
    "must_contain": [
-    "2vt",
-    "emerges"
+    "minimizes",
+    "summarized"
    ],
-   "source_chunk": 34
+   "source_chunk": 26
   },
   {
-   "id": "0ff8dd-046",
+   "id": "e3bd94-016",
+   "lexical_overlap": 0.5,
    "split": "train",
-   "paper": "Adam: A Method for Stochastic Optimization",
-   "doc_id": "0ff8ddc555de",
-   "question": "Does Adam yield similar convergence rates to accelerated SGD with Nesterov momentum on L2-regularized multi-class logistic regression using the MNIST dataset?",
+   "paper": "A Randomized Trial of Intensive versus Standard Blood- Pressure Control",
+   "doc_id": "e3bd944888bf",
+   "question": "What specific thiazide-type diuretic was recommended as the primary option by the protocol?",
    "must_contain": [
-    "searched",
-    "theoratical"
+    "amlodipine",
+    "artery"
    ],
-   "source_chunk": 24
+   "source_chunk": 13
   },
   {
-   "id": "0ff8dd-047",
+   "id": "e3bd94-017",
+   "lexical_overlap": 0.444,
    "split": "train",
-   "paper": "Adam: A Method for Stochastic Optimization",
-   "doc_id": "0ff8ddc555de",
-   "question": "Under what conditions does Adam achieve a guarantee where the summation term can be much smaller than its upper bound?",
+   "paper": "A Randomized Trial of Intensive versus Standard Blood- Pressure Control",
+   "doc_id": "e3bd944888bf",
+   "question": "How many institutions received funding from Clinical and Translational Science Awards?",
    "must_contain": [
-    "tbvt",
-    "decaying"
+    "9u54tr000017-06",
+    "cobre"
    ],
-   "source_chunk": 17
+   "source_chunk": 41
   },
   {
-   "id": "73db13-048",
-   "split": "val",
-   "paper": "An Algorithm for the Machine Calculation of Complex Fourier Series",
-   "doc_id": "73db1355f4e2",
-   "question": "What is the time required for the machine calculation of a complex Fourier series when using .07 as the number of points?",
+   "id": "e3bd94-018",
+   "lexical_overlap": 0.0,
+   "split": "train",
+   "paper": "A Randomized Trial of Intensive versus Standard Blood- Pressure Control",
+   "doc_id": "e3bd944888bf",
+   "question": "What sources of funding were used to support the research?",
    "must_contain": [
-    "a4231",
-    "abc"
+    "9u54tr000017-06",
+    "cobre"
+   ],
+   "source_chunk": 40
+  },
+  {
+   "id": "e7acdd-019",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
+   "doc_id": "e7acdda3f02f",
+   "question": "What effect does increasing the carrier density of the ITO film have on its permittivity and index at different operating frequencies?",
+   "must_contain": [
+    "equating",
+    "layer-induced"
+   ],
+   "source_chunk": 19
+  },
+  {
+   "id": "e7acdd-020",
+   "lexical_overlap": 0.286,
+   "split": "train",
+   "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
+   "doc_id": "e7acdda3f02f",
+   "question": "What is a common limitation of intra-chip systems as they scale?",
+   "must_contain": [
+    "ics",
+    "kerr"
+   ],
+   "source_chunk": 3
+  },
+  {
+   "id": "e7acdd-021",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "A Sub-$\\lambda$-Size Modulator Beyond the Efficiency-Loss Limit",
+   "doc_id": "e7acdda3f02f",
+   "question": "What happens to the external reflection when the top metal is changed from Gold to Copper?",
+   "must_contain": [
+    "counterintuitive",
+    "weaker"
+   ],
+   "source_chunk": 26
+  },
+  {
+   "id": "e9e7ff-022",
+   "lexical_overlap": 0.364,
+   "split": "train",
+   "paper": "A review of topology optimization for additive manufacturing: Status and challenges",
+   "doc_id": "e9e7ffac2366",
+   "question": "What types of structures have been optimized using the finite-circle method in research by Zhu and colleagues?",
+   "must_contain": [
+    "multi-domain",
+    "superelement"
+   ],
+   "source_chunk": 69
+  },
+  {
+   "id": "26a4d8-023",
+   "lexical_overlap": 0.222,
+   "split": "test",
+   "paper": "AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT SCALE",
+   "doc_id": "26a4d86737e7",
+   "question": "What is the problem with applying standard self-attention mechanisms directly to image data?",
+   "must_contain": [
+    "neighborhoods",
+    "transformer-based"
+   ],
+   "source_chunk": 6
+  },
+  {
+   "id": "26a4d8-024",
+   "lexical_overlap": 0.455,
+   "split": "test",
+   "paper": "AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT SCALE",
+   "doc_id": "26a4d86737e7",
+   "question": "Do the authors use a different type of position embedding during fine-tuning compared to pre-training?",
+   "must_contain": [
+    "atten",
+    "multiheaded"
    ],
    "source_chunk": 12
   },
   {
-   "id": "73db13-049",
+   "id": "26a4d8-025",
+   "lexical_overlap": 0.429,
+   "split": "test",
+   "paper": "AN IMAGE IS WORTH 16X16 WORDS: TRANSFORMERS FOR IMAGE RECOGNITION AT SCALE",
+   "doc_id": "26a4d86737e7",
+   "question": "Do Vision Transformers use significantly less computational resources than ResNets while achieving similar performance?",
+   "must_contain": [
+    "attain",
+    "motivating"
+   ],
+   "source_chunk": 33
+  },
+  {
+   "id": "385b86-026",
+   "lexical_overlap": 0.455,
+   "split": "train",
+   "paper": "Absence of Diffusion in Certain Random Lattices",
+   "doc_id": "385b86a0ccbb",
+   "question": "What is the form of the distribution function V when expressed in terms of the logarithmic variable Z?",
+   "must_contain": [
+    "strip",
+    "bringing"
+   ],
+   "source_chunk": 67
+  },
+  {
+   "id": "385b86-027",
+   "lexical_overlap": 0.385,
+   "split": "train",
+   "paper": "Absence of Diffusion in Certain Random Lattices",
+   "doc_id": "385b86a0ccbb",
+   "question": "What is the nature of the quantities involved in the theory, such that their distribution function can be approximated with relative ease?",
+   "must_contain": [
+    "di6",
+    "fortunate"
+   ],
+   "source_chunk": 55
+  },
+  {
+   "id": "385b86-028",
+   "lexical_overlap": 0.444,
+   "split": "train",
+   "paper": "Absence of Diffusion in Certain Random Lattices",
+   "doc_id": "385b86a0ccbb",
+   "question": "What is the simplified form of F~(p) when 6 can be neglected?",
+   "must_contain": [
+    "summing",
+    "indebted"
+   ],
+   "source_chunk": 58
+  },
+  {
+   "id": "0ff8dd-029",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Adam: A Method for Stochastic Optimization",
+   "doc_id": "0ff8ddc555de",
+   "question": "How does the computational efficiency of Adam compare to that of other stochastic optimization methods?",
+   "must_contain": [
+    "interpretations",
+    "moments"
+   ],
+   "source_chunk": 1
+  },
+  {
+   "id": "73db13-030",
+   "lexical_overlap": 0.5,
    "split": "val",
    "paper": "An Algorithm for the Machine Calculation of Complex Fourier Series",
    "doc_id": "73db1355f4e2",
-   "question": "What is the maximum number by which the use of r, up to 10, can increase the number of computations?",
+   "question": "What is the maximum increase in computation time when using values of r up to 10 instead of r = 2 or r = 4?",
    "must_contain": [
     "1-2m",
     "economy"
@@ -608,599 +411,519 @@
    "source_chunk": 6
   },
   {
-   "id": "73db13-050",
+   "id": "73db13-031",
+   "lexical_overlap": 0.125,
    "split": "val",
    "paper": "An Algorithm for the Machine Calculation of Complex Fourier Series",
    "doc_id": "73db1355f4e2",
-   "question": "How many operations does the described algorithm require to calculate the complex Fourier series?",
+   "question": "What is the number of data points used in each calculation listed?",
    "must_contain": [
-    "2jv",
-    "e2riln"
-   ],
-   "source_chunk": 2
-  },
-  {
-   "id": "73db13-051",
-   "split": "val",
-   "paper": "An Algorithm for the Machine Calculation of Complex Fourier Series",
-   "doc_id": "73db1355f4e2",
-   "question": "How does the number of operations required by an m-step algorithm compare to the total number of operations when all possible factors are used?",
-   "must_contain": [
-    "niri",
-    "nr2"
-   ],
-   "source_chunk": 4
-  },
-  {
-   "id": "7dc60b-052",
-   "split": "train",
-   "paper": "Attention is All you Need",
-   "doc_id": "7dc60bcf3325",
-   "question": "Does reducing the attention key size dk from 128 to 256 hurt model quality?",
-   "must_contain": [
-    "300k",
-    "per-word"
-   ],
-   "source_chunk": 33
-  },
-  {
-   "id": "7dc60b-053",
-   "split": "train",
-   "paper": "Attention is All you Need",
-   "doc_id": "7dc60bcf3325",
-   "question": "What is the minimum number of sequential operations required for parallelization in self-attention layers compared to recurrent and convolutional layers?",
-   "must_contain": [
-    "traverse",
-    "variable-length"
-   ],
-   "source_chunk": 21
-  },
-  {
-   "id": "7dc60b-054",
-   "split": "train",
-   "paper": "Attention is All you Need",
-   "doc_id": "7dc60bcf3325",
-   "question": "What is the dimension dmodel of the outputs produced by all sub-layers and embedding layers in the model?",
-   "must_contain": [
-    "sublayer",
-    "wise"
-   ],
-   "source_chunk": 8
-  },
-  {
-   "id": "7dc60b-055",
-   "split": "train",
-   "paper": "Attention is All you Need",
-   "doc_id": "7dc60bcf3325",
-   "question": "What is the effect on BLEU score when using label smoothing during training with a value of \u03f5ls = 0.1?",
-   "must_contain": [
-    "deep-att",
-    "en-de"
-   ],
-   "source_chunk": 29
-  },
-  {
-   "id": "26edf6-056",
-   "split": "train",
-   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
-   "doc_id": "26edf62c6963",
-   "question": "What are the T values extracted by the electron DT model for each of the given oxide thicknesses?",
-   "must_contain": [
-    "prevail",
-    "gidl"
-   ],
-   "source_chunk": 5
-  },
-  {
-   "id": "26edf6-057",
-   "split": "train",
-   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
-   "doc_id": "26edf62c6963",
-   "question": "How many U.S. patents has Dr. S. M. Jang received?",
-   "must_contain": [
-    "antireflection",
-    "coms"
-   ],
-   "source_chunk": 32
-  },
-  {
-   "id": "26edf6-058",
-   "split": "train",
-   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
-   "doc_id": "26edf62c6963",
-   "question": "What is the year that CMOS scaling entered into the nanometer regime?",
-   "must_contain": [
-    "back-gate",
-    "corner-field"
-   ],
-   "source_chunk": 23
-  },
-  {
-   "id": "26edf6-059",
-   "split": "train",
-   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
-   "doc_id": "26edf62c6963",
-   "question": "What is the width of the extracted effective EDT range?",
-   "must_contain": [
-    "2-deg",
-    "edge-tunneling"
-   ],
-   "source_chunk": 18
-  },
-  {
-   "id": "0b0785-060",
-   "split": "train",
-   "paper": "Chlorine\u2013sulfur isomers as parents of ClS2 and SCl2 on Venus: Spectroscopy and photochemistry of ClSSCl, SSCl2, and (ClS)2",
-   "doc_id": "0b07851729e9",
-   "question": "What is the wavelength at which excitation produces ClS2 and ClS products?",
-   "must_contain": [
-    "attributing",
-    "distributions.20"
-   ],
-   "source_chunk": 7
-  },
-  {
-   "id": "0b0785-061",
-   "split": "train",
-   "paper": "Chlorine\u2013sulfur isomers as parents of ClS2 and SCl2 on Venus: Spectroscopy and photochemistry of ClSSCl, SSCl2, and (ClS)2",
-   "doc_id": "0b07851729e9",
-   "question": "What is the distinct intensity pattern dominated by the intense Cl\u2013S stretch that was predicted for the (ClS)2 dimer?",
-   "must_contain": [
-    "investigation.46",
-    "paving"
-   ],
-   "source_chunk": 22
-  },
-  {
-   "id": "0b0785-062",
-   "split": "train",
-   "paper": "Chlorine\u2013sulfur isomers as parents of ClS2 and SCl2 on Venus: Spectroscopy and photochemistry of ClSSCl, SSCl2, and (ClS)2",
-   "doc_id": "0b07851729e9",
-   "question": "What is the calculated bond dissociation energy of the ground state X1A\u2032 of SSCl2?",
-   "must_contain": [
-    "evolutions",
-    "intersect"
-   ],
-   "source_chunk": 35
-  },
-  {
-   "id": "0b0785-063",
-   "split": "train",
-   "paper": "Chlorine\u2013sulfur isomers as parents of ClS2 and SCl2 on Venus: Spectroscopy and photochemistry of ClSSCl, SSCl2, and (ClS)2",
-   "doc_id": "0b07851729e9",
-   "question": "How many major product channels are directly observed at 235 nm?",
-   "must_contain": [
-    "fission",
-    "nm21"
-   ],
-   "source_chunk": 34
-  },
-  {
-   "id": "f05433-064",
-   "split": "train",
-   "paper": "Comment: The FAIR Guiding Principles for scientific data management and stewardship",
-   "doc_id": "f05433399da0",
-   "question": "What types of data are accepted by general-purpose data repositories such as Dataverse, FigShare, Dryad, and others?",
-   "must_contain": [
-    "centralization",
-    "harmonize"
-   ],
-   "source_chunk": 7
-  },
-  {
-   "id": "f05433-065",
-   "split": "train",
-   "paper": "Comment: The FAIR Guiding Principles for scientific data management and stewardship",
-   "doc_id": "f05433399da0",
-   "question": "What specific characteristics do the FAIR Principles define that contemporary data resources and tools should exhibit to assist discovery and reuse by third-parties?",
-   "must_contain": [
-    "adhered",
-    "barrier-to-entry"
-   ],
-   "source_chunk": 20
-  },
-  {
-   "id": "f05433-066",
-   "split": "train",
-   "paper": "Comment: The FAIR Guiding Principles for scientific data management and stewardship",
-   "doc_id": "f05433399da0",
-   "question": "What are the four core desiderata, or FAIR Guiding Principles, that representatives of stakeholder-groups coalesced around?",
-   "must_contain": [
-    "datafairport.org",
-    "elaboration"
-   ],
-   "source_chunk": 19
-  },
-  {
-   "id": "f05433-067",
-   "split": "train",
-   "paper": "Comment: The FAIR Guiding Principles for scientific data management and stewardship",
-   "doc_id": "f05433399da0",
-   "question": "Is the metadata for differential polyadenylation data, including specific species, tissues, types of data, conditions, and genes, captured by existing repositories and searchable through available tools?",
-   "must_contain": [
-    "pathogen",
-    "microarray"
-   ],
-   "source_chunk": 8
-  },
-  {
-   "id": "f63811-068",
-   "split": "val",
-   "paper": "Cramming more components onto integrated circuits",
-   "doc_id": "f63811bf1c9a",
-   "question": "What is the current economic justification for improving device yields beyond their current level?",
-   "must_contain": [
-    "incentive",
-    "economically"
-   ],
-   "source_chunk": 11
-  },
-  {
-   "id": "f63811-069",
-   "split": "val",
-   "paper": "Cramming more components onto integrated circuits",
-   "doc_id": "f63811bf1c9a",
-   "question": "What is the number of components per circuit at which the minimum cost per component is currently reached?",
-   "must_contain": [
-    "attractions",
-    "tending"
-   ],
-   "source_chunk": 7
-  },
-  {
-   "id": "f63811-070",
-   "split": "val",
-   "paper": "Cramming more components onto integrated circuits",
-   "doc_id": "f63811bf1c9a",
-   "question": "What fraction of a degree can integrated structures be stabilized to using thermal feedback effects?",
-   "must_contain": [
-    "antennas",
-    "invasion"
-   ],
-   "source_chunk": 15
-  },
-  {
-   "id": "f63811-071",
-   "split": "val",
-   "paper": "Cramming more components onto integrated circuits",
-   "doc_id": "f63811bf1c9a",
-   "question": "What percentage of linear electronics is satisfied by the availability of linear integrated circuitry?",
-   "must_contain": [
-    "apollo",
-    "manned"
-   ],
-   "source_chunk": 4
-  },
-  {
-   "id": "821ec6-072",
-   "split": "train",
-   "paper": "Dai et al. Astronomy and Astrophysics 2024",
-   "doc_id": "821ec69a9896",
-   "question": "What effect does scaling the dissolution and release rate constants (R293\u2013295) from nominal to zero have on the peaks of SO and SO2?",
-   "must_contain": [
-    "recycling",
-    "weakened"
-   ],
-   "source_chunk": 54
-  },
-  {
-   "id": "821ec6-073",
-   "split": "train",
-   "paper": "Dai et al. Astronomy and Astrophysics 2024",
-   "doc_id": "821ec69a9896",
-   "question": "What is the peak altitude at which NO2 is produced in the nominal model?",
-   "must_contain": [
-    "oxidizes",
-    "2006a"
-   ],
-   "source_chunk": 41
-  },
-  {
-   "id": "821ec6-074",
-   "split": "train",
-   "paper": "Dai et al. Astronomy and Astrophysics 2024",
-   "doc_id": "821ec69a9896",
-   "question": "What is the column rate of COS consumption by SO3 within the altitude range of 30-50 km?",
-   "must_contain": [
-    "depleting",
-    "consumed"
-   ],
-   "source_chunk": 38
-  },
-  {
-   "id": "821ec6-075",
-   "split": "train",
-   "paper": "Dai et al. Astronomy and Astrophysics 2024",
-   "doc_id": "821ec69a9896",
-   "question": "What is the estimated volume mixing ratio (VMR) of nitric oxide (NO) in the lower atmosphere of Venus?",
-   "must_contain": [
-    "iwagami",
-    "2006a"
-   ],
-   "source_chunk": 40
-  },
-  {
-   "id": "49902a-076",
-   "split": "train",
-   "paper": "Deep Learning",
-   "doc_id": "49902af2312d",
-   "question": "How many scenes or images are depicted in the accompanying visual representation?",
-   "must_contain": [
-    "hardwood",
-    "frisbee"
-   ],
-   "source_chunk": 37
-  },
-  {
-   "id": "49902a-077",
-   "split": "train",
-   "paper": "Deep Learning",
-   "doc_id": "49902af2312d",
-   "question": "Can a recurrent neural network be used to map an input sequence into an output sequence, where each output depends on all previous inputs?",
-   "must_contain": [
-    "connectomic",
-    "helmstaedter"
-   ],
-   "source_chunk": 57
-  },
-  {
-   "id": "49902a-078",
-   "split": "train",
-   "paper": "Deep Learning",
-   "doc_id": "49902af2312d",
-   "question": "What non-linear functions are used in neural networks according to this paper?",
-   "must_contain": [
-    "hyberbolic",
-    "sigmoids"
+    "addendum",
+    "ser"
    ],
    "source_chunk": 12
   },
   {
-   "id": "49902a-079",
+   "id": "7dc60b-032",
+   "lexical_overlap": 0.444,
    "split": "train",
-   "paper": "Deep Learning",
-   "doc_id": "49902af2312d",
-   "question": "What is the source of funding for the research described in this paper?",
+   "paper": "Attention is All you Need",
+   "doc_id": "7dc60bcf3325",
+   "question": "What specific mathematical functions are used in this work to create positional encodings?",
    "must_contain": [
-    "7cjbaa",
-    "canadian"
-   ],
-   "source_chunk": 77
-  },
-  {
-   "id": "c97944-080",
-   "split": "train",
-   "paper": "Deep Residual Learning for Image Recognition",
-   "doc_id": "c97944980fa7",
-   "question": "What is the year in which C. Szegedy et al. published their paper \"Going deeper with convolutions\"?",
-   "must_contain": [
-    "fulkerson",
-    "s-plus"
-   ],
-   "source_chunk": 59
-  },
-  {
-   "id": "c97944-081",
-   "split": "train",
-   "paper": "Deep Residual Learning for Image Recognition",
-   "doc_id": "c97944980fa7",
-   "question": "What is the test error rate achieved by a 103-layer network using the described method?",
-   "must_contain": [
-    "1202-layer",
-    "aggressively"
-   ],
-   "source_chunk": 50
-  },
-  {
-   "id": "c97944-082",
-   "split": "train",
-   "paper": "Deep Residual Learning for Image Recognition",
-   "doc_id": "c97944980fa7",
-   "question": "How many projection shortcuts does option C introduce?",
-   "must_contain": [
-    "thirteen",
-    "zero-padded"
-   ],
-   "source_chunk": 39
-  },
-  {
-   "id": "c97944-083",
-   "split": "train",
-   "paper": "Deep Residual Learning for Image Recognition",
-   "doc_id": "c97944980fa7",
-   "question": "What is the effect on training error when increasing network depth in plain nets?",
-   "must_contain": [
-    "converging5",
-    "5with"
-   ],
-   "source_chunk": 46
-  },
-  {
-   "id": "bc1170-084",
-   "split": "train",
-   "paper": "Deep learning in computational mechanics: a review",
-   "doc_id": "bc11707d348d",
-   "question": "How does differentiating the predicted strain energy density with respect to the invariants yield a constitutive model relating stress and strain?",
-   "must_contain": [
-    "theconstitutivemodel",
-    "totheinvariants"
-   ],
-   "source_chunk": 132
-  },
-  {
-   "id": "bc1170-085",
-   "split": "train",
-   "paper": "Deep learning in computational mechanics: a review",
-   "doc_id": "bc11707d348d",
-   "question": "What specific numerical parameter was predicted using a similarity-based approach in [436]?",
-   "must_contain": [
-    "dissimilarity",
-    "spare"
-   ],
-   "source_chunk": 135
-  },
-  {
-   "id": "bc1170-086",
-   "split": "train",
-   "paper": "Deep learning in computational mechanics: a review",
-   "doc_id": "bc11707d348d",
-   "question": "What is the modified formula for estimating gradients in distorted elements using NNs?",
-   "must_contain": [
-    "strain-displacement",
-    "quadrature"
-   ],
-   "source_chunk": 133
-  },
-  {
-   "id": "bc1170-087",
-   "split": "train",
-   "paper": "Deep learning in computational mechanics: a review",
-   "doc_id": "bc11707d348d",
-   "question": "How do generalization errors compare between models using physics-informed learning versus simulation enhancement?",
-   "must_contain": [
-    "admissible",
-    "handled"
-   ],
-   "source_chunk": 23
-  },
-  {
-   "id": "7eac8b-088",
-   "split": "test",
-   "paper": "Dense Passage Retrieval for Open-Domain Question Answering",
-   "doc_id": "7eac8b06e9c3",
-   "question": "How many questions per second can DPR process when utilizing a FAISS in-memory index for real-valued vectors?",
-   "must_contain": [
-    "2.20ghz",
-    "512gb"
-   ],
-   "source_chunk": 39
-  },
-  {
-   "id": "7eac8b-089",
-   "split": "test",
-   "paper": "Dense Passage Retrieval for Open-Domain Question Answering",
-   "doc_id": "7eac8b06e9c3",
-   "question": "What is the maximum size of the filter set of texts (CF) returned by the retriever function R?",
-   "must_contain": [
-    "units3",
-    "speaking"
-   ],
-   "source_chunk": 9
-  },
-  {
-   "id": "4ec2ee-090",
-   "split": "test",
-   "paper": "Design and Manufacturing Strategies for Fused Deposition Modelling in Additive Manufacturing: A Review",
-   "doc_id": "4ec2eebb0df3",
-   "question": "What is the minimum wall thickness that can be produced with a layer thickness of 16 microns in dispensing processes?",
-   "must_contain": [
-    "breakable",
-    "excessively"
-   ],
-   "source_chunk": 17
-  },
-  {
-   "id": "4ec2ee-091",
-   "split": "test",
-   "paper": "Design and Manufacturing Strategies for Fused Deposition Modelling in Additive Manufacturing: A Review",
-   "doc_id": "4ec2eebb0df3",
-   "question": "What is the minimum layer thickness required to minimize the staircase effect on surface finish?",
-   "must_contain": [
-    "filament",
-    "removability"
+    "100002i",
+    "hypothesized"
    ],
    "source_chunk": 20
   },
   {
-   "id": "4ec2ee-092",
-   "split": "test",
-   "paper": "Design and Manufacturing Strategies for Fused Deposition Modelling in Additive Manufacturing: A Review",
-   "doc_id": "4ec2eebb0df3",
-   "question": "How many design guidelines for FDM processes have been proposed?",
+   "id": "26edf6-033",
+   "lexical_overlap": 0.429,
+   "split": "train",
+   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
+   "doc_id": "26edf62c6963",
+   "question": "What year did S. Thompson et al. publish their paper on source/drain extension scaling?",
    "must_contain": [
-    "aut",
-    "facultad"
+    "bohr",
+    "c-v"
+   ],
+   "source_chunk": 26
+  },
+  {
+   "id": "26edf6-034",
+   "lexical_overlap": 0.2,
+   "split": "train",
+   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
+   "doc_id": "26edf62c6963",
+   "question": "What is the typical thickness of gate oxides in NMOSFETs that are discussed in the research papers listed?",
+   "must_contain": [
+    "hareland",
+    "heavily-doped"
+   ],
+   "source_chunk": 25
+  },
+  {
+   "id": "26edf6-035",
+   "lexical_overlap": 0.111,
+   "split": "train",
+   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
+   "doc_id": "26edf62c6963",
+   "question": "What is the minimum gate oxide thickness required for reliable operation of NMOSFETs?",
+   "must_contain": [
+    "bower",
+    "buchanan"
+   ],
+   "source_chunk": 24
+  },
+  {
+   "id": "26edf6-036",
+   "lexical_overlap": 0.444,
+   "split": "train",
+   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
+   "doc_id": "26edf62c6963",
+   "question": "Is the amount of electrical discharge through a device directly proportional to its gate width?",
+   "must_contain": [
+    "stand-by",
+    "lateral"
+   ],
+   "source_chunk": 14
+  },
+  {
+   "id": "26edf6-037",
+   "lexical_overlap": 0.429,
+   "split": "train",
+   "paper": "Characterization and modeling of edge direct tunneling (EDT) leakage in ultrathin gate oxide MOSFETs",
+   "doc_id": "26edf62c6963",
+   "question": "What degrees did Y. M. Lin receive?",
+   "must_contain": [
+    "honors",
+    "hsin-hua"
+   ],
+   "source_chunk": 29
+  },
+  {
+   "id": "0b0785-038",
+   "lexical_overlap": 0.429,
+   "split": "train",
+   "paper": "Chlorine\u2013sulfur isomers as parents of ClS2 and SCl2 on Venus: Spectroscopy and photochemistry of ClSSCl, SSCl2, and (ClS)2",
+   "doc_id": "0b07851729e9",
+   "question": "What is the predicted rate of the first step in the photochemistry of ClSSCl?",
+   "must_contain": [
+    "al.20",
+    "atomic-s"
+   ],
+   "source_chunk": 33
+  },
+  {
+   "id": "0b0785-039",
+   "lexical_overlap": 0.455,
+   "split": "train",
+   "paper": "Chlorine\u2013sulfur isomers as parents of ClS2 and SCl2 on Venus: Spectroscopy and photochemistry of ClSSCl, SSCl2, and (ClS)2",
+   "doc_id": "0b07851729e9",
+   "question": "What specific roles do sulfur dichloride molecules play in the photochemistry of Venus' atmosphere?",
+   "must_contain": [
+    "absorber.11",
+    "capacity.3"
    ],
    "source_chunk": 5
   },
   {
-   "id": "4ec2ee-093",
-   "split": "test",
-   "paper": "Design and Manufacturing Strategies for Fused Deposition Modelling in Additive Manufacturing: A Review",
-   "doc_id": "4ec2eebb0df3",
-   "question": "What is the primary advantage that contributes to the widespread adoption of FDM as an AM technique?",
-   "must_contain": [
-    "bioplotting",
-    "dispensed"
-   ],
-   "source_chunk": 11
-  },
-  {
-   "id": "708989-094",
-   "split": "test",
-   "paper": "Design of ion-implanted MOSFET's with very small physical dimensions",
-   "doc_id": "708989897a4c",
-   "question": "What degrees did Leo Rideout receive from Stanford University?",
-   "must_contain": [
-    "b.s.e.e",
-    "calif"
-   ],
-   "source_chunk": 63
-  },
-  {
-   "id": "708989-095",
-   "split": "test",
-   "paper": "Design of ion-implanted MOSFET's with very small physical dimensions",
-   "doc_id": "708989897a4c",
-   "question": "What is the relationship between nodal voltages and supply voltages in miniaturized digital MOSFET circuits?",
-   "must_contain": [
-    "circnit",
-    "divider"
-   ],
-   "source_chunk": 49
-  },
-  {
-   "id": "708989-096",
-   "split": "test",
-   "paper": "Design of ion-implanted MOSFET's with very small physical dimensions",
-   "doc_id": "708989897a4c",
-   "question": "What degrees did Ernest Bassous receive in his education?",
-   "must_contain": [
-    "boys",
-    "etudes"
-   ],
-   "source_chunk": 65
-  },
-  {
-   "id": "708989-097",
-   "split": "test",
-   "paper": "Design of ion-implanted MOSFET's with very small physical dimensions",
-   "doc_id": "708989897a4c",
-   "question": "What is the specific date when Robert Dennard joined the IBM Research Division?",
-   "must_contain": [
-    "datz",
-    "devclo"
-   ],
-   "source_chunk": 59
-  },
-  {
-   "id": "5ef11a-098",
+   "id": "f05433-040",
+   "lexical_overlap": 0.5,
    "split": "train",
-   "paper": "Dexamethasone in Hospitalized Patients",
-   "doc_id": "5ef11a032d57",
-   "question": "What is the rate ratio for mortality at 28 days in patients receiving dexamethasone compared to those receiving usual care?",
+   "paper": "Comment: The FAIR Guiding Principles for scientific data management and stewardship",
+   "doc_id": "f05433399da0",
+   "question": "Are the specific metadata for a researcher's desired dataset (e.g. species, tissue type, condition) captured by existing repositories and, if so, are they in a format that allows for searching?",
    "must_contain": [
-    "recommended.18",
-    "subcomponents"
+    "microarray",
+    "ngs"
+   ],
+   "source_chunk": 8
+  },
+  {
+   "id": "f63811-041",
+   "lexical_overlap": 0.5,
+   "split": "val",
+   "paper": "Cramming more components onto integrated circuits",
+   "doc_id": "f63811bf1c9a",
+   "question": "What is Dr. Gordon E. Moore's educational background?",
+   "must_contain": [
+    "director",
+    "earned"
+   ],
+   "source_chunk": 3
+  },
+  {
+   "id": "f63811-042",
+   "lexical_overlap": 0.444,
+   "split": "val",
+   "paper": "Cramming more components onto integrated circuits",
+   "doc_id": "f63811bf1c9a",
+   "question": "What kinds of electronic systems can be developed using integrated circuits?",
+   "must_contain": [
+    "switch",
+    "home"
+   ],
+   "source_chunk": 0
+  },
+  {
+   "id": "f63811-043",
+   "lexical_overlap": 0.474,
+   "split": "val",
+   "paper": "Cramming more components onto integrated circuits",
+   "doc_id": "f63811bf1c9a",
+   "question": "Is it more economical to build large electronic systems by combining many small, separately packaged functions rather than building them as single, larger components?",
+   "must_contain": [
+    "economically",
+    "log2"
+   ],
+   "source_chunk": 13
+  },
+  {
+   "id": "f63811-044",
+   "lexical_overlap": 0.467,
+   "split": "val",
+   "paper": "Cramming more components onto integrated circuits",
+   "doc_id": "f63811bf1c9a",
+   "question": "Does shrinking the size of integrated electronic structures allow them to operate at higher speeds while using less power?",
+   "must_contain": [
+    "distinctly",
+    "shrink"
+   ],
+   "source_chunk": 12
+  },
+  {
+   "id": "821ec6-045",
+   "lexical_overlap": 0.412,
+   "split": "train",
+   "paper": "Dai et al. Astronomy and Astrophysics 2024",
+   "doc_id": "821ec69a9896",
+   "question": "Does an increased transport efficiency in clouds at altitudes above 50 km lead to a comparable rate of chemical reactions involving sulfur-containing compounds?",
+   "must_contain": [
+    "influences",
+    "timescale"
+   ],
+   "source_chunk": 47
+  },
+  {
+   "id": "821ec6-046",
+   "lexical_overlap": 0.375,
+   "split": "train",
+   "paper": "Dai et al. Astronomy and Astrophysics 2024",
+   "doc_id": "821ec69a9896",
+   "question": "What effect does increasing the value of cloud Kzz have on the concentration of sulfur dioxide (SO2) below 50 km altitude?",
+   "must_contain": [
+    "convection-resolving",
+    "lef"
+   ],
+   "source_chunk": 46
+  },
+  {
+   "id": "49902a-047",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Deep Learning",
+   "doc_id": "49902af2312d",
+   "question": "What type of features do lower-level features in a convolutional network detect?",
+   "must_contain": [
+    "horizontally",
+    "rectified"
+   ],
+   "source_chunk": 21
+  },
+  {
+   "id": "49902a-048",
+   "lexical_overlap": 0.385,
+   "split": "train",
+   "paper": "Deep Learning",
+   "doc_id": "49902af2312d",
+   "question": "What types of neural network architectures are listed as being relevant to the development of AI-complete question answering systems?",
+   "must_contain": [
+    "mrfs",
+    "susskind"
+   ],
+   "source_chunk": 75
+  },
+  {
+   "id": "49902a-049",
+   "lexical_overlap": 0.0,
+   "split": "train",
+   "paper": "Deep Learning",
+   "doc_id": "49902af2312d",
+   "question": "What specific research papers are cited as references in this list of publications?",
+   "must_contain": [
+    "bregler",
+    "couprie"
+   ],
+   "source_chunk": 68
+  },
+  {
+   "id": "49902a-050",
+   "lexical_overlap": 0.083,
+   "split": "train",
+   "paper": "Deep Learning",
+   "doc_id": "49902af2312d",
+   "question": "What capabilities do deep-learning architectures have when it comes to processing complex visual information?",
+   "must_contain": [
+    "samoyeds",
+    "selectivity"
+   ],
+   "source_chunk": 16
+  },
+  {
+   "id": "c97944-051",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Deep Residual Learning for Image Recognition",
+   "doc_id": "c97944980fa7",
+   "question": "Does increasing the number of stacked layers in a deep neural network necessarily lead to improved performance?",
+   "must_contain": [
+    "1http",
+    "20-layer"
+   ],
+   "source_chunk": 3
+  },
+  {
+   "id": "c97944-052",
+   "lexical_overlap": 0.214,
+   "split": "train",
+   "paper": "Deep Residual Learning for Image Recognition",
+   "doc_id": "c97944980fa7",
+   "question": "What percentage improvement does using ResNet-101 instead of VGG-16 result in for the mean Average Precision (mAP) score?",
+   "must_contain": [
+    "16k",
+    "trainval"
+   ],
+   "source_chunk": 62
+  },
+  {
+   "id": "c97944-053",
+   "lexical_overlap": 0.4,
+   "split": "train",
+   "paper": "Deep Residual Learning for Image Recognition",
+   "doc_id": "c97944980fa7",
+   "question": "Does the validation error of a deeper plain network increase as its number of layers increases?",
+   "must_contain": [
+    "101-layer",
+    "50-layer"
+   ],
+   "source_chunk": 31
+  },
+  {
+   "id": "c97944-054",
+   "lexical_overlap": 0.1,
+   "split": "train",
+   "paper": "Deep Residual Learning for Image Recognition",
+   "doc_id": "c97944980fa7",
+   "question": "What is the maximum number of convolutional layers in a single branch of this neural network architecture?",
+   "must_contain": [
+    "7x7",
+    "vgg-19"
+   ],
+   "source_chunk": 22
+  },
+  {
+   "id": "bc1170-055",
+   "lexical_overlap": 0.438,
+   "split": "train",
+   "paper": "Deep learning in computational mechanics: a review",
+   "doc_id": "bc11707d348d",
+   "question": "How does using linear multistep methods in combination with neural networks affect the formulation of a cost function for approximating system dynamics?",
+   "must_contain": [
+    "discrete-time",
+    "reformulation"
+   ],
+   "source_chunk": 112
+  },
+  {
+   "id": "bc1170-056",
+   "lexical_overlap": 0.182,
+   "split": "train",
+   "paper": "Deep learning in computational mechanics: a review",
+   "doc_id": "bc11707d348d",
+   "question": "What types of neural networks were used to implement auto-association in the early years of research on this topic?",
+   "must_contain": [
+    "nash",
+    "kaufmann"
+   ],
+   "source_chunk": 399
+  },
+  {
+   "id": "bc1170-057",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Deep learning in computational mechanics: a review",
+   "doc_id": "bc11707d348d",
+   "question": "What types of applications are used in generative approaches?",
+   "must_contain": [
+    "differential",
+    "generation"
+   ],
+   "source_chunk": 10
+  },
+  {
+   "id": "bc1170-058",
+   "lexical_overlap": 0.455,
+   "split": "train",
+   "paper": "Deep learning in computational mechanics: a review",
+   "doc_id": "bc11707d348d",
+   "question": "Can the density of a finite element mesh be predicted using artificial neural network techniques?",
+   "must_contain": [
+    "full-waveform",
+    "geophysicists"
+   ],
+   "source_chunk": 319
+  },
+  {
+   "id": "bc1170-059",
+   "lexical_overlap": 0.273,
+   "split": "train",
+   "paper": "Deep learning in computational mechanics: a review",
+   "doc_id": "bc11707d348d",
+   "question": "What types of neural network architectures have been developed to address the limitations of traditional RNNs?",
+   "must_contain": [
+    "struggle",
+    "exploding"
+   ],
+   "source_chunk": 56
+  },
+  {
+   "id": "bc1170-060",
+   "lexical_overlap": 0.333,
+   "split": "train",
+   "paper": "Deep learning in computational mechanics: a review",
+   "doc_id": "bc11707d348d",
+   "question": "What types of machine learning and deep learning methods have been used to optimize topology in various fields?",
+   "must_contain": [
+    "dongju",
+    "jcde"
+   ],
+   "source_chunk": 229
+  },
+  {
+   "id": "bc1170-061",
+   "lexical_overlap": 0.444,
+   "split": "train",
+   "paper": "Deep learning in computational mechanics: a review",
+   "doc_id": "bc11707d348d",
+   "question": "What kind of partial differential equations are used as examples for time-stepping procedures?",
+   "must_contain": [
+    "sects",
+    "time-dependence"
    ],
    "source_chunk": 36
   },
   {
-   "id": "5ef11a-099",
+   "id": "bc1170-062",
+   "lexical_overlap": 0.385,
+   "split": "train",
+   "paper": "Deep learning in computational mechanics: a review",
+   "doc_id": "bc11707d348d",
+   "question": "What percentage of the listed research papers focus on integrating deep learning with computer-aided design (CAD) systems?",
+   "must_contain": [
+    "cae",
+    "dac"
+   ],
+   "source_chunk": 380
+  },
+  {
+   "id": "7eac8b-063",
+   "lexical_overlap": 0.0,
+   "split": "test",
+   "paper": "Dense Passage Retrieval for Open-Domain Question Answering",
+   "doc_id": "7eac8b06e9c3",
+   "question": "How many research papers are cited in this list of references?",
+   "must_contain": [
+    "acero",
+    "alessandro"
+   ],
+   "source_chunk": 58
+  },
+  {
+   "id": "7eac8b-064",
+   "lexical_overlap": 0.429,
+   "split": "test",
+   "paper": "Dense Passage Retrieval for Open-Domain Question Answering",
+   "doc_id": "7eac8b06e9c3",
+   "question": "How many question answering datasets are used in this study?",
+   "must_contain": [
+    "mined",
+    "annotators"
+   ],
+   "source_chunk": 22
+  },
+  {
+   "id": "4ec2ee-065",
+   "lexical_overlap": 0.4,
+   "split": "test",
+   "paper": "Design and Manufacturing Strategies for Fused Deposition Modelling in Additive Manufacturing: A Review",
+   "doc_id": "4ec2eebb0df3",
+   "question": "What is the recommended approach to minimize surface roughness in parts printed using FDM?",
+   "must_contain": [
+    "grinding",
+    "laying"
+   ],
+   "source_chunk": 40
+  },
+  {
+   "id": "4ec2ee-066",
+   "lexical_overlap": 0.4,
+   "split": "test",
+   "paper": "Design and Manufacturing Strategies for Fused Deposition Modelling in Additive Manufacturing: A Review",
+   "doc_id": "4ec2eebb0df3",
+   "question": "What is the relationship between air gap size and material consumption in additive manufacturing?",
+   "must_contain": [
+    "0.025f",
+    "0.049ef"
+   ],
+   "source_chunk": 50
+  },
+  {
+   "id": "4ec2ee-067",
+   "lexical_overlap": 0.4,
+   "split": "test",
+   "paper": "Design and Manufacturing Strategies for Fused Deposition Modelling in Additive Manufacturing: A Review",
+   "doc_id": "4ec2eebb0df3",
+   "question": "What specific methodologies have been proposed to address the limitations of additive manufacturing systems?",
+   "must_contain": [
+    "cusps",
+    "manufacturable"
+   ],
+   "source_chunk": 6
+  },
+  {
+   "id": "708989-068",
+   "lexical_overlap": 0.364,
+   "split": "test",
+   "paper": "Design of ion-implanted MOSFET's with very small physical dimensions",
+   "doc_id": "708989897a4c",
+   "question": "How do nodal voltages change in miniaturized circuits compared to their original values?",
+   "must_contain": [
+    "dissipation",
+    "argued"
+   ],
+   "source_chunk": 49
+  },
+  {
+   "id": "708989-069",
+   "lexical_overlap": 0.429,
+   "split": "test",
+   "paper": "Design of ion-implanted MOSFET's with very small physical dimensions",
+   "doc_id": "708989897a4c",
+   "question": "Do the drain voltage characteristics of a conventionally-sized device and one that has been downscaled by a factor of five show similar behavior?",
+   "must_contain": [
+    "100ox",
+    "65v"
+   ],
+   "source_chunk": 18
+  },
+  {
+   "id": "5ef11a-070",
+   "lexical_overlap": 0.417,
    "split": "train",
    "paper": "Dexamethasone in Hospitalized Patients",
    "doc_id": "5ef11a032d57",
-   "question": "What is the rate ratio of mortality among participants receiving dexamethasone compared to those receiving usual care, specifically in the subgroup with symptoms for more than 7 days?",
+   "question": "Does receiving dexamethasone reduce the risk of death within 28 days compared to usual care?",
    "must_contain": [
     "chi-square",
     "symptom"
@@ -1208,47 +931,51 @@
    "source_chunk": 27
   },
   {
-   "id": "5ef11a-100",
+   "id": "5ef11a-071",
+   "lexical_overlap": 0.5,
    "split": "train",
    "paper": "Dexamethasone in Hospitalized Patients",
    "doc_id": "5ef11a032d57",
-   "question": "What is the rate of mortality at 28 days in patients with Covid-19 who received dexamethasone compared to those receiving usual care?",
+   "question": "How many institutions are listed as affiliations of the members of the writing committee?",
    "must_contain": [
-    "immunopathological",
-    "shedding"
+    "c.f",
+    "l.c.c"
    ],
-   "source_chunk": 35
+   "source_chunk": 41
   },
   {
-   "id": "5ef11a-101",
+   "id": "5ef11a-072",
+   "lexical_overlap": 0.5,
    "split": "train",
    "paper": "Dexamethasone in Hospitalized Patients",
    "doc_id": "5ef11a032d57",
-   "question": "What was the rate ratio of mortality at 28 days in the dexamethasone group compared to the usual care group?",
+   "question": "What are the affiliations of each member of the writing committee?",
    "must_contain": [
-    "interleukin-6",
-    "tuberculosis"
+    "a.m",
+    "a.u"
    ],
-   "source_chunk": 19
+   "source_chunk": 40
   },
   {
-   "id": "0c387b-102",
+   "id": "5ef11a-073",
+   "lexical_overlap": 0.333,
+   "split": "train",
+   "paper": "Dexamethasone in Hospitalized Patients",
+   "doc_id": "5ef11a032d57",
+   "question": "What were the specific outcomes that researchers measured to assess the effectiveness of the assigned treatment?",
+   "must_contain": [
+    "hemodialysis",
+    "all-cause"
+   ],
+   "source_chunk": 12
+  },
+  {
+   "id": "0c387b-074",
+   "lexical_overlap": 0.4,
    "split": "val",
    "paper": "Electric Field Effect in Atomically Thin Carbon Films",
    "doc_id": "0c387b89ebde",
-   "question": "What is the magnitude of the electric field effect observed in atomically thin carbon films?",
-   "must_contain": [
-    "firsov",
-    "science.1102896"
-   ],
-   "source_chunk": 33
-  },
-  {
-   "id": "0c387b-103",
-   "split": "val",
-   "paper": "Electric Field Effect in Atomically Thin Carbon Films",
-   "doc_id": "0c387b89ebde",
-   "question": "What is the range of carrier mobility values obtained from field-effect and magnetoresistance measurements?",
+   "question": "What is the typical range of variation in carrier mobility values obtained from different samples?",
    "must_contain": [
     "dopants",
     "intercalated"
@@ -1256,503 +983,441 @@
    "source_chunk": 15
   },
   {
-   "id": "0c387b-104",
+   "id": "0c387b-075",
+   "lexical_overlap": 0.5,
    "split": "val",
    "paper": "Electric Field Effect in Atomically Thin Carbon Films",
    "doc_id": "0c387b89ebde",
-   "question": "What is the differential height of the folded part of the film near the bottom, as measured by AFM?",
+   "question": "What determines the frequency of ShdH oscillations in FLG?",
    "must_contain": [
-    "microscope",
-    "dependences"
-   ],
-   "source_chunk": 13
-  },
-  {
-   "id": "0c387b-105",
-   "split": "val",
-   "paper": "Electric Field Effect in Atomically Thin Carbon Films",
-   "doc_id": "0c387b89ebde",
-   "question": "What is the minimum thickness of FLG samples that can be considered zero-gap semiconductors?",
-   "must_contain": [
-    "cgi",
-    "eaves"
-   ],
-   "source_chunk": 26
-  },
-  {
-   "id": "e3002d-106",
-   "split": "test",
-   "paper": "Elexacaftor\u2013Tezacaftor\u2013Ivacaftor for Cystic Fibrosis with a Single Phe508del Allele",
-   "doc_id": "e3002d76fa75",
-   "question": "Does ivacaftor modify the disease course in people with cystic fibrosis, according to data from US and UK registries?",
-   "must_contain": [
-    "habib",
-    "kajbafzadeh"
-   ],
-   "source_chunk": 38
-  },
-  {
-   "id": "e3002d-107",
-   "split": "test",
-   "paper": "Elexacaftor\u2013Tezacaftor\u2013Ivacaftor for Cystic Fibrosis with a Single Phe508del Allele",
-   "doc_id": "e3002d76fa75",
-   "question": "What percentage of patients experienced low-grade adverse events, specifically elevated aminotransferase levels?",
-   "must_contain": [
-    "alteration",
-    "sporadically"
-   ],
-   "source_chunk": 29
-  },
-  {
-   "id": "e3002d-108",
-   "split": "test",
-   "paper": "Elexacaftor\u2013Tezacaftor\u2013Ivacaftor for Cystic Fibrosis with a Single Phe508del Allele",
-   "doc_id": "e3002d76fa75",
-   "question": "What specific grants from the National Institutes of Health supported research at the University of Alabama at Birmingham?",
-   "must_contain": [
-    "1u01tr",
-    "5ul1"
-   ],
-   "source_chunk": 32
-  },
-  {
-   "id": "8af418-109",
-   "split": "train",
-   "paper": "Generative Adversarial Nets",
-   "doc_id": "8af41857bd7a",
-   "question": "What is the standard error of the mean for the Deep GSN model's log-likelihood estimates on the TFD dataset?",
-   "must_contain": [
-    "dbn",
-    "fold"
-   ],
-   "source_chunk": 25
-  },
-  {
-   "id": "8af418-110",
-   "split": "train",
-   "paper": "Generative Adversarial Nets",
-   "doc_id": "8af41857bd7a",
-   "question": "Does the use of stochastic backpropagation rules allow for learning the conditional variance of the generator?",
-   "must_contain": [
-    "vaelike",
-    "vaes"
-   ],
-   "source_chunk": 6
-  },
-  {
-   "id": "8af418-111",
-   "split": "train",
-   "paper": "Generative Adversarial Nets",
-   "doc_id": "8af41857bd7a",
-   "question": "Does pg converge to pdata when the discriminator D\u2217 is allowed to reach its optimum given G?",
-   "must_contain": [
-    "subderivatives",
-    "supremum"
-   ],
-   "source_chunk": 23
-  },
-  {
-   "id": "8af418-112",
-   "split": "train",
-   "paper": "Generative Adversarial Nets",
-   "doc_id": "8af41857bd7a",
-   "question": "What are the three main differences between this work and predictability minimization?",
-   "must_contain": [
-    "sole",
-    "accomplish"
-   ],
-   "source_chunk": 8
-  },
-  {
-   "id": "ac356c-113",
-   "split": "train",
-   "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection in the Venus lower-mesosphere using SOIR on board Venus Express",
-   "doc_id": "ac356ce5b704",
-   "question": "What is the mean value for the number density of hydroperoxyl (HO2) at an altitude of 80 km?",
-   "must_contain": [
-    "sixty-five",
-    "sorptions"
-   ],
-   "source_chunk": 65
-  },
-  {
-   "id": "ac356c-114",
-   "split": "train",
-   "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection in the Venus lower-mesosphere using SOIR on board Venus Express",
-   "doc_id": "ac356ce5b704",
-   "question": "What are the vibrational bands observed for the isotopologue 16O12C18O?",
-   "must_contain": [
-    "12c32s2",
-    "14n16o2"
-   ],
-   "source_chunk": 79
-  },
-  {
-   "id": "ac356c-115",
-   "split": "train",
-   "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection in the Venus lower-mesosphere using SOIR on board Venus Express",
-   "doc_id": "ac356ce5b704",
-   "question": "What are the vibrational band ranges for 12C16O?",
-   "must_contain": [
-    "12c17o",
-    "12c18o"
-   ],
-   "source_chunk": 84
-  },
-  {
-   "id": "ac356c-116",
-   "split": "train",
-   "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection in the Venus lower-mesosphere using SOIR on board Venus Express",
-   "doc_id": "ac356ce5b704",
-   "question": "How much smaller is the H2CO VMR upper limit at the highest latitude compared to other latitude bins?",
-   "must_contain": [
-    "parts-per-trillion",
-    "envelope"
-   ],
-   "source_chunk": 44
-  },
-  {
-   "id": "f49f23-117",
-   "split": "train",
-   "paper": "ImageNet Classification with Deep Convolutional Neural Networks",
-   "doc_id": "f49f23e522f7",
-   "question": "Was the size of the final convolutional layer adjusted to match the parameter count between the one-GPU and two-GPU nets?",
-   "must_contain": [
-    "fully-conneced",
-    "favor"
-   ],
-   "source_chunk": 14
-  },
-  {
-   "id": "f49f23-118",
-   "split": "train",
-   "paper": "ImageNet Classification with Deep Convolutional Neural Networks",
-   "doc_id": "f49f23e522f7",
-   "question": "What is the reduction in top-1 error rate achieved by using overlapping pooling compared to a non-overlapping scheme?",
-   "must_contain": [
-    "neighborhoods",
-    "summarizing"
+    "0.06m0",
+    "0.1m0"
    ],
    "source_chunk": 17
   },
   {
-   "id": "f49f23-119",
-   "split": "train",
-   "paper": "ImageNet Classification with Deep Convolutional Neural Networks",
-   "doc_id": "f49f23e522f7",
-   "question": "How many images are included in the ImageNet dataset?",
+   "id": "0c387b-076",
+   "lexical_overlap": 0.231,
+   "split": "val",
+   "paper": "Electric Field Effect in Atomically Thin Carbon Films",
+   "doc_id": "0c387b89ebde",
+   "question": "What is the range of pages in a specific chemistry and physics book where information about carbon can be found?",
    "must_contain": [
-    "currentbest",
-    "digit-recognition"
+    "brenner",
+    "dekker"
    ],
-   "source_chunk": 2
+   "source_chunk": 24
   },
   {
-   "id": "f49f23-120",
-   "split": "train",
-   "paper": "ImageNet Classification with Deep Convolutional Neural Networks",
-   "doc_id": "f49f23e522f7",
-   "question": "What is the number of kernels used by the first convolutional layer to filter the input image?",
+   "id": "0c387b-077",
+   "lexical_overlap": 0.444,
+   "split": "val",
+   "paper": "Electric Field Effect in Atomically Thin Carbon Films",
+   "doc_id": "0c387b89ebde",
+   "question": "What is the estimated rate at which the quantum repeater protocol can be performed?",
    "must_contain": [
-    "delineation",
-    "layer-parts"
+    "protocols",
+    "qubits"
    ],
-   "source_chunk": 19
+   "source_chunk": 0
   },
   {
-   "id": "a09060-121",
-   "split": "train",
-   "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
-   "doc_id": "a090603eebe6",
-   "question": "What is the factor that determines the stability and distribution of rhomboclase and acid ferric sulfate?",
-   "must_contain": [
-    "cam",
-    "pbr27"
-   ],
-   "source_chunk": 8
-  },
-  {
-   "id": "a09060-122",
-   "split": "train",
-   "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
-   "doc_id": "a090603eebe6",
-   "question": "What is the temperature range over which hydrous ferric sulfates undergo phase transitions?",
-   "must_contain": [
-    "2.2h2o",
-    "benisek"
-   ],
-   "source_chunk": 48
-  },
-  {
-   "id": "a09060-123",
-   "split": "train",
-   "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
-   "doc_id": "a090603eebe6",
-   "question": "What is the time it takes for rhomboclase to transform into acid ferric sulfate in 97.4 wt % sulfuric acid?",
-   "must_contain": [
-    "focal",
-    "rbc"
-   ],
-   "source_chunk": 15
-  },
-  {
-   "id": "a09060-124",
-   "split": "train",
-   "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
-   "doc_id": "a090603eebe6",
-   "question": "What is the maximum amount of sulfuric acid added to each solution during the pH adjustment process?",
-   "must_contain": [
-    "degassed",
-    "lichrosolv"
-   ],
-   "source_chunk": 25
-  },
-  {
-   "id": "6e709b-125",
+   "id": "e3002d-078",
+   "lexical_overlap": 0.0,
    "split": "test",
-   "paper": "Laboratory Measurements of Ferric Chloride (FeCl3) under Venusian Conditions",
-   "doc_id": "6e709b68e107",
-   "question": "What was the effect on detector saturation when FeCl3 concentrations were decreased by a factor of 1000?",
+   "paper": "Elexacaftor\u2013Tezacaftor\u2013Ivacaftor for Cystic Fibrosis with a Single Phe508del Allele",
+   "doc_id": "e3002d76fa75",
+   "question": "What is the affiliation of the two co-authors who are listed with a \"#\" symbol?",
    "must_contain": [
-    "resuspended",
-    "scoping"
+    "moskowitz",
+    "s.m"
    ],
-   "source_chunk": 11
+   "source_chunk": 3
   },
   {
-   "id": "6e709b-126",
-   "split": "test",
-   "paper": "Laboratory Measurements of Ferric Chloride (FeCl3) under Venusian Conditions",
-   "doc_id": "6e709b68e107",
-   "question": "What is the wavelength range over which sample x0C initially shows a decrease in absorption?",
-   "must_contain": [
-    "onward",
-    "y0c"
-   ],
-   "source_chunk": 23
-  },
-  {
-   "id": "6e709b-127",
-   "split": "test",
-   "paper": "Laboratory Measurements of Ferric Chloride (FeCl3) under Venusian Conditions",
-   "doc_id": "6e709b68e107",
-   "question": "What is the average difference in total iron concentration between the initial sample concentrations and the concentrations derived from the fitted spectra?",
-   "must_contain": [
-    "imprecision",
-    "subplots"
-   ],
-   "source_chunk": 30
-  },
-  {
-   "id": "6e709b-128",
-   "split": "test",
-   "paper": "Laboratory Measurements of Ferric Chloride (FeCl3) under Venusian Conditions",
-   "doc_id": "6e709b68e107",
-   "question": "What is the concentration of FeCl3 required to provide a good match to the observed absorption spectrum of Venus?",
-   "must_contain": [
-    "absorption.14",
-    "sulfur-based"
-   ],
-   "source_chunk": 4
-  },
-  {
-   "id": "77731a-129",
+   "id": "8af418-079",
+   "lexical_overlap": 0.429,
    "split": "train",
-   "paper": "Learning representations by back-propagating errors",
-   "doc_id": "77731a321bbc",
-   "question": "What is the effect of introducing hidden units with unspecified actual or desired states on the difficulty of the task?",
+   "paper": "Generative Adversarial Nets",
+   "doc_id": "8af41857bd7a",
+   "question": "What type of activation functions were used in the generator nets?",
    "must_contain": [
-    "cosmochim",
-    "dungworth"
+    "breuleux",
+    "tfd"
    ],
-   "source_chunk": 6
+   "source_chunk": 26
   },
   {
-   "id": "77731a-130",
+   "id": "8af418-080",
+   "lexical_overlap": 0.278,
    "split": "train",
-   "paper": "Learning representations by back-propagating errors",
-   "doc_id": "77731a321bbc",
-   "question": "How many sweeps were required for the network to learn to detect mirror symmetry in the input vector?",
+   "paper": "Generative Adversarial Nets",
+   "doc_id": "8af41857bd7a",
+   "question": "Does maximizing the output of discriminator D instead of minimizing its complement provide a more effective training signal for generator G at the beginning of the learning process?",
    "must_contain": [
-    "3.f",
-    "arcs"
-   ],
-   "source_chunk": 9
-  },
-  {
-   "id": "77731a-131",
-   "split": "train",
-   "paper": "Learning representations by back-propagating errors",
-   "doc_id": "77731a321bbc",
-   "question": "What are the possible relationships that can be represented by a triple in this layered net?",
-   "must_contain": [
-    "activating",
-    "five-layer"
+    "reject",
+    "dence"
    ],
    "source_chunk": 14
   },
   {
-   "id": "77731a-132",
+   "id": "8af418-081",
+   "lexical_overlap": 0.5,
    "split": "train",
-   "paper": "Learning representations by back-propagating errors",
-   "doc_id": "77731a321bbc",
-   "question": "What specific measure of difference between actual and desired output vectors does the back-propagation procedure use to adjust weights in the network?",
+   "paper": "Generative Adversarial Nets",
+   "doc_id": "8af41857bd7a",
+   "question": "Does a sufficiently small update of pg guarantee convergence to px?",
    "must_contain": [
-    "adjusts",
-    "c-015"
+    "supd",
+    "thm"
    ],
-   "source_chunk": 2
+   "source_chunk": 24
   },
   {
-   "id": "a9b3a9-133",
-   "split": "val",
-   "paper": "Machine Learning for Fluid Mechanics",
-   "doc_id": "a9b3a9405a11",
-   "question": "What neural network architecture is used for flow field computation based on particle image velocimetry/particle tracking velocimetry image sequences?",
-   "must_contain": [
-    "akad",
-    "dokl"
-   ],
-   "source_chunk": 110
-  },
-  {
-   "id": "a9b3a9-134",
-   "split": "val",
-   "paper": "Machine Learning for Fluid Mechanics",
-   "doc_id": "a9b3a9405a11",
-   "question": "What are some common challenges that high-dimensional systems, such as those encountered in unsteady fluid dynamics, pose when applying machine learning techniques?",
-   "must_contain": [
-    "cornerstones",
-    "parsimonious"
-   ],
-   "source_chunk": 77
-  },
-  {
-   "id": "a9b3a9-135",
-   "split": "val",
-   "paper": "Machine Learning for Fluid Mechanics",
-   "doc_id": "a9b3a9405a11",
-   "question": "How many test evaluations were typically required to obtain most control laws using genetic programming?",
-   "must_contain": [
-    "evalutations",
-    "multi-frequency"
-   ],
-   "source_chunk": 86
-  },
-  {
-   "id": "a9b3a9-136",
-   "split": "val",
-   "paper": "Machine Learning for Fluid Mechanics",
-   "doc_id": "a9b3a9405a11",
-   "question": "What is the Reynolds number range at which optimal morphokinematics for undulatory swimmers are achieved?",
-   "must_contain": [
-    "guid",
-    "cory"
-   ],
-   "source_chunk": 122
-  },
-  {
-   "id": "70d8a5-137",
+   "id": "ac356c-082",
+   "lexical_overlap": 0.4,
    "split": "train",
-   "paper": "Magnetically Aligned Anisotropic Conductive Adhesive for Microwave Applications",
-   "doc_id": "70d8a59cc5ce",
-   "question": "What is the typical bonding temperature required for gold-gold eutectic bonding?",
+   "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection in the Venus lower-mesosphere using SOIR on board Venus Express",
+   "doc_id": "ac356ce5b704",
+   "question": "What are the wavenumber ranges and targeted species for each of the order numbers listed in this table?",
    "must_contain": [
-    "micromachining",
-    "complexities"
-   ],
-   "source_chunk": 5
-  },
-  {
-   "id": "70d8a5-138",
-   "split": "train",
-   "paper": "Magnetically Aligned Anisotropic Conductive Adhesive for Microwave Applications",
-   "doc_id": "70d8a59cc5ce",
-   "question": "What is the frequency range at which the -axis anisotropic conductive adhesive is found to be a suitable replacement for solder bumps?",
-   "must_contain": [
-    "attracting",
-    "elf-aligning"
-   ],
-   "source_chunk": 2
-  },
-  {
-   "id": "70d8a5-139",
-   "split": "train",
-   "paper": "Magnetically Aligned Anisotropic Conductive Adhesive for Microwave Applications",
-   "doc_id": "70d8a59cc5ce",
-   "question": "What is the frequency range at which the RF performance of bonds made with Z-bond adhesive begins to degrade due to substrate deformation?",
-   "must_contain": [
-    "degraded",
-    "duroid"
-   ],
-   "source_chunk": 8
-  },
-  {
-   "id": "70d8a5-140",
-   "split": "train",
-   "paper": "Magnetically Aligned Anisotropic Conductive Adhesive for Microwave Applications",
-   "doc_id": "70d8a59cc5ce",
-   "question": "What is the minimum width of the pads that can achieve high-density RF interconnects with the magnetically aligned anisotropic conductive adhesive?",
-   "must_contain": [
-    "substrate-package",
-    "chips"
-   ],
-   "source_chunk": 13
-  },
-  {
-   "id": "10d7d7-141",
-   "split": "val",
-   "paper": "Modular Multilevel Converters: Recent Applications [History]",
-   "doc_id": "10d7d78c65ca",
-   "question": "At what voltage range do Multi-Level Converters (MMCs) start to show benefits over two- and three-level Voltage Source Converters (VSCs)?",
-   "must_contain": [
-    "hasn",
-    "vsc-hvdc"
-   ],
-   "source_chunk": 20
-  },
-  {
-   "id": "10d7d7-142",
-   "split": "val",
-   "paper": "Modular Multilevel Converters: Recent Applications [History]",
-   "doc_id": "10d7d78c65ca",
-   "question": "What is the maximum active power allowed for a few dc Loads connected to the Tangjia Bay MVdc distribution network?",
-   "must_contain": [
-    "state-ofcharge",
-    "50-mw"
+    "cs2",
+    "h2s"
    ],
    "source_chunk": 28
   },
   {
-   "id": "10d7d7-143",
-   "split": "val",
-   "paper": "Modular Multilevel Converters: Recent Applications [History]",
-   "doc_id": "10d7d78c65ca",
-   "question": "What is the frequency at which a direct FB-MMC can perform ac\u2013ac conversion for railway power supply systems?",
+   "id": "ac356c-083",
+   "lexical_overlap": 0.4,
+   "split": "train",
+   "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection in the Venus lower-mesosphere using SOIR on board Venus Express",
+   "doc_id": "ac356ce5b704",
+   "question": "What are the specific vibrational bands associated with each isotopologue listed in Table 4?",
    "must_contain": [
-    "50-hz",
-    "acco"
+    "17o",
+    "32s"
+   ],
+   "source_chunk": 82
+  },
+  {
+   "id": "ac356c-084",
+   "lexical_overlap": 0.444,
+   "split": "train",
+   "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection in the Venus lower-mesosphere using SOIR on board Venus Express",
+   "doc_id": "ac356ce5b704",
+   "question": "What percentage decrease in \u03c72 values is required to satisfy the detection criterion?",
+   "must_contain": [
+    "categorise",
+    "detec"
+   ],
+   "source_chunk": 25
+  },
+  {
+   "id": "ac356c-085",
+   "lexical_overlap": 0.429,
+   "split": "train",
+   "paper": "H2CO, O3, NH3, HCN, N2O, NO2, NO, and HO2 upper limits of detection in the Venus lower-mesosphere using SOIR on board Venus Express",
+   "doc_id": "ac356ce5b704",
+   "question": "What isotopologues of carbon dioxide (12C16O2, 13C16O2, etc.) are listed in the vibrational band ranges given for order 147?",
+   "must_contain": [
+    "17o",
+    "32s"
+   ],
+   "source_chunk": 81
+  },
+  {
+   "id": "f49f23-086",
+   "lexical_overlap": 0.222,
+   "split": "train",
+   "paper": "ImageNet Classification with Deep Convolutional Neural Networks",
+   "doc_id": "f49f23e522f7",
+   "question": "Were the sizes of the input layers for both neural networks adjusted to be roughly equal?",
+   "must_contain": [
+    "fully-conneced",
+    "one-gpu"
+   ],
+   "source_chunk": 14
+  },
+  {
+   "id": "f49f23-087",
+   "lexical_overlap": 0.438,
+   "split": "train",
+   "paper": "ImageNet Classification with Deep Convolutional Neural Networks",
+   "doc_id": "f49f23e522f7",
+   "question": "How does generating image translations and horizontal reflections in addition to original images affect a neural network's tendency to overfit?",
+   "must_contain": [
+    "cially",
+    "ections"
+   ],
+   "source_chunk": 22
+  },
+  {
+   "id": "f49f23-088",
+   "lexical_overlap": 0.429,
+   "split": "train",
+   "paper": "ImageNet Classification with Deep Convolutional Neural Networks",
+   "doc_id": "f49f23e522f7",
+   "question": "What is the number of filters used in the first convolutional layer?",
+   "must_contain": [
+    "528-dimensional",
+    "code.google.com"
    ],
    "source_chunk": 19
   },
   {
-   "id": "10d7d7-144",
+   "id": "a09060-089",
+   "lexical_overlap": 0.333,
+   "split": "train",
+   "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
+   "doc_id": "a090603eebe6",
+   "question": "What mineral combinations are proposed to cause the observed UV absorption features?",
+   "must_contain": [
+    "explaining",
+    "hypothesize"
+   ],
+   "source_chunk": 2
+  },
+  {
+   "id": "a09060-090",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
+   "doc_id": "a090603eebe6",
+   "question": "Who provided funding to researchers P.B.R. and C.L.K.?",
+   "must_contain": [
+    "astro",
+    "burkhardt"
+   ],
+   "source_chunk": 54
+  },
+  {
+   "id": "a09060-091",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
+   "doc_id": "a090603eebe6",
+   "question": "What is the primary source of dust found in the Earth's atmosphere?",
+   "must_contain": [
+    "barge",
+    "burkhardt"
+   ],
+   "source_chunk": 53
+  },
+  {
+   "id": "a09060-092",
+   "lexical_overlap": 0.462,
+   "split": "train",
+   "paper": "Iron-sulfur chemistry can explain the ultraviolet absorber in the clouds of Venus",
+   "doc_id": "a090603eebe6",
+   "question": "What factors determine the formation of different ferric sulfate minerals when Fe3+ reacts with sulfuric acid?",
+   "must_contain": [
+    "0he",
+    "3eq"
+   ],
+   "source_chunk": 8
+  },
+  {
+   "id": "6e709b-093",
+   "lexical_overlap": 0.5,
+   "split": "test",
+   "paper": "Laboratory Measurements of Ferric Chloride (FeCl3) under Venusian Conditions",
+   "doc_id": "6e709b68e107",
+   "question": "What specific wavelengths of ultraviolet light are used to investigate UV absorbers on Venus in the study by Lee et al.?",
+   "must_contain": [
+    "ion-exchange",
+    "atmos"
+   ],
+   "source_chunk": 54
+  },
+  {
+   "id": "6e709b-094",
+   "lexical_overlap": 0.25,
+   "split": "test",
+   "paper": "Laboratory Measurements of Ferric Chloride (FeCl3) under Venusian Conditions",
+   "doc_id": "6e709b68e107",
+   "question": "What happens to the rate of dissociation of FeCl3 when its concentration is increased?",
+   "must_contain": [
+    "dissociates",
+    "theorize"
+   ],
+   "source_chunk": 10
+  },
+  {
+   "id": "6e709b-095",
+   "lexical_overlap": 0.333,
+   "split": "test",
+   "paper": "Laboratory Measurements of Ferric Chloride (FeCl3) under Venusian Conditions",
+   "doc_id": "6e709b68e107",
+   "question": "What is the typical composition by weight of the Venusian clouds?",
+   "must_contain": [
+    "near-ultraviolet",
+    "retrievals"
+   ],
+   "source_chunk": 2
+  },
+  {
+   "id": "6e709b-096",
+   "lexical_overlap": 0.417,
+   "split": "test",
+   "paper": "Laboratory Measurements of Ferric Chloride (FeCl3) under Venusian Conditions",
+   "doc_id": "6e709b68e107",
+   "question": "What is the effect of increasing Cl- concentrations above a certain threshold on gas bubble nucleation in the samples?",
+   "must_contain": [
+    "bubbles",
+    "nucleated"
+   ],
+   "source_chunk": 14
+  },
+  {
+   "id": "77731a-097",
+   "lexical_overlap": 0.4,
+   "split": "train",
+   "paper": "Learning representations by back-propagating errors",
+   "doc_id": "77731a321bbc",
+   "question": "How do the visual acuities of initially deprived and non-deprived eyes change over an 18-day period after reverse occlusion?",
+   "must_contain": [
+    "c155",
+    "centralis"
+   ],
+   "source_chunk": 32
+  },
+  {
+   "id": "77731a-098",
+   "lexical_overlap": 0.429,
+   "split": "train",
+   "paper": "Learning representations by back-propagating errors",
+   "doc_id": "77731a321bbc",
+   "question": "What modification can be made to the simplest version of gradient descent to improve its convergence speed without increasing complexity?",
+   "must_contain": [
+    "a.w",
+    "cun3"
+   ],
+   "source_chunk": 23
+  },
+  {
+   "id": "a9b3a9-099",
+   "lexical_overlap": 0.417,
+   "split": "val",
+   "paper": "Machine Learning for Fluid Mechanics",
+   "doc_id": "a9b3a9405a11",
+   "question": "What types of fluid mechanics problems does reinforcement learning require knowledge of to be successfully applied?",
+   "must_contain": [
+    "gliders",
+    "hinges"
+   ],
+   "source_chunk": 88
+  },
+  {
+   "id": "a9b3a9-100",
+   "lexical_overlap": 0.25,
+   "split": "val",
+   "paper": "Machine Learning for Fluid Mechanics",
+   "doc_id": "a9b3a9405a11",
+   "question": "What types of problems can reinforcement learning be used to solve?",
+   "must_contain": [
+    "gliders",
+    "kinematic"
+   ],
+   "source_chunk": 87
+  },
+  {
+   "id": "a9b3a9-101",
+   "lexical_overlap": 0.5,
+   "split": "val",
+   "paper": "Machine Learning for Fluid Mechanics",
+   "doc_id": "a9b3a9405a11",
+   "question": "What specific type of data-driven discretization method was employed by Kaiser et al. in their study?",
+   "must_contain": [
+    "amsallem",
+    "lending"
+   ],
+   "source_chunk": 59
+  },
+  {
+   "id": "70d8a5-102",
+   "lexical_overlap": 0.4,
+   "split": "train",
+   "paper": "Magnetically Aligned Anisotropic Conductive Adhesive for Microwave Applications",
+   "doc_id": "70d8a59cc5ce",
+   "question": "What specific advantages does this novel material have over other materials?",
+   "must_contain": [
+    "bump",
+    "envision"
+   ],
+   "source_chunk": 10
+  },
+  {
+   "id": "70d8a5-103",
+   "lexical_overlap": 0.2,
+   "split": "train",
+   "paper": "Magnetically Aligned Anisotropic Conductive Adhesive for Microwave Applications",
+   "doc_id": "70d8a59cc5ce",
+   "question": "What are the primary challenges associated with achieving vertical integration using traditional methods?",
+   "must_contain": [
+    "complexities",
+    "interconnections"
+   ],
+   "source_chunk": 5
+  },
+  {
+   "id": "10d7d7-104",
+   "lexical_overlap": 0.222,
    "split": "val",
    "paper": "Modular Multilevel Converters: Recent Applications [History]",
    "doc_id": "10d7d78c65ca",
-   "question": "What is the planned capacity (MW) of Europe's first multiterminal MMC-HVdc network?",
+   "question": "What are the different types of applications that use Modular Multilevel Converters (MMCs)?",
    "must_contain": [
-    "controllable",
-    "flexibly"
+    "compensator",
+    "conditioner"
    ],
-   "source_chunk": 4
+   "source_chunk": 3
   },
   {
-   "id": "bd385a-145",
+   "id": "10d7d7-105",
+   "lexical_overlap": 0.308,
+   "split": "val",
+   "paper": "Modular Multilevel Converters: Recent Applications [History]",
+   "doc_id": "10d7d78c65ca",
+   "question": "Can an existing electrical vehicle battery be used in a modified microgrid without needing additional charge management?",
+   "must_contain": [
+    "bess",
+    "overcharge"
+   ],
+   "source_chunk": 29
+  },
+  {
+   "id": "bd385a-106",
+   "lexical_overlap": 0.444,
    "split": "test",
    "paper": "New Method for High-Accuracy Determination of the Fine-Structure Constant Based on Quantized Hall Resistance",
    "doc_id": "bd385aaabe10",
-   "question": "What is the relationship between the measured Hall voltage UH and the gate voltage in Fig. 1?",
+   "question": "What is the magnitude of the Hall resistance RH in terms of a specific numerical value?",
+   "must_contain": [
+    "as-maintained",
+    "josephson"
+   ],
+   "source_chunk": 6
+  },
+  {
+   "id": "bd385a-107",
+   "lexical_overlap": 0.222,
+   "split": "test",
+   "paper": "New Method for High-Accuracy Determination of the Fine-Structure Constant Based on Quantized Hall Resistance",
+   "doc_id": "bd385aaabe10",
+   "question": "What papers on solid-state physics have been cited as relevant to the current research?",
+   "must_contain": [
+    "aoki",
+    "instrum"
+   ],
+   "source_chunk": 18
+  },
+  {
+   "id": "bd385a-108",
+   "lexical_overlap": 0.4,
+   "split": "test",
+   "paper": "New Method for High-Accuracy Determination of the Fine-Structure Constant Based on Quantized Hall Resistance",
+   "doc_id": "bd385aaabe10",
+   "question": "At what gate voltages do the resistivity components pxx and pyy become zero?",
    "must_contain": [
     "valley",
     "lifting"
@@ -1760,616 +1425,693 @@
    "source_chunk": 9
   },
   {
-   "id": "bd385a-146",
+   "id": "bd385a-109",
+   "lexical_overlap": 0.5,
    "split": "test",
    "paper": "New Method for High-Accuracy Determination of the Fine-Structure Constant Based on Quantized Hall Resistance",
    "doc_id": "bd385aaabe10",
-   "question": "What is the formula for calculating the number of states (N_L) within each Landau level in a MOSFET?",
+   "question": "What is the specific condition under which the Hall resistance in a two-dimensional electron gas is found to be quantized?",
    "must_contain": [
-    "broadened",
-    "semiconductor-oxide"
+    "cluantized",
+    "onl"
    ],
-   "source_chunk": 2
+   "source_chunk": 1
   },
   {
-   "id": "bd385a-147",
-   "split": "test",
-   "paper": "New Method for High-Accuracy Determination of the Fine-Structure Constant Based on Quantized Hall Resistance",
-   "doc_id": "bd385aaabe10",
-   "question": "What is the minimum length-to-width ratio required for the Hall angle correction to become negligible?",
-   "must_contain": [
-    "inexact",
-    "nm-400"
-   ],
-   "source_chunk": 8
-  },
-  {
-   "id": "bd385a-148",
-   "split": "test",
-   "paper": "New Method for High-Accuracy Determination of the Fine-Structure Constant Based on Quantized Hall Resistance",
-   "doc_id": "bd385aaabe10",
-   "question": "What is the measured value of h/e' when using a voltmeter with higher resolution and a calibrated standard resistor at T = 25'C?",
-   "must_contain": [
-    "bundesanstalt",
-    "fine-structure"
-   ],
-   "source_chunk": 16
-  },
-  {
-   "id": "7ddfc4-149",
+   "id": "7ddfc4-110",
+   "lexical_overlap": 0.417,
    "split": "val",
    "paper": "On the Dangers of Stochastic Parrots: Can Language Models Be Too Big? \"1F99C",
    "doc_id": "7ddfc4798d90",
-   "question": "What proportion of successful tasks can be approached by manipulating linguistic form?",
+   "question": "Can a short Arabic phrase be mistranslated by an MT system into something with potentially serious consequences?",
    "must_contain": [
-    "unfathomable",
-    "nlu"
+    "erase",
+    "palestinian"
    ],
-   "source_chunk": 6
+   "source_chunk": 76
   },
   {
-   "id": "7ddfc4-150",
+   "id": "7ddfc4-111",
+   "lexical_overlap": 0.5,
    "split": "val",
    "paper": "On the Dangers of Stochastic Parrots: Can Language Models Be Too Big? \"1F99C",
    "doc_id": "7ddfc4798d90",
-   "question": "What is the title of the book referenced in reference [1]?",
+   "question": "What types of social movements are likely to be overlooked by media coverage?",
    "must_contain": [
-    "ai-and-compute",
-    "anthoff"
+    "caveat",
+    "violent"
    ],
-   "source_chunk": 95
+   "source_chunk": 39
   },
   {
-   "id": "7ddfc4-151",
+   "id": "7ddfc4-112",
+   "lexical_overlap": 0.333,
    "split": "val",
    "paper": "On the Dangers of Stochastic Parrots: Can Language Models Be Too Big? \"1F99C",
    "doc_id": "7ddfc4798d90",
-   "question": "What is the specific method proposed for reporting costs and evaluating works based on their resource consumption?",
+   "question": "What are the trade-offs involved in prioritizing research on BERT-like models over other approaches to meaning capture?",
    "must_contain": [
-    "harmed",
-    "punishes"
-   ],
-   "source_chunk": 4
-  },
-  {
-   "id": "7ddfc4-152",
-   "split": "val",
-   "paper": "On the Dangers of Stochastic Parrots: Can Language Models Be Too Big? \"1F99C",
-   "doc_id": "7ddfc4798d90",
-   "question": "What percentage of marginalized groups experience harassment on Twitter?",
-   "must_contain": [
-    "anyone",
-    "disabled"
-   ],
-   "source_chunk": 32
-  },
-  {
-   "id": "24876b-153",
-   "split": "train",
-   "paper": "Ordering, metastability and phase transitions in two-dimensional systems",
-   "doc_id": "24876b2db2a0",
-   "question": "What is the value of E(X = a), the dielectric constant as measured by an external field applied to a macroscopic region?",
-   "must_contain": [
-    "e-28p",
-    "e-op"
-   ],
-   "source_chunk": 24
-  },
-  {
-   "id": "24876b-154",
-   "split": "train",
-   "paper": "Ordering, metastability and phase transitions in two-dimensional systems",
-   "doc_id": "24876b2db2a0",
-   "question": "What is the expression for the mean separation d between pair of particles in this approximation?",
-   "must_contain": [
-    "20p",
-    "3q2"
-   ],
-   "source_chunk": 16
-  },
-  {
-   "id": "24876b-155",
-   "split": "train",
-   "paper": "Ordering, metastability and phase transitions in two-dimensional systems",
-   "doc_id": "24876b2db2a0",
-   "question": "What is the single topological invariant for the Heisenberg model in two dimensions?",
-   "must_contain": [
-    "twist",
-    "encloses"
-   ],
-   "source_chunk": 66
-  },
-  {
-   "id": "24876b-156",
-   "split": "train",
-   "paper": "Ordering, metastability and phase transitions in two-dimensional systems",
-   "doc_id": "24876b2db2a0",
-   "question": "What is the value of y\",(O) obtained when equation (21) is solved approximately using the methods described in the Appendix?",
-   "must_contain": [
-    "diverge",
-    "unusual"
-   ],
-   "source_chunk": 27
-  },
-  {
-   "id": "d2e142-157",
-   "split": "val",
-   "paper": "Pembrolizumab plus Chemotherapy in Metastatic Non\u2013Small-Cell Lung Cancer",
-   "doc_id": "d2e1423d6fff",
-   "question": "What percentage of patients in the pembrolizumab combination group experienced any grade nausea?",
-   "must_contain": [
-    "appetite",
-    "asthenia"
-   ],
-   "source_chunk": 48
-  },
-  {
-   "id": "d2e142-158",
-   "split": "val",
-   "paper": "Pembrolizumab plus Chemotherapy in Metastatic Non\u2013Small-Cell Lung Cancer",
-   "doc_id": "d2e1423d6fff",
-   "question": "How many patients in the placebo combination group experienced a severe skin reaction?",
-   "must_contain": [
-    "adrenal",
-    "ariad"
-   ],
-   "source_chunk": 53
-  },
-  {
-   "id": "d2e142-159",
-   "split": "val",
-   "paper": "Pembrolizumab plus Chemotherapy in Metastatic Non\u2013Small-Cell Lung Cancer",
-   "doc_id": "d2e1423d6fff",
-   "question": "What percentage of tumor cells with membranous PD-L1 staining must be present for pembrolizumab to replace cytotoxic chemotherapy as the first-line treatment of choice?",
-   "must_contain": [
-    "e.b",
-    "h.g"
-   ],
-   "source_chunk": 5
-  },
-  {
-   "id": "d2e142-160",
-   "split": "val",
-   "paper": "Pembrolizumab plus Chemotherapy in Metastatic Non\u2013Small-Cell Lung Cancer",
-   "doc_id": "d2e1423d6fff",
-   "question": "What was the relative benefit in terms of risk reduction of the two primary end points associated with adding pembrolizumab to standard chemotherapy in patients with untreated, metastatic nonsquamous NSCLC?",
-   "must_contain": [
-    "keynote-024",
-    "benefit.12"
-   ],
-   "source_chunk": 45
-  },
-  {
-   "id": "237886-161",
-   "split": "train",
-   "paper": "Predicting Sepsis Onset in ICUs: A Graph Neural Network Framework with Uncertainty Estimation",
-   "doc_id": "23788636f7fc",
-   "question": "What percentage of hospitalizations between 2009 and 2014 were due to sepsis?",
-   "must_contain": [
-    "5r44gm143996-03",
-    "dysregulated"
-   ],
-   "source_chunk": 2
-  },
-  {
-   "id": "237886-162",
-   "split": "train",
-   "paper": "Predicting Sepsis Onset in ICUs: A Graph Neural Network Framework with Uncertainty Estimation",
-   "doc_id": "23788636f7fc",
-   "question": "What percentage of patient occurrence is associated with the feature \"GCS\u2014Verbal Response\"?",
-   "must_contain": [
-    "encounters",
-    "consciousness"
-   ],
-   "source_chunk": 57
-  },
-  {
-   "id": "237886-163",
-   "split": "train",
-   "paper": "Predicting Sepsis Onset in ICUs: A Graph Neural Network Framework with Uncertainty Estimation",
-   "doc_id": "23788636f7fc",
-   "question": "What method is used to incorporate temporal context into the graph-based representation of patient data?",
-   "must_contain": [
-    "graphmixer",
-    "categorical"
-   ],
-   "source_chunk": 13
-  },
-  {
-   "id": "237886-164",
-   "split": "train",
-   "paper": "Predicting Sepsis Onset in ICUs: A Graph Neural Network Framework with Uncertainty Estimation",
-   "doc_id": "23788636f7fc",
-   "question": "What is the dropout rate used in the graph transformer with MC dropout?",
-   "must_contain": [
-    "sngp-based",
-    "architectural"
-   ],
-   "source_chunk": 34
-  },
-  {
-   "id": "238022-165",
-   "split": "test",
-   "paper": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
-   "doc_id": "2380227670f1",
-   "question": "How does the RAG-Sequence model differ from the RAG-Token model in terms of how it predicts target tokens?",
-   "must_contain": [
-    "marginalize",
-    "formally"
-   ],
-   "source_chunk": 9
-  },
-  {
-   "id": "238022-166",
-   "split": "test",
-   "paper": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
-   "doc_id": "2380227670f1",
-   "question": "What percentage of cases does the top-retrieved document by RAG correspond to a gold article?",
-   "must_contain": [
-    "dante",
-    "epic"
-   ],
-   "source_chunk": 33
-  },
-  {
-   "id": "238022-167",
-   "split": "test",
-   "paper": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
-   "doc_id": "2380227670f1",
-   "question": "What is the mathematical expression used to approximate the seq2seq probability in the RAG-Sequence model?",
-   "must_contain": [
-    "prag-sequence",
-    "concretely"
-   ],
-   "source_chunk": 10
-  },
-  {
-   "id": "238022-168",
-   "split": "test",
-   "paper": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
-   "doc_id": "2380227670f1",
-   "question": "What are the key differences between our approach and retrieve-and-edit style approaches?",
-   "must_contain": [
-    "shares",
-    "item"
-   ],
-   "source_chunk": 44
-  },
-  {
-   "id": "7360ef-169",
-   "split": "train",
-   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
-   "doc_id": "7360ef054dc9",
-   "question": "What is the definition of a \"severe\" case of redness according to the measurement scale?",
-   "must_contain": [
-    "dermatitis",
-    "exfoliative"
-   ],
-   "source_chunk": 25
-  },
-  {
-   "id": "7360ef-170",
-   "split": "train",
-   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
-   "doc_id": "7360ef054dc9",
-   "question": "How did the percentage of BNT162b2 recipients who reported any adverse event compare to that of placebo recipients?",
-   "must_contain": [
-    "shortly",
-    "followup"
-   ],
-   "source_chunk": 30
-  },
-  {
-   "id": "7360ef-171",
-   "split": "train",
-   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
-   "doc_id": "7360ef054dc9",
-   "question": "What percentage of participants with confirmed Covid-19 also met the FDA's criteria for severe Covid-19?",
-   "must_contain": [
-    "breath",
-    "hepatic"
-   ],
-   "source_chunk": 12
-  },
-  {
-   "id": "7360ef-172",
-   "split": "train",
-   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
-   "doc_id": "7360ef054dc9",
-   "question": "What is the number of clinical trial participants involved in the C4591001 Clinical Trial Group?",
-   "must_contain": [
-    "ahin",
-    "alejandra"
-   ],
-   "source_chunk": 4
-  },
-  {
-   "id": "5feaef-173",
-   "split": "val",
-   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
-   "doc_id": "5feaef0d0149",
-   "question": "What is the computational overhead reduction achieved by using a smart batching strategy for padding tokens?",
-   "must_contain": [
-    "3.30ghz",
-    "cuda"
-   ],
-   "source_chunk": 36
-  },
-  {
-   "id": "5feaef-174",
-   "split": "val",
-   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
-   "doc_id": "5feaef0d0149",
-   "question": "What is the average performance of SBERT when trained with different concatenation methods for the classi\ufb01cation objective function?",
-   "must_contain": [
-    "multi-nli",
-    "sbertbase"
-   ],
-   "source_chunk": 33
-  },
-  {
-   "id": "5feaef-175",
-   "split": "val",
-   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
-   "doc_id": "5feaef0d0149",
-   "question": "How long does it take to answer a single query using BERT on a modern V100 GPU?",
-   "must_contain": [
-    "alleviate",
-    "xed-sized"
-   ],
-   "source_chunk": 3
-  },
-  {
-   "id": "5feaef-176",
-   "split": "val",
-   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
-   "doc_id": "5feaef0d0149",
-   "question": "Does averaging the outputs of BERT or using the output of the special CLS token lead to useful sentence embeddings?",
-   "must_contain": [
-    "genre",
-    "kiros"
-   ],
-   "source_chunk": 7
-  },
-  {
-   "id": "8610c9-177",
-   "split": "test",
-   "paper": "The Transistor, A Semi-Conductor Triode",
-   "doc_id": "8610c99e29c9",
-   "question": "What effect did various surface treatments have on the excess conductivity measured by probe measurements?",
-   "must_contain": [
-    "anodizing",
-    "blasting"
-   ],
-   "source_chunk": 13
-  },
-  {
-   "id": "8610c9-178",
-   "split": "test",
-   "paper": "The Transistor, A Semi-Conductor Triode",
-   "doc_id": "8610c99e29c9",
-   "question": "What is the ratio of output to input voltage that can be obtained using this experimental unit?",
-   "must_contain": [
-    "itor",
-    "amplification"
-   ],
-   "source_chunk": 8
-  },
-  {
-   "id": "8610c9-179",
-   "split": "test",
-   "paper": "The Transistor, A Semi-Conductor Triode",
-   "doc_id": "8610c99e29c9",
-   "question": "What is the typical resistivity value of the E-type semi-conductor material involved in these studies?",
-   "must_contain": [
-    "anodic",
-    "borate"
-   ],
-   "source_chunk": 4
-  },
-  {
-   "id": "8610c9-180",
-   "split": "test",
-   "paper": "The Transistor, A Semi-Conductor Triode",
-   "doc_id": "8610c99e29c9",
-   "question": "How many milliamperes of current flow into the surface with a small forward bias on the emitter?",
-   "must_contain": [
-    "a.c",
-    "accompanying"
-   ],
-   "source_chunk": 5
-  },
-  {
-   "id": "40fa87-181",
-   "split": "test",
-   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
-   "doc_id": "40fa87f029e7",
-   "question": "How many studies were retained after screening for inclusion in the meta-analysis?",
-   "must_contain": [
-    "partitioning",
-    "meta-analyses"
-   ],
-   "source_chunk": 48
-  },
-  {
-   "id": "40fa87-182",
-   "split": "test",
-   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
-   "doc_id": "40fa87f029e7",
-   "question": "What is the global average rate of forest loss in protected areas?",
-   "must_contain": [
-    "achard",
-    "e0138918"
-   ],
-   "source_chunk": 96
-  },
-  {
-   "id": "40fa87-183",
-   "split": "test",
-   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
-   "doc_id": "40fa87f029e7",
-   "question": "What is the total number of authors cited in the references listed?",
-   "must_contain": [
-    "burrows",
-    "donatti"
-   ],
-   "source_chunk": 63
-  },
-  {
-   "id": "40fa87-184",
-   "split": "test",
-   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
-   "doc_id": "40fa87f029e7",
-   "question": "Does restoring ecosystems using strategic approaches result in tripled conservation gains and halved costs?",
-   "must_contain": [
-    "castilla",
-    "enz-arroyo"
-   ],
-   "source_chunk": 75
-  },
-  {
-   "id": "4cc73d-185",
-   "split": "train",
-   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
-   "doc_id": "4cc73d364490",
-   "question": "What are the three unknown functions that appear in the resulting equation after eliminating p and 11?",
-   "must_contain": [
-    "2lpp",
-    "41l"
+    "allocation",
+    "kin"
    ],
    "source_chunk": 51
   },
   {
-   "id": "4cc73d-186",
-   "split": "train",
-   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
-   "doc_id": "4cc73d364490",
-   "question": "What is the relationship between R1 and Ro?",
+   "id": "7ddfc4-113",
+   "lexical_overlap": 0.273,
+   "split": "val",
+   "paper": "On the Dangers of Stochastic Parrots: Can Language Models Be Too Big? \"1F99C",
+   "doc_id": "7ddfc4798d90",
+   "question": "What types of viewpoints are disproportionately represented in large internet datasets due to filtering methods?",
    "must_contain": [
-    "2r1",
-    "2ro"
+    "ageist",
+    "commoncrawl.org"
+   ],
+   "source_chunk": 30
+  },
+  {
+   "id": "7ddfc4-114",
+   "lexical_overlap": 0.167,
+   "split": "val",
+   "paper": "On the Dangers of Stochastic Parrots: Can Language Models Be Too Big? \"1F99C",
+   "doc_id": "7ddfc4798d90",
+   "question": "How do the authors of the paper on Transformers compare the performance of their model across different languages?",
+   "must_contain": [
+    "2020.repl4nlp-1.16",
+    "5th"
+   ],
+   "source_chunk": 127
+  },
+  {
+   "id": "24876b-115",
+   "lexical_overlap": 0.273,
+   "split": "train",
+   "paper": "Ordering, metastability and phase transitions in two-dimensional systems",
+   "doc_id": "24876b2db2a0",
+   "question": "What additional assumption or constraint must be made about the particles in order to model a dislocation?",
+   "must_contain": [
+    "logarithmic",
+    "burgers"
+   ],
+   "source_chunk": 13
+  },
+  {
+   "id": "24876b-116",
+   "lexical_overlap": 0.444,
+   "split": "train",
+   "paper": "Ordering, metastability and phase transitions in two-dimensional systems",
+   "doc_id": "24876b2db2a0",
+   "question": "What is the expression for the separation distance R at which pairs begin to dissociate?",
+   "must_contain": [
+    "behaves",
+    "dissociated"
+   ],
+   "source_chunk": 31
+  },
+  {
+   "id": "d2e142-117",
+   "lexical_overlap": 0.091,
+   "split": "val",
+   "paper": "Pembrolizumab plus Chemotherapy in Metastatic Non\u2013Small-Cell Lung Cancer",
+   "doc_id": "d2e1423d6fff",
+   "question": "What types of financial relationships did the researchers involved in this study have with pharmaceutical companies?",
+   "must_contain": [
+    "personnel",
+    "roger"
+   ],
+   "source_chunk": 58
+  },
+  {
+   "id": "d2e142-118",
+   "lexical_overlap": 0.0,
+   "split": "val",
+   "paper": "Pembrolizumab plus Chemotherapy in Metastatic Non\u2013Small-Cell Lung Cancer",
+   "doc_id": "d2e1423d6fff",
+   "question": "What is the total number of institutions involved in this study?",
+   "must_contain": [
+    "airway",
+    "asturias"
    ],
    "source_chunk": 60
   },
   {
-   "id": "4cc73d-187",
-   "split": "train",
-   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
-   "doc_id": "4cc73d364490",
-   "question": "What are the dimensions of the coefficient in equation (2.11)?",
+   "id": "d2e142-119",
+   "lexical_overlap": 0.286,
+   "split": "val",
+   "paper": "Pembrolizumab plus Chemotherapy in Metastatic Non\u2013Small-Cell Lung Cancer",
+   "doc_id": "d2e1423d6fff",
+   "question": "What are the academic degrees held by each author listed?",
    "must_contain": [
-    "lengthj",
-    "formulae"
+    "abreu",
+    "airway"
    ],
-   "source_chunk": 19
+   "source_chunk": 59
   },
   {
-   "id": "4cc73d-188",
-   "split": "train",
-   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
-   "doc_id": "4cc73d364490",
-   "question": "What is the formula for the capacity of an abrupt transition in a semiconductor, according to equation (2.55)?",
+   "id": "d2e142-120",
+   "lexical_overlap": 0.455,
+   "split": "val",
+   "paper": "Pembrolizumab plus Chemotherapy in Metastatic Non\u2013Small-Cell Lung Cancer",
+   "doc_id": "d2e1423d6fff",
+   "question": "Does the addition of pembrolizumab to a pemetrexed and platinum-based treatment improve outcomes compared to using pembrolizumab alone?",
    "must_contain": [
-    "lief",
-    "21k"
-   ],
-   "source_chunk": 48
-  },
-  {
-   "id": "ad8a26-189",
-   "split": "train",
-   "paper": "Theory of Superconductivity",
-   "doc_id": "ad8a26bf6c84",
-   "question": "What is the expression for the total weight of a given distribution of mk values in the ground state function, as given by equation (2.21)?",
-   "must_contain": [
-    "pjl70",
-    "pn10"
+    "benefit.12",
+    "benefit.22"
    ],
    "source_chunk": 46
   },
   {
-   "id": "ad8a26-190",
+   "id": "237886-121",
+   "lexical_overlap": 0.4,
    "split": "train",
-   "paper": "Theory of Superconductivity",
-   "doc_id": "ad8a26bf6c84",
-   "question": "What are the average matrix elements for each value of W;\u2014WJ listed in Table III?",
+   "paper": "Predicting Sepsis Onset in ICUs: A Graph Neural Network Framework with Uncertainty Estimation",
+   "doc_id": "23788636f7fc",
+   "question": "What percentage of patients in the dataset have a recorded value for \"GCS\u2014Motor Response\"?",
    "must_contain": [
-    "eeweo",
-    "ii9i"
+    "consciousness",
+    "irrigant"
    ],
-   "source_chunk": 107
+   "source_chunk": 57
   },
   {
-   "id": "ad8a26-191",
+   "id": "237886-122",
+   "lexical_overlap": 0.385,
    "split": "train",
-   "paper": "Theory of Superconductivity",
-   "doc_id": "ad8a26bf6c84",
-   "question": "What is the expression for E(q) when qhvo = 0?",
+   "paper": "Predicting Sepsis Onset in ICUs: A Graph Neural Network Framework with Uncertainty Estimation",
+   "doc_id": "23788636f7fc",
+   "question": "What specific information about a patient's condition does the system provide to physicians in addition to a probability?",
    "must_contain": [
-    "4n.car",
-    "c23"
+    "patient-specific",
+    "validate"
    ],
-   "source_chunk": 173
+   "source_chunk": 61
   },
   {
-   "id": "ad8a26-192",
+   "id": "238022-123",
+   "lexical_overlap": 0.364,
+   "split": "test",
+   "paper": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+   "doc_id": "2380227670f1",
+   "question": "How do the two proposed models differ in their approach to predicting target tokens?",
+   "must_contain": [
+    "marginalize",
+    "rag-token"
+   ],
+   "source_chunk": 9
+  },
+  {
+   "id": "238022-124",
+   "lexical_overlap": 0.5,
+   "split": "test",
+   "paper": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+   "doc_id": "2380227670f1",
+   "question": "What are the two main components of the RAG models used in this study?",
+   "must_contain": [
+    "1code",
+    "demo"
+   ],
+   "source_chunk": 8
+  },
+  {
+   "id": "7360ef-125",
+   "lexical_overlap": 0.2,
    "split": "train",
-   "paper": "Theory of Superconductivity",
-   "doc_id": "ad8a26bf6c84",
-   "question": "What is the modified dispersion law that results from minimizing the free energy with respect to hk?",
+   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+   "doc_id": "7360ef054dc9",
+   "question": "What is the dose of BNT162b2 that was tested in this study?",
    "must_contain": [
-    "specifies",
-    "vkkjphk"
-   ],
-   "source_chunk": 75
-  },
-  {
-   "id": "0b4f8f-193",
-   "split": "val",
-   "paper": "U-Net: Convolutional Networks for Biomedical Image Segmentation",
-   "doc_id": "0b4f8fda17a5",
-   "question": "How many max-pooling layers does the network require to achieve good localization accuracy when using larger patches?",
-   "must_contain": [
-    "trade-o",
-    "redundancy"
-   ],
-   "source_chunk": 5
-  },
-  {
-   "id": "0b4f8f-194",
-   "split": "val",
-   "paper": "U-Net: Convolutional Networks for Biomedical Image Segmentation",
-   "doc_id": "0b4f8fda17a5",
-   "question": "What is the u-net's average warping error on the segmentation task involving electron microscopic recordings?",
-   "must_contain": [
-    "drosophila",
-    "instar"
-   ],
-   "source_chunk": 17
-  },
-  {
-   "id": "0b4f8f-195",
-   "split": "val",
-   "paper": "U-Net: Convolutional Networks for Biomedical Image Segmentation",
-   "doc_id": "0b4f8fda17a5",
-   "question": "What percentage of the input image context is used in the segmentation map?",
-   "must_contain": [
-    "u-shaped",
-    "expansive"
+    "authorization.9",
+    "durability"
    ],
    "source_chunk": 7
   },
   {
-   "id": "0b4f8f-196",
+   "id": "7360ef-126",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+   "doc_id": "7360ef054dc9",
+   "question": "Do participants aged over 55 years experience more frequent pain at injection sites compared to younger participants?",
+   "must_contain": [
+    "injection-site",
+    "noticeably"
+   ],
+   "source_chunk": 28
+  },
+  {
+   "id": "7360ef-127",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+   "doc_id": "7360ef054dc9",
+   "question": "How common was severe fatigue among people who received the BNT162b2 vaccine?",
+   "must_contain": [
+    "adults.12",
+    "adults.13"
+   ],
+   "source_chunk": 38
+  },
+  {
+   "id": "7360ef-128",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+   "doc_id": "7360ef054dc9",
+   "question": "What is the percentage of people who did not get Covid-19 at least 7 days after receiving their second dose of the BNT162b2 vaccine?",
+   "must_contain": [
+    "beta-binomial",
+    "accrual"
+   ],
+   "source_chunk": 36
+  },
+  {
+   "id": "7360ef-129",
+   "lexical_overlap": 0.4,
+   "split": "train",
+   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+   "doc_id": "7360ef054dc9",
+   "question": "What percentage of participants in the study were male?",
+   "must_contain": [
+    "obese",
+    "alaska"
+   ],
+   "source_chunk": 21
+  },
+  {
+   "id": "7360ef-130",
+   "lexical_overlap": 0.429,
+   "split": "train",
+   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+   "doc_id": "7360ef054dc9",
+   "question": "What percentage of participants aged \u226575 years who received the BNT162b2 vaccine did not contract COVID-19?",
+   "must_contain": [
+    "non-latinx",
+    "end-point"
+   ],
+   "source_chunk": 40
+  },
+  {
+   "id": "7360ef-131",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Safety and Efficacy of the BNT162b2 mRNA Covid-19 Vaccine",
+   "doc_id": "7360ef054dc9",
+   "question": "How many people were included in the reactogenicity subset?",
+   "must_contain": [
+    "meddra",
+    "persontime"
+   ],
+   "source_chunk": 14
+  },
+  {
+   "id": "5feaef-132",
+   "lexical_overlap": 0.364,
+   "split": "val",
+   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
+   "doc_id": "5feaef0d0149",
+   "question": "How does BERT's architecture limit its ability to produce independent sentence embeddings?",
+   "must_contain": [
+    "stateof-the-art",
+    "bypass"
+   ],
+   "source_chunk": 6
+  },
+  {
+   "id": "5feaef-133",
+   "lexical_overlap": 0.5,
+   "split": "val",
+   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
+   "doc_id": "5feaef0d0149",
+   "question": "Does SBERT perform better than the model described in Dor et al. when evaluating the closeness of positive and negative examples to an anchor sentence?",
+   "must_contain": [
+    "alice",
+    "balding"
+   ],
+   "source_chunk": 26
+  },
+  {
+   "id": "5feaef-134",
+   "lexical_overlap": 0.5,
+   "split": "val",
+   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
+   "doc_id": "5feaef0d0149",
+   "question": "Does training on NLI before STSb improve model performance compared to only training on STSb?",
+   "must_contain": [
+    "cross-encoder",
+    "gurevych"
+   ],
+   "source_chunk": 20
+  },
+  {
+   "id": "5feaef-135",
+   "lexical_overlap": 0.5,
+   "split": "val",
+   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
+   "doc_id": "5feaef0d0149",
+   "question": "What are the mean accuracy values of different models on the Wikipedia section triplets dataset?",
+   "must_contain": [
+    "customer",
+    "grained"
+   ],
+   "source_chunk": 28
+  },
+  {
+   "id": "5feaef-136",
+   "lexical_overlap": 0.308,
+   "split": "val",
+   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
+   "doc_id": "5feaef0d0149",
+   "question": "Do any of the alternative similarity measures used in this study produce significantly different results compared to cosine-similarity?",
+   "must_contain": [
+    "explosion",
+    "pair-wise"
+   ],
+   "source_chunk": 15
+  },
+  {
+   "id": "5feaef-137",
+   "lexical_overlap": 0.444,
+   "split": "val",
+   "paper": "Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks",
+   "doc_id": "5feaef0d0149",
+   "question": "What is the specific value used for the margin parameter \u03f5 in the triplet loss function?",
+   "must_contain": [
+    "anchor",
+    "mathematically"
+   ],
+   "source_chunk": 12
+  },
+  {
+   "id": "8610c9-138",
+   "lexical_overlap": 0.3,
+   "split": "test",
+   "paper": "The Transistor, A Semi-Conductor Triode",
+   "doc_id": "8610c99e29c9",
+   "question": "Does the polarizability ratio of negative to positive ions in AgCl affect its crystal structure?",
+   "must_contain": [
+    "makas",
+    "diamond"
+   ],
+   "source_chunk": 2
+  },
+  {
+   "id": "8610c9-139",
+   "lexical_overlap": 0.444,
+   "split": "test",
+   "paper": "The Transistor, A Semi-Conductor Triode",
+   "doc_id": "8610c99e29c9",
+   "question": "What is the typical range of values for the current amplification factor 'a' in the unit described?",
+   "must_contain": [
+    "chap",
+    "rectijkrs"
+   ],
+   "source_chunk": 10
+  },
+  {
+   "id": "8610c9-140",
+   "lexical_overlap": 0.444,
+   "split": "test",
+   "paper": "The Transistor, A Semi-Conductor Triode",
+   "doc_id": "8610c99e29c9",
+   "question": "What is the mathematical relationship between the emitter current, collector current, and base-emitter voltage?",
+   "must_contain": [
+    "lowers",
+    "electrode"
+   ],
+   "source_chunk": 9
+  },
+  {
+   "id": "8610c9-141",
+   "lexical_overlap": 0.462,
+   "split": "test",
+   "paper": "The Transistor, A Semi-Conductor Triode",
+   "doc_id": "8610c99e29c9",
+   "question": "Can a tungsten point be used as an alternative to the original collector point without affecting the device's electrical characteristics?",
+   "must_contain": [
+    "etched",
+    "electrode"
+   ],
+   "source_chunk": 4
+  },
+  {
+   "id": "8610c9-142",
+   "lexical_overlap": 0.2,
+   "split": "test",
+   "paper": "The Transistor, A Semi-Conductor Triode",
+   "doc_id": "8610c99e29c9",
+   "question": "Who provided the germanium used in this research?",
+   "must_contain": [
+    "chap",
+    "rectijkrs"
+   ],
+   "source_chunk": 11
+  },
+  {
+   "id": "40fa87-143",
+   "lexical_overlap": 0.455,
+   "split": "test",
+   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
+   "doc_id": "40fa87f029e7",
+   "question": "What types of anthropogenic drivers are most commonly studied in relation to their impact on biodiversity?",
+   "must_contain": [
+    "implied",
+    "uneven"
+   ],
+   "source_chunk": 34
+  },
+  {
+   "id": "40fa87-144",
+   "lexical_overlap": 0.412,
+   "split": "test",
+   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
+   "doc_id": "40fa87f029e7",
+   "question": "Do changes in biodiversity indicators on land and in freshwater environments primarily result from human activities related to land use rather than climate change?",
+   "must_contain": [
+    "above-average",
+    "biome"
+   ],
+   "source_chunk": 28
+  },
+  {
+   "id": "40fa87-145",
+   "lexical_overlap": 0.444,
+   "split": "test",
+   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
+   "doc_id": "40fa87f029e7",
+   "question": "What methods are currently available for synthesizing knowledge to inform environmental decisions?",
+   "must_contain": [
+    "apps",
+    "chee"
+   ],
+   "source_chunk": 85
+  },
+  {
+   "id": "40fa87-146",
+   "lexical_overlap": 0.375,
+   "split": "test",
+   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
+   "doc_id": "40fa87f029e7",
+   "question": "How do the authors account for differences in the amount of data available for each driver when estimating their position in the dominance hierarchy?",
+   "must_contain": [
+    "10school",
+    "11institute"
+   ],
+   "source_chunk": 7
+  },
+  {
+   "id": "40fa87-147",
+   "lexical_overlap": 0.25,
+   "split": "test",
+   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
+   "doc_id": "40fa87f029e7",
+   "question": "Do the regions with more studies show a different ranking of drivers in terms of their impact on biodiversity?",
+   "must_contain": [
+    "steepness",
+    "statistically"
+   ],
+   "source_chunk": 15
+  },
+  {
+   "id": "40fa87-148",
+   "lexical_overlap": 0.0,
+   "split": "test",
+   "paper": "The direct drivers of recent global anthropogenic biodiversity loss",
+   "doc_id": "40fa87f029e7",
+   "question": "What is the total number of authors listed in the reference section?",
+   "must_contain": [
+    "failler",
+    "larigauderie"
+   ],
+   "source_chunk": 61
+  },
+  {
+   "id": "4cc73d-149",
+   "lexical_overlap": 0.444,
+   "split": "train",
+   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
+   "doc_id": "4cc73d364490",
+   "question": "What effect does opening-circuiting P2 have on the potential of P2 compared to N2?",
+   "must_contain": [
+    "inward",
+    "open-circuited"
+   ],
+   "source_chunk": 108
+  },
+  {
+   "id": "4cc73d-150",
+   "lexical_overlap": 0.444,
+   "split": "train",
+   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
+   "doc_id": "4cc73d364490",
+   "question": "What happens to the ratio of capacities when K is less than 1?",
+   "must_contain": [
+    "abrupt",
+    "schottky"
+   ],
+   "source_chunk": 46
+  },
+  {
+   "id": "4cc73d-151",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
+   "doc_id": "4cc73d364490",
+   "question": "What happens to the concentration of holes in the p-region when a current flows across the junction?",
+   "must_contain": [
+    "disturbs",
+    "nd-na"
+   ],
+   "source_chunk": 32
+  },
+  {
+   "id": "4cc73d-152",
+   "lexical_overlap": 0.375,
+   "split": "train",
+   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
+   "doc_id": "4cc73d364490",
+   "question": "What is an approximate expression for the value of OJ when X is small?",
+   "must_contain": [
+    "sin",
+    "tan"
+   ],
+   "source_chunk": 145
+  },
+  {
+   "id": "4cc73d-153",
+   "lexical_overlap": 0.429,
+   "split": "train",
+   "paper": "The theory of p-n junctions in semiconductors and p-n junction transistors",
+   "doc_id": "4cc73d364490",
+   "question": "What happens to the capacitance when the value of n is increased?",
+   "must_contain": [
+    "raising",
+    "instructive"
+   ],
+   "source_chunk": 45
+  },
+  {
+   "id": "ad8a26-154",
+   "lexical_overlap": 0.444,
+   "split": "train",
+   "paper": "Theory of Superconductivity",
+   "doc_id": "ad8a26bf6c84",
+   "question": "What types of matrix elements contribute coherently to the sum in equation (4.5)?",
+   "must_contain": [
+    "ooxx",
+    "xxoo"
+   ],
+   "source_chunk": 99
+  },
+  {
+   "id": "ad8a26-155",
+   "lexical_overlap": 0.5,
+   "split": "train",
+   "paper": "Theory of Superconductivity",
+   "doc_id": "ad8a26bf6c84",
+   "question": "What is the mathematical formula for calculating the probability that an excited particle occupies state k?",
+   "must_contain": [
+    "rest",
+    "occupied"
+   ],
+   "source_chunk": 66
+  },
+  {
+   "id": "ad8a26-156",
+   "lexical_overlap": 0.333,
+   "split": "train",
+   "paper": "Theory of Superconductivity",
+   "doc_id": "ad8a26bf6c84",
+   "question": "What specific factors does this theory account for?",
+   "must_contain": [
+    "afterwards",
+    "corning"
+   ],
+   "source_chunk": 4
+  },
+  {
+   "id": "ad8a26-157",
+   "lexical_overlap": 0.455,
+   "split": "train",
+   "paper": "Theory of Superconductivity",
+   "doc_id": "ad8a26bf6c84",
+   "question": "What is the effect on the matrix elements when a spin-dependent interaction is used instead of a spin-independent one?",
+   "must_contain": [
+    "ckg",
+    "est"
+   ],
+   "source_chunk": 107
+  },
+  {
+   "id": "ad8a26-158",
+   "lexical_overlap": 0.333,
+   "split": "train",
+   "paper": "Theory of Superconductivity",
+   "doc_id": "ad8a26bf6c84",
+   "question": "What is the typical size of the energy difference between a superconductor and its normal state at absolute zero temperature?",
+   "must_contain": [
+    "off-diagonal",
+    "bohm-pines"
+   ],
+   "source_chunk": 13
+  },
+  {
+   "id": "0b4f8f-159",
+   "lexical_overlap": 0.5,
    "split": "val",
    "paper": "U-Net: Convolutional Networks for Biomedical Image Segmentation",
    "doc_id": "0b4f8fda17a5",
-   "question": "How long does it take to segment a 512x512 image using the network described in this paper?",
+   "question": "How many convolutional layers does this network architecture have?",
    "must_contain": [
-    "bioss",
-    "freiburg"
+    "cropping",
+    "expansive"
    ],
-   "source_chunk": 1
+   "source_chunk": 10
+  },
+  {
+   "id": "0b4f8f-160",
+   "lexical_overlap": 0.5,
+   "split": "val",
+   "paper": "U-Net: Convolutional Networks for Biomedical Image Segmentation",
+   "doc_id": "0b4f8fda17a5",
+   "question": "What is the formula used to calculate the energy function in this optimization process?",
+   "must_contain": [
+    "penalizes",
+    "unpadded"
+   ],
+   "source_chunk": 12
+  },
+  {
+   "id": "0b4f8f-161",
+   "lexical_overlap": 0.455,
+   "split": "val",
+   "paper": "U-Net: Convolutional Networks for Biomedical Image Segmentation",
+   "doc_id": "0b4f8fda17a5",
+   "question": "What is the warping error achieved by the u-net when evaluated at 10 different threshold levels?",
+   "must_contain": [
+    "6th",
+    "rand"
+   ],
+   "source_chunk": 18
   }
  ]
 }

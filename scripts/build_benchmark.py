@@ -101,11 +101,20 @@ def pick_evidence(
     chunk_text: str,
     question: str,
     idf: dict,
+    document_frequency: Counter,
     max_terms: int = 2,
+    min_document_frequency: int = 2,
 ) -> List[str]:
     """
     Chooses the rarest terms in the chunk that the question does not
     already contain, so retrieval cannot succeed by copying the question.
+
+    Terms occurring in only one chunk corpus-wide are excluded. In a
+    corpus with 1950s scans, the very rarest tokens are OCR damage
+    ("buftered", "dimenr.ional") rather than meaningful terminology, and
+    using those as evidence turns the benchmark into an exact-match test
+    for garbage strings. Requiring a term to appear at least twice keeps
+    real technical vocabulary and drops one-off scan errors.
     """
     question_tokens = set(tokenize(question))
     counts = Counter(tokenize(chunk_text))
@@ -114,6 +123,7 @@ def pick_evidence(
         if term not in question_tokens
         and _EVIDENCE_TOKEN.match(term)
         and term in idf
+        and document_frequency.get(term, 0) >= min_document_frequency
     ]
     candidates.sort(key=lambda t: (-idf[t], t))
     return candidates[:max_terms]
@@ -140,6 +150,9 @@ def main() -> int:
     bm25 = BM25Index()
     bm25.build(corpus.store.chunks)
     idf = bm25.inverse_document_frequency
+    document_frequency: Counter = Counter()
+    for counts in bm25.doc_token_counts:
+        document_frequency.update(counts.keys())
 
     by_doc = {}
     for chunk in corpus.store.chunks:
@@ -171,7 +184,7 @@ def main() -> int:
             if lexical_overlap(question, chunk.text) > args.max_overlap:
                 skipped += 1
                 continue
-            evidence = pick_evidence(chunk.text, question, idf)
+            evidence = pick_evidence(chunk.text, question, idf, document_frequency)
             if not evidence:
                 skipped += 1
                 continue
