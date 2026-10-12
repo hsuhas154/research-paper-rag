@@ -17,6 +17,7 @@ Run with: python app.py
 
 import gradio as gr
 
+from src.conversation import Conversation
 from src.rag_pipeline import RAGPipeline
 from src.retriever import (
     MODE_BM25,
@@ -133,35 +134,52 @@ def format_sources(answer) -> str:
     return "\n\n".join(blocks)
 
 
-def ask_question(question, selected_doc_ids, mode, top_k):
+def ask_question(question, selected_doc_ids, mode, top_k, follow_up, history):
     """
-    Answers a question and returns the answer, the source passages, and
-    a one-line description of how retrieval reached them.
+    Answers a question and returns the answer, the source passages, a
+    one-line description of how retrieval reached them, and the updated
+    conversation.
+
+    `history` is Gradio session state, so each browser session keeps its
+    own conversation rather than sharing one across users.
     """
+    history = history or []
+
     if not question or not question.strip():
-        return "Please enter a question.", "", ""
+        return "Please enter a question.", "", "", history
 
     if pipeline.corpus.is_empty():
-        return "The library is empty. Upload a paper on the Library tab first.", "", ""
+        return ("The library is empty. Upload a paper on the Library tab first.",
+                "", "", history)
 
     if not selected_doc_ids:
-        return "Select at least one paper to search.", "", ""
+        return "Select at least one paper to search.", "", "", history
 
     # Searching every paper is the same as not filtering at all, and
     # skipping the filter lets FAISS search without an id selector.
     doc_ids = None if len(selected_doc_ids) == len(pipeline.documents) else selected_doc_ids
 
+    conversation = None
+    if follow_up and history:
+        conversation = Conversation()
+        for previous_question, previous_answer in history:
+            conversation.add(previous_question, previous_answer)
+
     try:
         answer = pipeline.answer_question(
-            question, doc_ids=doc_ids, mode=mode, top_k=int(top_k)
+            question, doc_ids=doc_ids, mode=mode, top_k=int(top_k),
+            conversation=conversation,
         )
     except Exception as error:
-        return f"❌ {error}", "", ""
+        return f"❌ {error}", "", "", history
 
     scope = "all papers" if doc_ids is None else f"{len(selected_doc_ids)} paper(s)"
     stats = f"*Searched {scope} · {answer.retrieval_summary()}*"
+    if answer.retrieval_question:
+        stats += f"\n\n*Follow-up rewritten for search: \"{answer.retrieval_question}\"*"
 
-    return answer.text, format_sources(answer), stats
+    history = history + [(question, answer.text)]
+    return answer.text, format_sources(answer), stats, history
 
 
 # ----------------------------------------------------------------------
@@ -169,6 +187,9 @@ def ask_question(question, selected_doc_ids, mode, top_k):
 # ----------------------------------------------------------------------
 
 with gr.Blocks(title="Research Paper Q&A") as demo:
+    # Per-session, so two browsers do not share one conversation.
+    history_state = gr.State([])
+
     gr.Markdown("# Research Paper Q&A System")
     gr.Markdown(
         "Ask natural-language questions across a library of research papers. "
@@ -186,7 +207,9 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
                         placeholder="e.g. What eddy diffusion coefficient was used in the cloud layer?",
                         lines=3,
                     )
-                    ask_btn = gr.Button("Ask", variant="primary")
+                    with gr.Row():
+                        ask_btn = gr.Button("Ask", variant="primary")
+                        clear_btn = gr.Button("New conversation")
 
                     gr.Markdown(
                         "*The first question after startup takes longer (~30-40s) while "
@@ -211,6 +234,13 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
                     top_k_input = gr.Slider(
                         label="Passages to retrieve",
                         minimum=1, maximum=10, value=5, step=1,
+                    )
+                    follow_up_input = gr.Checkbox(
+                        label="Follow-up question",
+                        value=False,
+                        info=("Use the conversation so far. A question like "
+                              "\"and at 60 km?\" is rewritten into a standalone "
+                              "one before searching."),
                     )
 
             gr.Markdown("## Source passages")
@@ -256,10 +286,15 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
         outputs=mode_help,
     )
 
-    ask_inputs = [question_input, scope_input, mode_input, top_k_input]
-    ask_outputs = [answer_output, sources_output, retrieval_stats]
+    ask_inputs = [question_input, scope_input, mode_input, top_k_input,
+                  follow_up_input, history_state]
+    ask_outputs = [answer_output, sources_output, retrieval_stats, history_state]
     ask_btn.click(fn=ask_question, inputs=ask_inputs, outputs=ask_outputs)
     question_input.submit(fn=ask_question, inputs=ask_inputs, outputs=ask_outputs)
+    clear_btn.click(
+        fn=lambda: ([], "", "", "*Conversation cleared.*"),
+        outputs=[history_state, answer_output, sources_output, retrieval_stats],
+    )
 
 
 if __name__ == "__main__":

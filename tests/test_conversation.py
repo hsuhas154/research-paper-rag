@@ -114,3 +114,62 @@ class TestHistoryFormatting:
     def test_clearing_empties_the_conversation(self, chat):
         chat.clear()
         assert chat.is_empty()
+
+
+class TestPipelineIntegration:
+    """
+    The pipeline sends a rewritten question to the retriever and the
+    original to the generator. Both halves are easy to wire backwards, and
+    a unit test of the rewriter alone would not notice.
+    """
+
+    def test_retriever_gets_the_rewrite_and_generator_gets_the_original(
+        self, monkeypatch, chat
+    ):
+        from src import rag_pipeline as rp
+
+        seen = {}
+
+        class FakeRetrieval:
+            chunks, mode = [], "hybrid+rerank"
+            n_dense_candidates = n_lexical_candidates = n_fused_candidates = 0
+
+        class FakeRetriever:
+            def retrieve(self, question, **kw):
+                seen["retrieved"] = question
+                return FakeRetrieval()
+
+        pipeline = rp.RAGPipeline.__new__(rp.RAGPipeline)
+        pipeline.retriever = FakeRetriever()
+        pipeline.top_k = 5
+        pipeline.corpus = type("C", (), {"is_empty": lambda self: False,
+                                         "documents": []})()
+        monkeypatch.setattr(rp, "rewrite_follow_up",
+                            lambda q, c: "What Kzz was used at 60 km?")
+        monkeypatch.setattr(rp, "generate_answer",
+                            lambda q, chunks, **kw: seen.setdefault("generated", q) or "ans")
+        monkeypatch.setattr(pipeline, "document_titles", lambda: {})
+
+        answer = pipeline.answer_question("And at 60 km?", conversation=chat)
+
+        assert seen["retrieved"] == "What Kzz was used at 60 km?"
+        assert seen["generated"] == "And at 60 km?"
+        assert answer.retrieval_question == "What Kzz was used at 60 km?"
+
+    def test_no_rewrite_reports_no_retrieval_question(self, monkeypatch):
+        from src import rag_pipeline as rp
+
+        class FakeRetrieval:
+            chunks, mode = [], "hybrid+rerank"
+            n_dense_candidates = n_lexical_candidates = n_fused_candidates = 0
+
+        pipeline = rp.RAGPipeline.__new__(rp.RAGPipeline)
+        pipeline.retriever = type("R", (), {"retrieve": lambda self, q, **kw: FakeRetrieval()})()
+        pipeline.top_k = 5
+        pipeline.corpus = type("C", (), {"is_empty": lambda self: False,
+                                         "documents": []})()
+        monkeypatch.setattr(rp, "generate_answer", lambda q, chunks, **kw: "ans")
+        monkeypatch.setattr(pipeline, "document_titles", lambda: {})
+
+        answer = pipeline.answer_question("A complete standalone question here?")
+        assert answer.retrieval_question is None

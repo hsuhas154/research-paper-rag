@@ -179,9 +179,6 @@ class RAGPipeline:
             mode=mode,
             doc_ids=doc_ids,
             max_per_document=max_per_document,
-            retrieval_question=(
-                retrieval_question if retrieval_question != question else None
-            ),
         )
         titles = self.document_titles()
         # The generator sees the question as the user actually asked it,
@@ -203,6 +200,9 @@ class RAGPipeline:
             n_dense_candidates=retrieval.n_dense_candidates,
             n_lexical_candidates=retrieval.n_lexical_candidates,
             n_fused_candidates=retrieval.n_fused_candidates,
+            retrieval_question=(
+                retrieval_question if retrieval_question != question else None
+            ),
         )
 
 
