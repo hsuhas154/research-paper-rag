@@ -197,3 +197,130 @@ class TestUndersizedSectionMerging:
         ])
         # The stray line is absorbed rather than deleted.
         assert "stray" in " ".join(s.text for s in segments)
+
+
+class TestTitleSanity:
+    """
+    Guards for title extraction on the harder half of a real corpus:
+    1950s to 1970s scans, publisher banners, and production filenames
+    left in PDF metadata.
+    """
+
+    def test_rejects_publisher_banners_regardless_of_separator(self):
+        from src.pdf_processor import _is_banner
+
+        assert _is_banner("Science Journals — AAAS")
+        assert _is_banner("Science Journals - AAAS")
+        assert _is_banner("HHS Public Access")
+        assert not _is_banner("Deep Residual Learning for Image Recognition")
+
+    def test_rejects_scan_noise(self):
+        from src.pdf_processor import _is_legible_text
+
+        assert not _is_legible_text("~~tL-~;'=::::~4~=:::::==~=l")
+        assert not _is_legible_text("_:: :..:- • •=")
+        assert _is_legible_text("Theory of Superconductivity")
+
+    def test_accepts_a_single_word_line_so_wrapped_titles_survive(self):
+        # A five-line title legitimately puts "Machine" on a line of its
+        # own; demanding two words per line truncates it.
+        from src.pdf_processor import _is_legible_text
+
+        assert _is_legible_text("Machine")
+        assert _is_legible_text("Learning")
+
+    def test_rejects_body_prose_lifted_from_a_scan(self):
+        from src.pdf_processor import _is_plausible_title
+
+        # A drop cap can make a body paragraph the largest text on the
+        # page. Running prose starts mid-sentence; a title never does.
+        assert not _is_plausible_title("so that the value of INd - N, I at its boundaries")
+        assert _is_plausible_title("Theory of Superconductivity")
+
+    def test_rejects_production_filenames_in_metadata(self):
+        from src.pdf_processor import _clean_metadata_title
+
+        assert _clean_metadata_title("6088 - V323.indd") is None
+        assert _clean_metadata_title("manuscript_final.docx") is None
+        assert _clean_metadata_title("moores paper") is None
+
+    def test_keeps_a_genuinely_lower_case_title(self):
+        from src.pdf_processor import _clean_metadata_title
+
+        assert (_clean_metadata_title("64-channel ultrasound transducer amplifier")
+                == "64-channel ultrasound transducer amplifier")
+
+
+class TestSplitResolution:
+    """
+    The paper-level split is defined by title fragment, so it survives
+    re-indexing. Fragments are checked against the corpus at load time.
+    """
+
+    @staticmethod
+    def titles():
+        return {
+            "a": "Deep Learning",
+            "b": "Deep learning in computational mechanics: a review",
+            "c": "Attention is All you Need",
+        }
+
+    def test_an_exact_title_wins_over_a_longer_one_containing_it(self, tmp_path):
+        import json
+
+        from src.splits import resolve
+
+        spec = tmp_path / "splits.json"
+        spec.write_text(json.dumps({"clusters": {"dl": {
+            "train": ["Deep Learning", "Deep learning in computational mechanics"],
+            "val": ["Attention is All you Need"], "test": [],
+        }}}))
+        resolved = resolve(self.titles(), spec)
+        assert set(resolved["train"]["doc_ids"]) == {"a", "b"}
+
+    def test_an_unmatched_fragment_fails_loudly(self, tmp_path):
+        import json
+
+        import pytest
+
+        from src.splits import SplitError, resolve
+
+        spec = tmp_path / "splits.json"
+        spec.write_text(json.dumps({"clusters": {"dl": {
+            "train": ["Deep Learning", "Deep learning in computational mechanics",
+                      "Attention is All you Need", "A Paper That Does Not Exist"],
+            "val": [], "test": [],
+        }}}))
+        with pytest.raises(SplitError, match="matched 0 papers"):
+            resolve(self.titles(), spec)
+
+    def test_a_paper_in_no_split_fails_loudly(self, tmp_path):
+        import json
+
+        import pytest
+
+        from src.splits import SplitError, resolve
+
+        # Silently dropping a paper would shrink a split without anyone
+        # noticing, and the metrics would still look fine.
+        spec = tmp_path / "splits.json"
+        spec.write_text(json.dumps({"clusters": {"dl": {
+            "train": ["Deep Learning"], "val": [], "test": [],
+        }}}))
+        with pytest.raises(SplitError, match="in no split"):
+            resolve(self.titles(), spec)
+
+    def test_a_paper_in_two_splits_fails_loudly(self, tmp_path):
+        import json
+
+        import pytest
+
+        from src.splits import SplitError, resolve
+
+        spec = tmp_path / "splits.json"
+        spec.write_text(json.dumps({"clusters": {"dl": {
+            "train": ["Attention is All you Need"],
+            "val": ["Attention is All you Need"], "test": [],
+        }}}))
+        with pytest.raises(SplitError, match="appears in both"):
+            resolve(self.titles(), spec)

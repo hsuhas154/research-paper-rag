@@ -506,10 +506,16 @@ def extract_title(pdf_path: str) -> Optional[str]:
         # still finds it, because cover sheets are set in small type.
         candidates: List[Tuple[int, float, float, str]] = []
         for page_index, page in enumerate(list(doc)[:3]):
+            # A title sits in the upper part of its page. Without this,
+            # an oversized drop cap opening a body paragraph halfway down
+            # the page wins on font size and becomes the title.
+            cutoff = page.rect.height * _TITLE_MAX_PAGE_FRACTION
             for line in _page_lines(page):
+                if line.y > cutoff:
+                    continue
                 if len(line.text) > 250 or _TITLE_NOISE.search(line.text):
                     continue
-                if _is_banner(line.text):
+                if _is_banner(line.text) or not _is_legible_text(line.text):
                     continue
                 # Reject anything dominated by digits: page furniture,
                 # dates, and equation lines rather than a title.
@@ -541,13 +547,67 @@ _JOURNAL_NAMES = {
     "nature", "science", "icarus", "physical review", "physical review letters",
     "journal of chemical physics", "the journal of chemical physics",
     "proceedings", "communications of the acm", "online", "advertisement",
+    # Repository and publisher banners that sit above the real title and
+    # are often the largest text on the page.
+    "science journals", "science journals aaas", "aaas",
+    "hhs public access", "author manuscript", "public access",
+    "downloaded from", "the new england journal of medicine",
+    "new england journal of medicine", "nejm", "ieee", "acm",
 }
+
+
+def _normalize_for_match(text: str) -> str:
+    """
+    Lowercases and strips punctuation so banner matching is not defeated
+    by the separator a publisher happened to use ("Science Journals - AAAS"
+    against "Science Journals \u2014 AAAS").
+    """
+    stripped = re.sub(r"[^\w\s]", " ", text.lower())
+    return re.sub(r"\s+", " ", stripped).strip()
 
 
 def _is_banner(text: str) -> bool:
     """Whether a line is a journal banner or article-type label."""
-    normalized = re.sub(r"\s+", " ", text).strip().lower().rstrip(".:,")
+    normalized = _normalize_for_match(text)
     return normalized in _BANNER_WORDS or normalized in _JOURNAL_NAMES
+
+
+def _is_legible_text(text: str) -> bool:
+    """
+    Whether a line reads as words rather than scan noise.
+
+    Old scanned papers yield lines like "~~tL-~;\'=::::~4~=:::::==~=l" from
+    rules, equations, and figure edges. They can be long, large, and high
+    on the page, so every other title heuristic accepts them; only the
+    character mix gives them away.
+
+    Applied per line, so it deliberately does not demand several words: a
+    wrapped title legitimately puts "Machine" and "Learning" on lines of
+    their own, and requiring two words each would truncate it.
+    """
+    if not text:
+        return False
+    letters = sum(c.isalpha() or c.isspace() for c in text)
+    return letters >= len(text) * 0.75
+
+
+def _is_plausible_title(text: str) -> bool:
+    """
+    Whether an assembled candidate is plausibly a paper title rather than
+    a sentence lifted out of the body.
+
+    Scanned papers with no usable title typography leave body prose as the
+    largest legible text in the upper page, and a drop cap makes it larger
+    still. Running prose starts mid-sentence on a lowercase word, which a
+    title never does.
+    """
+    if not _is_legible_text(text):
+        return False
+    words = re.findall(r"[A-Za-z]{2,}", text)
+    if len(words) < 2 or len(text.split()) > 30:
+        return False
+    first = text.lstrip()[:1]
+    return first.isupper() or first.isdigit()
 
 
 def _clean_metadata_title(raw: str) -> Optional[str]:
@@ -562,7 +622,16 @@ def _clean_metadata_title(raw: str) -> Optional[str]:
     if _is_banner(text):
         return None
     # A metadata field holding a filename is a tool artifact, not a title.
-    if re.search(r"\.(pdf|docx?|tex)$", text, re.IGNORECASE):
+    # InDesign and QuarkXPress leave production filenames here routinely.
+    if re.search(r"\.(pdf|docx?|tex|indd|qxd|qxp|pages|rtf)$", text, re.IGNORECASE):
+        return None
+    # Working titles typed by an author ("moores paper", "draft final") are
+    # all lower case and only a word or two. The bar is deliberately low:
+    # some real titles are genuinely lower case ("64-channel ultrasound
+    # transducer amplifier") and must survive.
+    if text.islower() and len(text.split()) < 3:
+        return None
+    if not _is_plausible_title(text):
         return None
     return text
 
@@ -573,6 +642,10 @@ def _clean_metadata_title(raw: str) -> Optional[str]:
 # (11.6pt) rank below its own author line (11.8pt) if sizes are compared
 # exactly.
 _SIZE_TIER_RATIO = 0.95
+
+# Titles live in the top of the page. Measured as a fraction of page
+# height from the top edge.
+_TITLE_MAX_PAGE_FRACTION = 0.55
 
 # A title may wrap across several lines, but consecutive lines sit close
 # together. The gap is measured between *successive* lines rather than
@@ -620,7 +693,7 @@ def _best_title(candidates: List[Tuple[int, float, float, str]]) -> Optional[str
     # Re-check the assembled string, not just its parts. Journal logos are
     # often set one word per line ("Astronomy" above "Astrophysics"), so
     # neither line is recognisable as a banner until they are joined.
-    if _is_banner(joined):
+    if _is_banner(joined) or not _is_plausible_title(joined):
         return None
 
     # A single short fragment is more likely a stray glyph or a logo than a

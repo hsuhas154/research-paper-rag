@@ -1,0 +1,45 @@
+{
+  "description": "Paper-level train/validation/test split over the 50-paper corpus, stratified by topic. Papers are matched by the title fragments below, which are checked for uniqueness at load time.",
+  "rationale": {
+    "why_by_paper": "Splitting by chunk would put passages from the same paper on both sides, so a model could score well by memorising a paper's vocabulary. Only a paper-level split measures transfer to unseen documents.",
+    "why_three_way": "The Phase 3 re-ranker study had no validation split and selected a learning rate by looking at the held-out set, which biases that number. Validation exists so test is touched once, at the end.",
+    "why_stratified": "The dominant error mode measured in Phase 2 is cross-paper contamination, which only appears when a corpus contains papers that are genuinely hard to tell apart. Every topic cluster therefore appears in all three splits: the test split contains papers whose near-neighbours the model trained on."
+  },
+  "clusters": {
+    "deep_learning_nlp": {
+      "train": ["Attention is All you Need", "Adam: A Method for Stochastic", "Generative Adversarial Nets", "Deep Learning", "A Few Useful Things", "Deep Residual Learning", "ImageNet Classification", "Learning representations by back-propagating"],
+      "val": ["U-Net", "Sentence-BERT", "On the Dangers of Stochastic Parrots"],
+      "test": ["AN IMAGE IS WORTH", "Dense Passage Retrieval", "Retrieval-Augmented Generation"]
+    },
+    "planetary_venus": {
+      "train": ["Dai et al. Astronomy", "Iron-sulfur chemistry", "H2CO, O3, NH3", "Chlorine–sulfur isomers"],
+      "val": ["A Model of UV–Blue Absorbance"],
+      "test": ["Laboratory Measurements of Ferric Chloride"]
+    },
+    "semiconductors_devices": {
+      "train": ["Characterization and modeling of edge direct", "A Sub-$\\lambda$-Size Modulator", "64-channel ultrasound", "Magnetically Aligned Anisotropic", "The theory of p-n junctions"],
+      "val": ["Modular Multilevel Converters", "Cramming more components"],
+      "test": ["Design of ion-implanted MOSFET", "The Transistor, A Semi-Conductor Triode"]
+    },
+    "condensed_matter_physics": {
+      "train": ["Theory of Superconductivity", "Absence of Diffusion in Certain Random", "Ordering, metastability and phase transitions"],
+      "val": ["Electric Field Effect in Atomically"],
+      "test": ["New Method for High-Accuracy Determination"]
+    },
+    "clinical_medicine": {
+      "train": ["Predicting Sepsis Onset", "A Randomized Trial of Intensive", "Dexamethasone in Hospitalized", "Safety and Efficacy of the BNT162b2"],
+      "val": ["Pembrolizumab plus Chemotherapy"],
+      "test": ["Elexacaftor"]
+    },
+    "engineering_mechanics": {
+      "train": ["A Comprehensive Review of Thermal Energy", "A review of topology optimization", "A Data‐Driven Review of Soft Robotics", "Deep learning in computational mechanics"],
+      "val": ["Machine Learning for Fluid Mechanics"],
+      "test": ["Design and Manufacturing Strategies"]
+    },
+    "methods_and_meta": {
+      "train": ["A New Approach to Linear Filtering", "Comment: The FAIR Guiding Principles"],
+      "val": ["An Algorithm for the Machine Calculation"],
+      "test": ["The direct drivers of recent global"]
+    }
+  }
+}
