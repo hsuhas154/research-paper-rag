@@ -48,13 +48,23 @@ QUESTION_PROMPT = (
     "Below is a passage from a research paper.\n\n"
     "Write ONE specific question that this passage answers. The question must:\n"
     "- be answerable using only this passage\n"
-    "- name the specific quantity, method, finding, or concept involved\n"
-    "- read like a question a researcher would actually ask about the paper\n"
+    "- be phrased in YOUR OWN WORDS, as a researcher would ask it before\n"
+    "  having read the passage\n"
+    "- avoid reusing the passage's distinctive wording: prefer ordinary\n"
+    "  synonyms and plain phrasing over the paper's own terminology\n"
+    "- still be specific about what is being asked\n"
     "- not mention 'the passage', 'the excerpt', or 'this text'\n"
     "- be a single line, no preamble\n\n"
     "Passage:\n{passage}\n\n"
     "Question:"
 )
+
+# A question that simply echoes its source chunk makes the benchmark a
+# keyword-matching test and flatters lexical retrieval. Measured on the
+# first generation, 64.6% of question terms also appeared in the chunk,
+# and BM25 alone then beat the full pipeline, which contradicted the
+# hand-written query set. Questions above this overlap are rejected.
+MAX_QUESTION_CHUNK_OVERLAP = 0.45
 
 # Terms that are rare corpus-wide but useless as evidence: pure numbers,
 # single letters, and fragments left by equation extraction.
@@ -77,6 +87,14 @@ def usable_question(question: str) -> bool:
         return False
     banned = ("passage", "excerpt", "this text", "the above", "the following")
     return not any(b in question.lower() for b in banned)
+
+
+def lexical_overlap(question: str, chunk_text: str) -> float:
+    """Fraction of the question's terms that also occur in the chunk."""
+    question_terms = set(tokenize(question))
+    if not question_terms:
+        return 1.0
+    return len(question_terms & set(tokenize(chunk_text))) / len(question_terms)
 
 
 def pick_evidence(
@@ -108,6 +126,9 @@ def main() -> int:
     ap.add_argument("--min-words", type=int, default=70)
     ap.add_argument("--model", default=LLM_MODEL_NAME)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--max-overlap", type=float, default=MAX_QUESTION_CHUNK_OVERLAP,
+                    help=("reject questions sharing more than this fraction of their "
+                          "terms with the source chunk"))
     args = ap.parse_args()
 
     rng = random.Random(args.seed)
@@ -147,12 +168,16 @@ def main() -> int:
             if not usable_question(question):
                 skipped += 1
                 continue
+            if lexical_overlap(question, chunk.text) > args.max_overlap:
+                skipped += 1
+                continue
             evidence = pick_evidence(chunk.text, question, idf)
             if not evidence:
                 skipped += 1
                 continue
             queries.append({
                 "id": f"{doc_id[:6]}-{len(queries):03d}",
+                "lexical_overlap": round(lexical_overlap(question, chunk.text), 3),
                 "split": which_split[doc_id],
                 "paper": title,
                 "doc_id": doc_id,

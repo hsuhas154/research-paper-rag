@@ -63,6 +63,11 @@ RETRIEVAL_MODES = [MODE_DENSE, MODE_BM25, MODE_HYBRID, MODE_HYBRID_RERANK]
 # outperforms Condorcet and individual Rank Learning Methods".
 RRF_K = 60
 
+# Fusion weights, tuned on the validation split of the 50-paper corpus.
+# See scripts/tune_fusion.py for the sweep behind these values.
+DEFAULT_DENSE_WEIGHT = 1.0
+DEFAULT_LEXICAL_WEIGHT = 1.0
+
 
 @dataclass
 class RetrievalResult:
@@ -77,6 +82,7 @@ class RetrievalResult:
 def reciprocal_rank_fusion(
     ranked_lists: Sequence[Sequence[int]],
     k: int = RRF_K,
+    weights: Optional[Sequence[float]] = None,
 ) -> List[int]:
     """
     Fuses several ranked lists of chunk indices into one.
@@ -85,18 +91,33 @@ def reciprocal_rank_fusion(
         ranked_lists: each inner sequence is chunk indices, best first
         k: RRF damping constant; larger values flatten the advantage of
             the top ranks relative to lower ones
+        weights: per-list multipliers, defaulting to equal weight. Equal
+            weighting assumes both retrievers are about as trustworthy,
+            which stopped being true as the corpus grew: over 50 papers
+            dense retrieval falls to Hit@5 0.65 while BM25 holds 0.97, and
+            averaging a strong ranker with a weak one on equal terms drags
+            the strong one down.
 
     Returns:
         Chunk indices ordered by descending fused score. Ties are broken
         by best individual rank achieved, so fusion is deterministic and
         does not depend on dictionary iteration order.
     """
+    if weights is None:
+        weights = [1.0] * len(ranked_lists)
+    if len(weights) != len(ranked_lists):
+        raise ValueError(
+            f"got {len(weights)} weights for {len(ranked_lists)} ranked lists"
+        )
+
     fused_scores: Dict[int, float] = {}
     best_rank: Dict[int, int] = {}
 
-    for ranked in ranked_lists:
+    for ranked, weight in zip(ranked_lists, weights):
         for rank, chunk_index in enumerate(ranked, start=1):
-            fused_scores[chunk_index] = fused_scores.get(chunk_index, 0.0) + 1.0 / (k + rank)
+            fused_scores[chunk_index] = (
+                fused_scores.get(chunk_index, 0.0) + weight / (k + rank)
+            )
             best_rank[chunk_index] = min(best_rank.get(chunk_index, rank), rank)
 
     return sorted(
@@ -207,11 +228,15 @@ class HybridRetriever:
         store: VectorStore,
         reranker: Optional[CrossEncoderReranker] = None,
         candidate_pool: int = 30,
+        dense_weight: float = DEFAULT_DENSE_WEIGHT,
+        lexical_weight: float = DEFAULT_LEXICAL_WEIGHT,
     ):
         self.embedder = embedder
         self.store = store
         self.reranker = reranker if reranker is not None else CrossEncoderReranker()
         self.candidate_pool = candidate_pool
+        self.dense_weight = dense_weight
+        self.lexical_weight = lexical_weight
         self.bm25 = BM25Index()
         self.sync()
 
@@ -292,7 +317,8 @@ class HybridRetriever:
         lexical_hits = self._lexical(question, pool, doc_ids)
 
         fused_indices = reciprocal_rank_fusion(
-            [[i for i, _ in dense_hits], [i for i, _ in lexical_hits]]
+            [[i for i, _ in dense_hits], [i for i, _ in lexical_hits]],
+            weights=[self.dense_weight, self.lexical_weight],
         )
 
         # Carry each chunk's best first-stage score forward, so a result

@@ -116,6 +116,8 @@ def evaluate_mode(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--queries", type=Path, default=DEFAULT_QUERY_FILE)
+    parser.add_argument("--split", choices=["all", "train", "val", "test"], default="all",
+                        help="restrict to queries whose paper is in this split")
     parser.add_argument("--k", type=int, default=5, help="passages retrieved per query")
     parser.add_argument("--modes", nargs="*", default=RETRIEVAL_MODES)
     parser.add_argument("--max-per-doc", type=int, default=None,
@@ -130,6 +132,15 @@ def main() -> int:
 
     spec = json.loads(args.queries.read_text(encoding="utf-8"))
     queries = spec["queries"]
+
+    if args.split != "all":
+        # Benchmark queries carry their split; the older hand-written set
+        # does not, so it can only be run whole.
+        if not all("split" in q for q in queries):
+            print(f"{args.queries} has no split labels; run it without --split")
+            return 1
+        queries = [q for q in queries if q["split"] == args.split]
+        print(f"split={args.split}: {len(queries)} queries")
 
     print("Loading models and corpus...")
     corpus = Corpus(Embedder())

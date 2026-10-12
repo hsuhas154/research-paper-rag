@@ -284,3 +284,45 @@ class TestTunedDefaultsReachThePipeline:
 
         signature = inspect.signature(rag_pipeline.RAGPipeline.__init__)
         assert signature.parameters["candidate_pool"].default is None
+
+
+class TestWeightedFusion:
+    """
+    Equal-weight fusion assumes both retrievers are about as reliable.
+    That held at 16 papers and stopped holding at 50, where dense falls to
+    Hit@5 0.65 while BM25 holds 0.97.
+    """
+
+    def test_weights_default_to_equal(self):
+        plain = reciprocal_rank_fusion([[1, 2], [3, 4]])
+        explicit = reciprocal_rank_fusion([[1, 2], [3, 4]], weights=[1.0, 1.0])
+        assert plain == explicit
+
+    def test_a_heavier_list_wins_a_tie(self):
+        # Disjoint lists, both rank 1, so only the weight can decide.
+        fused = reciprocal_rank_fusion([[7], [9]], weights=[1.0, 2.0])
+        assert fused[0] == 9
+
+    def test_weighting_can_override_a_rank_advantage(self):
+        # 5 is second in the heavier list, 1 is first in the lighter one.
+        light_first = reciprocal_rank_fusion([[1, 2], [4, 5]], weights=[1.0, 1.0])
+        heavy_second = reciprocal_rank_fusion([[1, 2], [4, 5]], weights=[1.0, 3.0])
+        assert light_first[0] == 1
+        assert heavy_second[0] == 4
+
+    def test_zero_weight_silences_a_retriever(self):
+        fused = reciprocal_rank_fusion([[1, 2, 3], [9]], weights=[1.0, 0.0])
+        assert fused[0] == 1
+
+    def test_mismatched_weight_count_is_rejected(self):
+        # Silently ignoring an extra weight would mean the configuration
+        # someone thinks they are running is not the one that runs.
+        with pytest.raises(ValueError, match="2 weights for 3"):
+            reciprocal_rank_fusion([[1], [2], [3]], weights=[1.0, 1.0])
+
+    def test_remains_deterministic_under_weighting(self):
+        first = reciprocal_rank_fusion([[1, 2], [3, 4]], weights=[1.0, 2.0])
+        assert all(
+            reciprocal_rank_fusion([[1, 2], [3, 4]], weights=[1.0, 2.0]) == first
+            for _ in range(5)
+        )
