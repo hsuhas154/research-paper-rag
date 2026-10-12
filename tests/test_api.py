@@ -76,11 +76,12 @@ class StubPipeline:
         return True
 
     def answer_question(self, question, doc_ids=None, mode="hybrid+rerank",
-                        top_k=5, max_per_document=None):
+                        top_k=5, max_per_document=None, conversation=None):
         if self.ask_error:
             raise self.ask_error
         self.last_ask = dict(question=question, doc_ids=doc_ids, mode=mode,
-                             top_k=top_k, max_per_document=max_per_document)
+                             top_k=top_k, max_per_document=max_per_document,
+                             conversation=conversation)
         chunk = Chunk(0, "the retrieved passage", 3, page_start=4, page_end=5,
                       section="2 Methods", doc_id="abc123")
         return Answer(
@@ -218,3 +219,33 @@ class TestAsk:
         r = client.post("/ask", json={"question": "q"})
         assert r.status_code == 502
         assert "Ollama" in r.json()["detail"]
+
+
+class TestConversationHistory:
+    def test_history_reaches_the_pipeline_as_a_conversation(self, client):
+        client.post("/ask", json={
+            "question": "And at 60 km?",
+            "history": [{"question": "What Kzz was used at 80 km?",
+                         "answer": "5.3e4 cm2/s [Excerpt 1]."}],
+        })
+        conversation = client.stub.last_ask["conversation"]
+        assert conversation is not None
+        assert len(conversation.turns) == 1
+        assert conversation.turns[0].question == "What Kzz was used at 80 km?"
+
+    def test_no_history_means_no_conversation(self, client):
+        client.post("/ask", json={"question": "What was measured?"})
+        assert client.stub.last_ask["conversation"] is None
+
+    def test_history_turns_preserve_order(self, client):
+        client.post("/ask", json={
+            "question": "And the third?",
+            "history": [{"question": "first", "answer": "a1"},
+                        {"question": "second", "answer": "a2"}],
+        })
+        turns = client.stub.last_ask["conversation"].turns
+        assert [t.question for t in turns] == ["first", "second"]
+
+    def test_malformed_history_is_rejected(self, client):
+        r = client.post("/ask", json={"question": "q", "history": [{"question": "only"}]})
+        assert r.status_code == 422

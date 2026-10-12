@@ -32,6 +32,7 @@ from typing import Dict, List, Optional
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
+from src.conversation import Conversation
 from src.rag_pipeline import Answer, RAGPipeline
 from src.retriever import MODE_HYBRID_RERANK, RETRIEVAL_MODES
 
@@ -106,8 +107,21 @@ class SourceOut(BaseModel):
     text: str
 
 
+class HistoryTurn(BaseModel):
+    question: str
+    answer: str
+
+
 class AskIn(BaseModel):
     question: str = Field(min_length=1)
+    history: Optional[List[HistoryTurn]] = Field(
+        default=None,
+        description=(
+            "Prior turns, oldest first. When given, a follow-up is rewritten "
+            "into a standalone question before retrieval. The API stays "
+            "stateless: the client owns the conversation."
+        ),
+    )
     doc_ids: Optional[List[str]] = Field(
         default=None,
         description="Restrict to these documents. Omit to search the whole library.",
@@ -130,6 +144,11 @@ class AskOut(BaseModel):
     mode: str
     retrieval_summary: str
     max_per_document: Optional[int] = None
+    retrieval_question: Optional[str] = Field(
+        default=None,
+        description=("The standalone question actually sent to the retriever, "
+                     "present only when a follow-up was rewritten."),
+    )
 
 
 def to_sources(answer: Answer) -> List[SourceOut]:
@@ -240,6 +259,12 @@ def ask(request: AskIn) -> AskOut:
     if unknown:
         raise HTTPException(status_code=404, detail=f"Unknown document ids: {unknown}")
 
+    conversation = None
+    if request.history:
+        conversation = Conversation()
+        for turn in request.history:
+            conversation.add(turn.question, turn.answer)
+
     try:
         answer = p.answer_question(
             request.question,
@@ -247,6 +272,7 @@ def ask(request: AskIn) -> AskOut:
             mode=request.mode,
             top_k=request.top_k,
             max_per_document=request.max_per_document,
+            conversation=conversation,
         )
     except RuntimeError as error:
         # The local LLM is unreachable. That is an upstream dependency
@@ -259,6 +285,7 @@ def ask(request: AskIn) -> AskOut:
         mode=answer.mode,
         retrieval_summary=answer.retrieval_summary(),
         max_per_document=answer.max_per_document,
+        retrieval_question=answer.retrieval_question,
     )
 
 

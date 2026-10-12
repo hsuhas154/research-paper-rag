@@ -12,6 +12,7 @@ similarity - this lets us use FAISS's fastest index type
 search behavior.
 """
 
+import os
 from typing import List, Optional
 
 import numpy as np
@@ -22,6 +23,26 @@ EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384  # fixed by this model's architecture
 
 
+def default_embedding_model() -> str:
+    """
+    The embedding model to use unless one is named explicitly, overridable
+    with the EMBEDDING_MODEL environment variable.
+
+    all-MiniLM-L6-v2 stays the default on measurement, not inertia.
+    BAAI/bge-base-en-v1.5 is far better at dense retrieval on this corpus,
+    lifting the dense arm from Hit@5 0.618 to 0.794 on validation, and yet
+    the full pipeline does not improve: 0.853 against 0.882, a difference
+    of one query out of 34. Hybrid retrieval was already covering the
+    weakness that bge fixes, so paying ten times the indexing cost and
+    twice the vector width buys nothing end to end.
+
+    Switching requires re-indexing, since the stored vectors carry the
+    old model's dimension:
+        EMBEDDING_MODEL=BAAI/bge-base-en-v1.5 python -m src.corpus add <pdf>
+    """
+    return os.environ.get("EMBEDDING_MODEL", "").strip() or EMBEDDING_MODEL_NAME
+
+
 class Embedder:
     """
     Thin wrapper around a SentenceTransformer model. Instantiate this
@@ -29,7 +50,8 @@ class Embedder:
     both document chunk embedding and query embedding.
     """
 
-    def __init__(self, model_name: str = EMBEDDING_MODEL_NAME, device: Optional[str] = None):
+    def __init__(self, model_name: Optional[str] = None, device: Optional[str] = None):
+        model_name = model_name or default_embedding_model()
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device

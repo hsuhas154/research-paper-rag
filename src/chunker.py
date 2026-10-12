@@ -104,6 +104,7 @@ class _TaggedSentence:
     text: str
     page_number: int
     section: Optional[str]
+    is_table: bool = False
     word_count: int = field(default=0)
 
     def __post_init__(self):
@@ -111,9 +112,19 @@ class _TaggedSentence:
 
 
 def _flatten_to_sentences(segments: List[Segment]) -> List[_TaggedSentence]:
-    """Expands Segments into individual sentences that remember their origin."""
+    """
+    Expands Segments into individual sentences that remember their origin.
+
+    A table segment is passed through whole rather than sentence split. A
+    row is not a sentence, and splitting it on periods scatters the cells
+    away from the row labels that give them meaning.
+    """
     sentences: List[_TaggedSentence] = []
     for segment in segments:
+        if getattr(segment, "is_table", False):
+            sentences.append(_TaggedSentence(
+                segment.text, segment.page_number, segment.section, is_table=True))
+            continue
         for sentence in split_into_sentences(segment.text):
             sentences.append(_TaggedSentence(sentence, segment.page_number, segment.section))
     return sentences
@@ -176,6 +187,14 @@ def chunk_segments(
         # its own text, which is worse than a slightly short chunk.
         if current and sentence.section != current[0].section:
             flush_if_meaningful(minimum_words=0)
+
+        # A table gets a chunk to itself, so neither its own rows nor the
+        # surrounding prose are broken up by the other.
+        if sentence.is_table:
+            flush_if_meaningful(minimum_words=0)
+            chunks.append(_build_chunk(chunk_id, [sentence]))
+            chunk_id += 1
+            continue
 
         current.append(sentence)
         current_words += sentence.word_count

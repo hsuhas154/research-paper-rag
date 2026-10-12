@@ -25,6 +25,7 @@ since it preserves reading order reasonably well even on multi-column
 academic paper layouts.
 """
 
+import os
 import re
 from collections import Counter
 from dataclasses import dataclass, field
@@ -53,6 +54,10 @@ class RawPage:
     page_number: int  # 1-indexed, matching what a PDF reader displays
     text: str
     lines: Optional[List[RawLine]] = field(default=None)
+    # Tables rendered as pipe-delimited rows, kept apart from `text` so
+    # their structure survives chunking instead of dissolving into a
+    # stream of orphaned numbers.
+    tables: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -65,6 +70,9 @@ class Segment:
     text: str
     page_number: int
     section: Optional[str]
+    # Tables bypass sentence splitting during chunking: a row is not a
+    # sentence, and splitting on periods would scatter its cells.
+    is_table: bool = False
 
 
 # Unicode Private Use Area codepoints, plus the supplementary PUA planes.
@@ -81,8 +89,59 @@ def _strip_icon_glyphs(text: str) -> str:
     return re.sub(r"[ \t]+", " ", _PRIVATE_USE_AREA.sub(" ", text)).strip()
 
 
-def _page_lines(page) -> List[RawLine]:
-    """Reads one page's lines with their font size and weight."""
+def _table_regions(page) -> List[Tuple[Tuple[float, float, float, float], str]]:
+    """
+    Finds tables on a page and renders each as pipe-delimited text.
+
+    Why bother: a table reaches the text stream as a stream of orphaned
+    numbers in reading order, with every row and column association lost.
+    "What gate oxide thicknesses were characterised?" and "what are the
+    predicted vibrational frequencies?" both failed in the Phase 2
+    evaluation for exactly that reason - the numbers were indexed, but
+    nothing tied them to their row labels. Rendering the grid keeps each
+    value next to the thing it describes.
+
+    Returns (bbox, rendered_text) pairs. Table detection is best effort;
+    a page whose tables cannot be parsed simply yields none.
+    """
+    regions = []
+    try:
+        found = page.find_tables()
+    except Exception:
+        return regions
+
+    for table in getattr(found, "tables", []):
+        try:
+            rows = table.extract()
+        except Exception:
+            continue
+        lines = []
+        for row in rows:
+            cells = [(cell or "").strip().replace("\n", " ") for cell in row]
+            if any(cells):
+                lines.append(" | ".join(cells))
+        if len(lines) >= 2:
+            regions.append((tuple(table.bbox), "\n".join(lines)))
+
+    return regions
+
+
+def _inside(bbox, regions) -> bool:
+    """Whether a line's bounding box falls within any table region."""
+    x0, y0, x1, y1 = bbox
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    return any(rx0 <= cx <= rx1 and ry0 <= cy <= ry1
+               for (rx0, ry0, rx1, ry1), _ in regions)
+
+
+def _page_lines(page, exclude: Optional[List] = None) -> List[RawLine]:
+    """
+    Reads one page's lines with their font size and weight.
+
+    Lines inside a detected table are skipped when `exclude` is given, so
+    the table's cells are not indexed twice: once as loose text in reading
+    order and again as the rendered grid.
+    """
     lines: List[RawLine] = []
 
     for block in page.get_text("dict").get("blocks", []):
@@ -93,6 +152,8 @@ def _page_lines(page) -> List[RawLine]:
             text = _strip_icon_glyphs("".join(s["text"] for s in spans))
             if not text:
                 continue
+            if exclude and _inside(line["bbox"], exclude):
+                continue
             lines.append(RawLine(
                 text=text,
                 size=round(max(s["size"] for s in spans), 1),
@@ -102,6 +163,30 @@ def _page_lines(page) -> List[RawLine]:
             ))
 
     return lines
+
+
+def table_extraction_enabled() -> bool:
+    """
+    Whether to detect and render tables, off by default.
+
+    Measured on the validation split it costs accuracy: Hit@5 falls from
+    0.88 to 0.85 and MRR from 0.703 to 0.647, and indexing takes four
+    times as long. Rendering a table adds ~70 chunks of pipe-delimited
+    numbers that are dense in rare terms, and those crowd prose answers
+    out of the candidate pool.
+
+    The honest caveat is that the benchmark cannot see the upside. Its
+    questions are generated from prose chunks of at least 70 words, so a
+    table is almost never the gold evidence, and the measurement captures
+    the noise a table adds without ever rewarding a table answered
+    correctly. The capability is kept and left off rather than deleted,
+    because the Phase 2 failures it targets were real.
+
+    Enable with ENABLE_TABLE_EXTRACTION=1 and re-index.
+    """
+    return os.environ.get("ENABLE_TABLE_EXTRACTION", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
 
 
 def extract_pages(pdf_path: str) -> List[RawPage]:
@@ -117,7 +202,15 @@ def extract_pages(pdf_path: str) -> List[RawPage]:
     doc = pymupdf_open(pdf_path)
     pages = []
 
+    want_tables = table_extraction_enabled()
     for page_index, page in enumerate(doc):
+        tables = _table_regions(page) if want_tables else []
+        # Deliberately not excluding the table's own lines from the prose
+        # stream. find_tables over-detects on two-column academic layouts,
+        # so a "table" bounding box can swallow a column of running text;
+        # removing it cost Hit@5 0.88 -> 0.85 on validation. Indexing the
+        # cells twice, once in reading order and once as a grid, is the
+        # cheaper error.
         lines = _page_lines(page)
         pages.append(RawPage(
             page_number=page_index + 1,
@@ -125,6 +218,7 @@ def extract_pages(pdf_path: str) -> List[RawPage]:
             # two views of a page can never disagree about its content.
             text="\n".join(line.text for line in lines),
             lines=lines,
+            tables=[rendered for _, rendered in tables],
         ))
 
     doc.close()
@@ -414,6 +508,21 @@ def segment_pages(pages: List[RawPage]) -> List[Segment]:
             buffer.append(text)
 
         flush(current_section)
+
+        # Tables are emitted after the page's prose, each as one segment.
+        # Keeping a table whole matters more than its position in reading
+        # order: split across a chunk boundary it loses the row labels
+        # that make its numbers answerable.
+        for n, table in enumerate(page.tables or [], start=1):
+            label = f"Table on page {page.page_number}"
+            if len(page.tables) > 1:
+                label += f" ({n})"
+            segments.append(Segment(
+                text=f"{label}\n{table}",
+                page_number=page.page_number,
+                section=current_section,
+                is_table=True,
+            ))
 
     return _merge_undersized_sections(segments)
 

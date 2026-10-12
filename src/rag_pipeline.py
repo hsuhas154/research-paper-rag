@@ -15,6 +15,7 @@ selectable per question.
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence
 
+from src.conversation import Conversation, rewrite_follow_up
 from src.corpus import Corpus, DocumentRecord
 from src.embedder import Embedder
 from src.llm import generate_answer
@@ -31,6 +32,9 @@ class Answer:
     mode: str
     document_titles: Dict[str, str]
     max_per_document: Optional[int] = None
+    # The standalone form sent to the retriever, when a follow-up was
+    # rewritten. Surfaced so the user can see what was actually searched.
+    retrieval_question: Optional[str] = None
     n_dense_candidates: int = 0
     n_lexical_candidates: int = 0
     n_fused_candidates: int = 0
@@ -121,6 +125,7 @@ class RAGPipeline:
         mode: str = MODE_HYBRID_RERANK,
         top_k: Optional[int] = None,
         max_per_document: Optional[int] = None,
+        conversation: Optional[Conversation] = None,
     ) -> Answer:
         """
         Answers a question against the corpus.
@@ -136,6 +141,11 @@ class RAGPipeline:
                 reads as comparative, because applying one to every
                 question measurably costs accuracy on ordinary
                 single-paper questions.
+            conversation: prior turns. When given, a follow-up is rewritten
+                into a standalone question before retrieval, and recent
+                turns are passed to the generator. The conversation is not
+                updated here; the caller decides whether a turn is worth
+                keeping.
 
         Returns:
             An Answer carrying the generated text, the source passages,
@@ -146,24 +156,43 @@ class RAGPipeline:
 
         passages = top_k or self.top_k
 
+        # Retrieval acts on a standalone form of the question. "And at 60
+        # km?" is clear to a reader and meaningless to a retriever, and no
+        # amount of conversational context given to the generator helps
+        # once retrieval has already fetched the wrong passages.
+        retrieval_question = question
+        if conversation is not None and not conversation.is_empty():
+            retrieval_question = rewrite_follow_up(question, conversation)
+
         # A comparative question has to reach more than one paper, so the
         # passage budget is shared rather than spent on the single
         # strongest match. Half the budget per paper lets two papers be
         # covered without starving either.
-        if max_per_document is None and looks_comparative(question):
+        if max_per_document is None and looks_comparative(retrieval_question):
             searching = len(doc_ids) if doc_ids is not None else len(self.corpus.documents)
             if searching > 1:
                 max_per_document = max(1, passages // 2)
 
         retrieval = self.retriever.retrieve(
-            question,
+            retrieval_question,
             top_k=passages,
             mode=mode,
             doc_ids=doc_ids,
             max_per_document=max_per_document,
+            retrieval_question=(
+                retrieval_question if retrieval_question != question else None
+            ),
         )
         titles = self.document_titles()
-        text = generate_answer(question, retrieval.chunks, document_titles=titles)
+        # The generator sees the question as the user actually asked it,
+        # with the conversation for context. Only retrieval needed the
+        # rewritten form.
+        text = generate_answer(
+            question,
+            retrieval.chunks,
+            document_titles=titles,
+            history=conversation.as_messages() if conversation else None,
+        )
 
         return Answer(
             text=text,

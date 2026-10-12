@@ -69,3 +69,30 @@ class TestRerankerConstruction:
 class TestEmptyInput:
     def test_reranking_nothing_returns_nothing_without_loading(self):
         assert CrossEncoderReranker().rerank("a question", []) == []
+
+
+class TestEmbeddingModelSelection:
+    """
+    The embedding model is selectable for the same reason the re-ranker
+    is: a stronger model measured better in isolation and no better end to
+    end, so the choice is documented and overridable rather than silently
+    changed.
+    """
+
+    def test_defaults_to_the_measured_choice(self, monkeypatch):
+        from src.embedder import EMBEDDING_MODEL_NAME, default_embedding_model
+
+        monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
+        assert default_embedding_model() == EMBEDDING_MODEL_NAME
+
+    def test_environment_variable_overrides(self, monkeypatch):
+        from src.embedder import default_embedding_model
+
+        monkeypatch.setenv("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
+        assert default_embedding_model() == "BAAI/bge-base-en-v1.5"
+
+    def test_blank_override_is_ignored(self, monkeypatch):
+        from src.embedder import EMBEDDING_MODEL_NAME, default_embedding_model
+
+        monkeypatch.setenv("EMBEDDING_MODEL", "  ")
+        assert default_embedding_model() == EMBEDDING_MODEL_NAME

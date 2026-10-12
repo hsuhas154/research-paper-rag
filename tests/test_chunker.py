@@ -99,3 +99,57 @@ class TestCitation:
 
     def test_degrades_gracefully_without_metadata(self):
         assert Chunk(0, "text", 2).citation() == "source unknown"
+
+
+class TestTableChunking:
+    """
+    A table reaches the text stream as orphaned numbers in reading order,
+    with row and column associations lost. Phase 2 questions about gate
+    oxide thicknesses and vibrational frequencies failed for that reason.
+    Tables are therefore carried as whole segments.
+    """
+
+    @staticmethod
+    def table_segment(page=3, section="3 Results"):
+        return Segment(
+            text="Table on page 3\nmodel | acc | params\nResNet | 76.2 | 25M\nVGG | 71.5 | 138M",
+            page_number=page,
+            section=section,
+            is_table=True,
+        )
+
+    def test_a_table_becomes_its_own_chunk(self):
+        chunks = chunk_segments([
+            make_segment(6, page=3, section="3 Results"),
+            self.table_segment(),
+            make_segment(6, page=3, section="3 Results"),
+        ], target_words=500, overlap_words=10)
+
+        table_chunks = [c for c in chunks if c.text.startswith("Table on page")]
+        assert len(table_chunks) == 1
+
+    def test_table_rows_are_not_split_into_sentences(self):
+        chunk = [c for c in chunk_segments([self.table_segment()], target_words=500)
+                 if c.text.startswith("Table on page")][0]
+
+        # Every row, and the association between a label and its numbers,
+        # has to survive into the indexed text.
+        assert "ResNet | 76.2 | 25M" in chunk.text
+        assert "VGG | 71.5 | 138M" in chunk.text
+
+    def test_a_table_keeps_its_page_and_section(self):
+        chunk = [c for c in chunk_segments([self.table_segment(page=7, section="4 Discussion")],
+                                           target_words=500)
+                 if c.text.startswith("Table on page")][0]
+        assert chunk.page_start == 7
+        assert chunk.section == "4 Discussion"
+
+    def test_prose_around_a_table_is_not_merged_into_it(self):
+        chunks = chunk_segments([
+            make_segment(6, page=3, section="3 Results"),
+            self.table_segment(),
+        ], target_words=500, overlap_words=10)
+
+        prose = [c for c in chunks if not c.text.startswith("Table on page")]
+        assert prose, "prose before a table must still be indexed"
+        assert all("ResNet | 76.2" not in c.text for c in prose)

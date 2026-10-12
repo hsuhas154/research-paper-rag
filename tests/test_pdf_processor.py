@@ -324,3 +324,25 @@ class TestSplitResolution:
         }}}))
         with pytest.raises(SplitError, match="appears in both"):
             resolve(self.titles(), spec)
+
+
+class TestTableExtractionToggle:
+    def test_disabled_by_default(self, monkeypatch):
+        from src.pdf_processor import table_extraction_enabled
+
+        monkeypatch.delenv("ENABLE_TABLE_EXTRACTION", raising=False)
+        assert table_extraction_enabled() is False
+
+    def test_enabled_by_environment(self, monkeypatch):
+        from src.pdf_processor import table_extraction_enabled
+
+        for value in ("1", "true", "YES", "on"):
+            monkeypatch.setenv("ENABLE_TABLE_EXTRACTION", value)
+            assert table_extraction_enabled() is True
+
+    def test_other_values_leave_it_off(self, monkeypatch):
+        from src.pdf_processor import table_extraction_enabled
+
+        for value in ("0", "false", "", "maybe"):
+            monkeypatch.setenv("ENABLE_TABLE_EXTRACTION", value)
+            assert table_extraction_enabled() is False
