@@ -443,3 +443,120 @@ The same variable accepts any Hugging Face cross-encoder:
 ```bash
 RERANKER_MODEL=BAAI/bge-reranker-base python app.py
 ```
+
+---
+
+## 11. Evaluation and experiments
+
+Phase 3 added a labelled benchmark with a paper-level train, validation and
+test split, so changes can be measured rather than guessed at.
+
+### The split
+
+30 papers train, 10 validation, 10 test, stratified across seven topic
+clusters so every cluster appears in all three. Defined in
+`eval/splits.json` by title fragment, which survives re-indexing.
+
+**Validation is for tuning. Test is for confirming, once.** Choosing a
+setting by looking at test is how an earlier study produced a flattering
+number that did not hold up.
+
+### Run the retrieval benchmark
+
+```bash
+python -m scripts.compare_retrieval --queries eval/benchmark.json --split val --k 5
+```
+
+```bash
+python -m scripts.compare_retrieval --queries eval/benchmark.json --split test --k 5
+```
+
+### Measure answer faithfulness
+
+Needs Ollama running. Extracts the claims an answer makes and judges each
+against the passages it was given:
+
+```bash
+python -m scripts.evaluate_faithfulness --split val --limit 25
+```
+
+The judge defaults to the generating model, which is lenient about its own
+output. Pass a stronger one if you have it:
+
+```bash
+python -m scripts.evaluate_faithfulness --split val --judge llama3.1:70b
+```
+
+### Compare models
+
+```bash
+python -m scripts.compare_rerankers --split heldout
+```
+
+```bash
+python -m scripts.compare_embedders --split val
+```
+
+### Tune first-stage retrieval
+
+Sweeps candidate pool and fusion weight. Reads validation only, by design:
+
+```bash
+python -m scripts.tune_fusion --pools 30 50 80 --lexical-weights 1 1.5 2
+```
+
+### Regenerate the benchmark
+
+Needs Ollama. Takes roughly ten minutes for 50 papers:
+
+```bash
+python -m scripts.build_benchmark --per-paper 10 --max-overlap 0.5
+```
+
+---
+
+## 12. Switching models and features
+
+All of these are off or defaulted on measurement, not preference. Each was
+tried, measured, and left as it is because the numbers said so.
+
+### Use a different re-ranker
+
+```bash
+RERANKER_MODEL=BAAI/bge-reranker-base python app.py
+```
+
+### Use a different embedding model
+
+This one requires re-indexing, because stored vectors carry the old model's
+dimension:
+
+```bash
+rm -rf data/corpus && EMBEDDING_MODEL=BAAI/bge-base-en-v1.5 python -m src.corpus add data/uploads/*.pdf
+```
+
+`BAAI/bge-base-en-v1.5` nearly doubles dense-only retrieval quality and does
+not improve the full pipeline, because hybrid retrieval already covers that
+weakness. It costs ten times the indexing time.
+
+### Enable table extraction
+
+```bash
+ENABLE_TABLE_EXTRACTION=1 python -m src.corpus add data/uploads/paper.pdf
+```
+
+Measured as harmful on the current benchmark, though the benchmark cannot
+see its intended upside. See the evaluation for the full reasoning.
+
+### Ask follow-up questions
+
+In the web interface, tick **Follow-up question** and ask something like
+"and at 60 km?". The question is rewritten into a standalone one before
+searching, and the rewritten form is shown under the answer.
+
+Through the API, send prior turns with the request; the server keeps no
+state:
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/ask -H 'Content-Type: application/json' -d '{"question":"And at 60 km?","history":[{"question":"What Kzz was used at 80 km?","answer":"5.3e4 cm2/s."}]}'
+```

@@ -213,6 +213,9 @@ research-paper-rag/
 │   └── corpus/              # persistent index (generated, gitignored)
 ├── src/
 │   ├── api.py               # FastAPI backend over the pipeline
+│   ├── conversation.py      # follow-up rewriting and history
+│   ├── faithfulness.py      # answer groundedness measurement
+│   ├── splits.py            # train/validation/test resolution
 │   ├── pdf_processor.py     # extraction, reference stripping, page/section segmentation
 │   ├── chunker.py           # sentence-aware chunking with page/section provenance
 │   ├── embedder.py          # Sentence Transformer wrapper
@@ -224,15 +227,21 @@ research-paper-rag/
 │   ├── llm.py               # Ollama call + grounded-answer prompting
 │   └── rag_pipeline.py      # ties the above into one pipeline object
 ├── scripts/
-│   ├── compare_retrieval.py    # retrieval benchmark
+│   ├── compare_retrieval.py    # retrieval benchmark, per split
 │   ├── compare_rerankers.py    # re-ranker benchmark, with held-out splits
+│   ├── compare_embedders.py    # embedding model benchmark
+│   ├── tune_fusion.py          # first-stage sweep, validation only
+│   ├── build_benchmark.py      # generates the labelled benchmark
 │   ├── build_rerank_dataset.py # mines in-domain training data from the corpus
 │   ├── train_reranker.py       # cross-encoder fine-tuning
+│   ├── evaluate_faithfulness.py # answer groundedness
 │   └── validate_queries.py     # checks a test set is actually answerable
 ├── eval/
-│   ├── corpus_queries.json  # 39-query, 16-paper retrieval test set
+│   ├── benchmark.json       # 162-query, 50-paper benchmark with split labels
+│   ├── splits.json          # paper-level train/validation/test split
+│   ├── corpus_queries.json  # 39 hand-written queries (16 papers)
 │   └── venus_queries.json   # single-paper test set (Phase 1 comparison)
-├── tests/                   # 120 unit tests
+├── tests/                   # 185 unit tests
 ├── app.py                   # Gradio UI, entry point
 ├── EVALUATION.md            # 16-paper test results and fixes
 ├── RUNNING.md               # setup, start/stop, troubleshooting
@@ -301,17 +310,26 @@ Everything else in Phase 3 adds measurement or surface area, not correctness.
       only matches stock while scoring worse on MRR. Bigger off-the-shelf
       re-rankers do not help either. See the
       [re-ranker study](EVALUATION.md#re-ranker-study-does-domain-adaptation-help).)
-- [ ] Widen first-stage retrieval, which the re-ranker study identified as
-      the real ceiling: Hit@5 is 0.974 for every re-ranker tested, so the
-      limit is what reaches the candidate pool (Phase 3)
-- [ ] Equation, symbol, and table extraction, so answers that *are* a
-      formula stop degrading into garbled Unicode (Phase 3)
+- [x] ~~Widen first-stage retrieval~~ (Phase 3, investigated and **rejected
+      on evidence**: sweeping candidate pool and fusion weight on
+      validation ties on Hit@5, and a much stronger embedding model lifts
+      the dense arm from 0.618 to 0.794 without moving the full pipeline
+      at all)
+- [x] ~~Equation, symbol, and table extraction~~ (Phase 3, implemented and
+      **off by default on measurement**: table rendering cost Hit@5 0.88 to
+      0.85 and quadrupled indexing. Available behind
+      `ENABLE_TABLE_EXTRACTION`)
 - [x] ~~Per-document retrieval quotas, so a question spanning two papers can
       reach both instead of spending its whole passage budget on one~~
       (Phase 3, done: applied only to questions that read as comparative,
       since applying it to every question costs Hit@5 0.97 to 0.92)
-- [ ] RAGAS-based answer faithfulness and groundedness evaluation (Phase 3)
-- [ ] Conversational multi-turn memory with query rewriting (Phase 3)
+- [x] ~~Answer faithfulness and groundedness evaluation~~ (Phase 3,
+      `src/faithfulness.py`: 0.906 faithfulness, 1.0 citation validity, 0.0
+      contradictions on validation. Built directly rather than via RAGAS,
+      which would have risked the pinned CUDA environment)
+- [x] ~~Conversational multi-turn memory with query rewriting~~ (Phase 3,
+      `src/conversation.py`: follow-ups are rewritten into standalone
+      questions before retrieval, since that is where they actually fail)
 - [x] ~~FastAPI backend, replacing direct Gradio-to-pipeline calls~~
       (Phase 3, done: `src/api.py`, see [RUNNING.md](RUNNING.md) section 9)
 
