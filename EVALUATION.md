@@ -386,9 +386,8 @@ citation is worse than an uncited claim, because the answer looks sourced
 and defeats the reader's own check.
 
 Context utilisation at 0.28 says the generator cites about 1.4 of the 5
-passages it is given. That is a lead rather than a result: either top_k
-is larger than it needs to be, or the generator under-cites passages it
-did use.
+passages it is given. That looked like evidence that top_k was too large.
+It is not, and the sweep below shows why.
 
 **The judge is the generating model**, which is lenient about its own
 output. That is recorded in every report rather than hidden, and the
@@ -397,6 +396,43 @@ Treat 0.906 as a floor, not a certificate. RAGAS itself is not a
 dependency: it brings a large stack including its own LLM clients, and
 this environment is a pinned CUDA nightly not worth risking for three
 prompts.
+
+### Resolving context utilisation: both hypotheses were wrong
+
+Low context utilisation suggested one of two things: top_k larger than
+necessary, or a generator that under-cites passages it actually used.
+Those have opposite fixes, so it was worth measuring rather than
+guessing. Sweeping top_k over the validation split, 20 questions each:
+
+| top_k | Hit@k | MRR | faithfulness | utilisation | passages cited | generation |
+|---|---|---|---|---|---|---|
+| 3 | 0.74 | 0.667 | 0.925 | 0.317 | 0.95 | 116 s |
+| **5 (current)** | **0.88** | **0.703** | 0.967 | 0.250 | 1.25 | **121 s** |
+| 8 | 0.88 | 0.703 | 0.978 | 0.231 | 1.85 | 145 s |
+
+**Neither hypothesis survived.** Utilisation falls as top_k rises, but
+the number of passages actually cited *increases*, from 0.95 to 1.85. The
+falling ratio is arithmetic, not waste: the denominator grows faster than
+the numerator. Utilisation on its own is a misleading metric, and reading
+it as "three of five passages are wasted" would have been wrong.
+
+More context also makes answers *more* grounded, not less: faithfulness
+rises from 0.925 to 0.978 across the range. Passages the model does not
+cite are evidently still doing work, corroborating claims it attributes
+elsewhere. Cutting top_k to save context would have cost groundedness.
+
+**top_k stays at 5.** Dropping to 3 costs 0.14 of Hit@k and 0.04 of
+faithfulness, which is strictly worse on both. Raising to 8 buys 0.011
+faithfulness, inside the noise at 20 questions, for 20% more generation
+time and no recall gain at all, since Hit@8 equals Hit@5: the extra three
+passages never contain evidence the first five missed.
+
+An earlier reading of this sweep was also wrong and worth recording. The
+first top_k=3 result looked better than the existing top_k=5 number, and
+it was not comparable: the two runs used 20 and 25 questions. Comparing
+across runs with different question sets is the same error as comparing
+across corpus sizes, which is what made the original re-ranker conclusion
+expire.
 
 ### Conversational memory
 

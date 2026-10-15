@@ -63,6 +63,11 @@ class RAGPipeline:
     the app with re-ranking switched off costs nothing.
     """
 
+    # top_k=5 is measured, not assumed. On the validation split, 3 costs
+    # 0.14 of Hit@k and 0.04 of faithfulness, while 8 adds no recall at all
+    # (Hit@8 equals Hit@5) for 20% more generation time. Low context
+    # utilisation at k=5 is not evidence of waste: the passages actually
+    # cited rise with k, and faithfulness rises with them.
     def __init__(self, top_k: int = 5, candidate_pool: Optional[int] = None):
         self.embedder = Embedder()
         self.corpus = Corpus(self.embedder)
