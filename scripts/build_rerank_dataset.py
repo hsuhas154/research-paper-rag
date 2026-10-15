@@ -42,9 +42,11 @@ from src.corpus import Corpus
 from src.embedder import Embedder
 from src.llm import LLM_MODEL_NAME
 from src.retriever import HybridRetriever
+from src.splits import resolve, summarize
 
-# Papers held out of training entirely, chosen to span the corpus's
-# subject areas so the held-out score is not a single-domain fluke.
+# Superseded by eval/splits.json, which defines a stratified 30/10/10
+# split over the full 50-paper corpus. Kept only so older runs and the
+# compare_rerankers "heldout" mode still resolve; new work uses the split.
 HELD_OUT_TITLE_FRAGMENTS = [
     "attention is all you need",
     "dai et al. astronomy",
@@ -101,20 +103,23 @@ def main() -> int:
     random.seed(args.seed)
     corpus = Corpus(Embedder())
     retriever = HybridRetriever(corpus.embedder, corpus.store)
-    titles = {d.doc_id: d.title.lower() for d in corpus.documents}
 
-    held_out = {
-        doc_id for doc_id, title in titles.items()
-        if any(f in title for f in HELD_OUT_TITLE_FRAGMENTS)
-    }
+    # Training uses only the `train` split. Validation and test papers are
+    # excluded so a fine-tuned model can be judged on documents it has
+    # never seen, which is the one thing the first attempt at this could
+    # not do.
+    real_titles = {d.doc_id: d.title for d in corpus.documents}
+    split_map = resolve(real_titles)
+    train_docs = set(split_map["train"]["doc_ids"])
+    held_out = set(real_titles) - train_docs
+
     print(f"corpus: {len(corpus)} papers, {len(corpus.store)} chunks")
-    print(f"held out of training: {len(held_out)} papers")
-    for doc_id in held_out:
-        print(f"  {titles[doc_id][:70]}")
+    print(summarize(split_map, real_titles))
+    print(f"\ntraining on {len(train_docs)} papers, holding out {len(held_out)}\n")
 
     train_chunks = [
         (i, c) for i, c in enumerate(corpus.store.chunks)
-        if c.doc_id not in held_out and c.word_count >= args.min_words
+        if c.doc_id in train_docs and c.word_count >= args.min_words
     ]
     random.shuffle(train_chunks)
     if args.max_chunks:
@@ -166,8 +171,12 @@ def main() -> int:
     print(f"\nwrote {written} examples to {args.out} ({skipped} skipped) "
           f"in {time.time() - start:.0f}s")
     held_out_path = args.out.with_suffix(".heldout.json")
-    held_out_path.write_text(json.dumps(sorted(held_out), indent=1), encoding="utf-8")
-    print(f"held-out doc ids -> {held_out_path}")
+    held_out_path.write_text(json.dumps({
+        "train": sorted(train_docs),
+        "held_out": sorted(held_out),
+        "source": "eval/splits.json",
+    }, indent=1), encoding="utf-8")
+    print(f"split record -> {held_out_path}")
     return 0
 
 
