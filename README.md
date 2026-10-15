@@ -315,10 +315,14 @@ Everything else in Phase 3 adds measurement or surface area, not correctness.
       validation ties on Hit@5, and a much stronger embedding model lifts
       the dense arm from 0.618 to 0.794 without moving the full pipeline
       at all)
-- [x] ~~Equation, symbol, and table extraction~~ (Phase 3, implemented and
-      **off by default on measurement**: table rendering cost Hit@5 0.88 to
-      0.85 and quadrupled indexing. Available behind
-      `ENABLE_TABLE_EXTRACTION`)
+- [x] ~~Table extraction~~ (Phase 3, implemented and **off by default on
+      measurement**: table rendering cost Hit@5 0.88 to 0.85 and quadrupled
+      indexing. Available behind `ENABLE_TABLE_EXTRACTION`)
+- [ ] **Equation and symbol extraction** (still open, and the largest
+      remaining accuracy gap. A symbol-density filter was measured and
+      abandoned: it cannot tell a corrupted equation from a dense table of
+      real measurements, so it would delete the most answerable content in
+      the corpus. Needs structural extraction using font size and position)
 - [x] ~~Per-document retrieval quotas, so a question spanning two papers can
       reach both instead of spending its whole passage budget on one~~
       (Phase 3, done: applied only to questions that read as comparative,

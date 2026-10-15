@@ -303,6 +303,35 @@ only the noise tables add. The capability is kept behind
 `ENABLE_TABLE_EXTRACTION` rather than deleted, because the Phase 2
 failures it targets were real.
 
+### Equation handling: why the obvious fix was abandoned
+
+Equation and symbol extraction remains the largest open gap. Questions
+whose answer *is* a formula still degrade, because PDF text extraction
+loses superscripts, subscripts and layout: a displayed equation arrives
+as fragments on separate lines, and 1950s scans produce outright OCR
+damage.
+
+The obvious first move is to detect and suppress math noise so it stops
+polluting chunks. That was measured before implementing, and abandoned.
+
+Scoring every chunk by the fraction of its tokens that are not ordinary
+words flags 94 of 3,658 chunks above a 35% threshold. Inspecting them
+shows the heuristic is wrong: the top offenders are a blood-pressure
+trial, a trace-gas detection paper, and ResNet, and the flagged text is
+material like "1.0 W/(m K) to 7.0 W/(m K) for sand-rock minerals". That
+is not noise, it is the numeric result content these papers exist to
+report, and it is exactly what a reader would ask about.
+
+A symbol-density filter cannot separate a corrupted equation from a
+dense table of real measurements, because at the character level they
+look the same. Shipping one would have silently deleted the most
+answerable content in the corpus to tidy up the least.
+
+Equations therefore need structural extraction, reading font size and
+position to reassemble sub- and superscripts, rather than filtering.
+That is a larger piece of work and is deliberately left open rather than
+papered over with a heuristic that measures well and destroys data.
+
 ### The re-ranker study, repeated at 50 papers
 
 The original study ran on 16 papers and concluded that re-ranking was not
