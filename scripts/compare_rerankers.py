@@ -71,9 +71,10 @@ def main() -> int:
     ap.add_argument("--pool", type=int, default=30)
     ap.add_argument("--only-papers", nargs="*", default=None,
                     help="restrict to queries whose paper matches one of these substrings")
-    ap.add_argument("--split", choices=["all", "heldout", "trained"], default="all",
-                    help=("evaluate on all queries, only those targeting papers held out "
-                          "of re-ranker training, or only those targeting trained papers"))
+    ap.add_argument("--split", default="all",
+                    help=("val/test/train when the query file carries split labels "
+                          "(eval/benchmark.json), or heldout/trained for the older "
+                          "hand-written set"))
     args = ap.parse_args()
 
     spec = json.loads(args.queries.read_text(encoding="utf-8"))
@@ -84,7 +85,15 @@ def main() -> int:
     titles = {d.doc_id: d.title for d in corpus.documents}
     retriever = HybridRetriever(corpus.embedder, corpus.store, candidate_pool=args.pool)
 
-    if args.split != "all":
+    if args.split in ("train", "val", "test"):
+        # The generated benchmark carries its own split labels, from the
+        # paper-level split in eval/splits.json.
+        if not all("split" in q for q in queries):
+            print(f"{args.queries} has no split labels")
+            return 1
+        queries = [q for q in queries if q["split"] == args.split]
+        print(f"split={args.split}: {len(queries)} queries")
+    elif args.split != "all":
         from scripts.build_rerank_dataset import HELD_OUT_TITLE_FRAGMENTS
 
         # Resolve each query's paper to a real corpus title before testing

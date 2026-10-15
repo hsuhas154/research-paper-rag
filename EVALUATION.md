@@ -303,6 +303,36 @@ only the noise tables add. The capability is kept behind
 `ENABLE_TABLE_EXTRACTION` rather than deleted, because the Phase 2
 failures it targets were real.
 
+### The re-ranker study, repeated at 50 papers
+
+The original study ran on 16 papers and concluded that re-ranking was not
+the bottleneck, because Hit@5 sat at 0.974 for every re-ranker tried,
+including one fine-tuned on the corpus. That reasoning depended on a
+saturated metric, so it had to be repeated once the corpus tripled.
+
+On the 50-paper validation split:
+
+| model | params | Hit@5 | MRR@5 | sec/query |
+|---|---|---|---|---|
+| no re-rank (fusion order) | - | 0.735 | 0.593 | 0.000 |
+| **ms-marco-MiniLM-L-6-v2 (current)** | 22M | **0.882** | 0.703 | **0.057** |
+| ms-marco-MiniLM-L-12-v2 | 33M | **0.882** | **0.728** | 0.106 |
+| BAAI/bge-reranker-base | 278M | 0.853 | 0.728 | 0.289 |
+
+**The headline conclusion changed.** Re-ranking is no longer a marginal
+refinement: it adds 0.147 to Hit@5, taking 0.735 to 0.882. At 16 papers
+the first stage already surfaced the right passage almost every time and
+re-ranking only reordered it; at 50 papers the first stage misses roughly
+a quarter of the time and the re-ranker recovers most of those. The
+earlier conclusion was not wrong, it was measured against a saturated
+metric, which is a reminder that a conclusion is only valid at the scale
+it was taken.
+
+**The model choice did not change.** L-12 ties L-6 on Hit@5 and gains
+0.025 MRR for twice the latency, which is one query's worth of difference
+across 34 and therefore inside the noise. bge-reranker-base is worse on
+Hit@5 at five times the cost. L-6 stays the default.
+
 ### Answer faithfulness
 
 `src/faithfulness.py` measures what retrieval metrics cannot: of the

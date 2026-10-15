@@ -35,6 +35,13 @@ from src.vector_store import RetrievedChunk
 # which is the binding constraint on this project's model choices.
 STOCK_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
+# Re-measured on the 50-paper corpus: re-ranking lifts Hit@5 from 0.735 to
+# 0.882, so it is load-bearing rather than a refinement. At 16 papers the
+# first stage was already saturated at 0.974 and re-ranking looked
+# marginal; that earlier reading was an artifact of corpus size.
+# ms-marco-MiniLM-L-12-v2 ties on Hit@5 and gains 0.025 MRR for twice the
+# latency, inside the noise at 34 queries, so L-6 remains the default.
+
 # Where scripts.train_reranker writes a fine-tuned model. It is NOT
 # picked up automatically. Domain adaptation was tried on this corpus and
 # measured against papers held out of training: the fine-tuned model
