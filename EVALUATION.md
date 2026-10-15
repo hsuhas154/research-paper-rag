@@ -303,6 +303,90 @@ only the noise tables add. The capability is kept behind
 `ENABLE_TABLE_EXTRACTION` rather than deleted, because the Phase 2
 failures it targets were real.
 
+### Domain-adapted re-ranking, repeated properly: it works
+
+Phase 3 rejected fine-tuned re-ranking. That rejection was taken on 565
+examples from 12 papers, with no validation split, and with the winning
+configuration chosen by looking at the held-out set it was then scored
+on. Repeated with the data and the protocol it deserved, the conclusion
+reverses.
+
+What changed: 2,264 training examples drawn from the 30-paper train
+split rather than 565 from 12, a benchmark of 408 queries rather than
+162, hyperparameters selected on validation, and test read exactly once
+after the choice was locked.
+
+Nine configurations were trained. Selection on validation picked 2 epochs
+at lr 5e-6. Scored on test:
+
+| | test Hit@5 | test MRR | sec/query |
+|---|---|---|---|
+| stock ms-marco-MiniLM-L-6-v2 | 0.737 | 0.625 | 0.063 |
+| **fine-tuned on this corpus** | **0.803** | **0.655** | 0.064 |
+
+A gain of 0.066 Hit@5, about five queries out of 76, at identical
+latency and identical model size. The validation gain was much smaller
+(0.860 against 0.849), and the pattern makes sense: test is the harder
+split, and fine-tuning helps most where the stock model is weakest.
+
+A locally trained model is therefore adopted automatically again,
+reversing the earlier decision to require opt-in. That earlier decision
+was right on the evidence available then, when the model was worse on
+unseen papers. A fresh checkout has no models directory and still falls
+back to stock.
+
+### Three decisions that were stuck in the noise, now resolved
+
+With 86 validation queries instead of 34, one query is worth 1.2 points
+rather than 2.9, and three previously inconclusive comparisons resolve.
+
+**Re-ranker model.** Previously "tied, inside the noise":
+
+| model | Hit@5 | MRR@5 | sec/query |
+|---|---|---|---|
+| no re-rank | 0.756 | 0.607 | 0.000 |
+| **ms-marco-MiniLM-L-6-v2** | **0.849** | **0.692** | **0.064** |
+| ms-marco-MiniLM-L-12-v2 | 0.826 | 0.679 | 0.110 |
+| BAAI/bge-reranker-base | 0.814 | 0.649 | 0.306 |
+
+Not a tie. L-6 wins outright and is the fastest.
+
+**Embedding model, and a correction.** This evaluation earlier reported
+bge-base lifting dense retrieval from 0.618 to 0.794, called "the most
+interesting negative result of the phase" because the system did not
+improve. At 86 queries:
+
+| model | dense Hit@5 | dense MRR | full Hit@5 | index |
+|---|---|---|---|---|
+| **all-MiniLM-L6-v2** | **0.709** | 0.477 | **0.860** | **5 s** |
+| all-mpnet-base-v2 | 0.628 | 0.452 | 0.860 | 39 s |
+| BAAI/bge-base-en-v1.5 | 0.698 | **0.557** | 0.849 | 36 s |
+
+**The dramatic dense gain was largely a 34-query artifact.** bge is now
+marginally behind MiniLM on dense Hit@5 and ahead only on dense MRR. The
+decision not to switch stands, but the reason given for it was overstated
+and is corrected here.
+
+**Pool size, which won on validation and lost on test.** Pool 50 reached
+Hit@5 0.872 on validation at every lexical weight tried, against 0.860
+for pool 30. That looked like consistent evidence rather than one lucky
+cell. Confirmed on test it reversed: 0.78 against 0.803.
+
+Pool 30 was kept. A change that does not survive the split it was not
+tuned on does not ship, and this is the precise case the three-way split
+exists to catch. It is worth recording that the validation evidence
+looked convincing, because convincing validation evidence is exactly what
+an overfitted choice looks like from the inside.
+
+### Where the system now stands on test
+
+| metric | session start | now |
+|---|---|---|
+| Hit@5 | 0.737 | **0.80** |
+| MRR@5 | 0.625 | **0.655** |
+
+Same latency, from a better re-ranker rather than more compute.
+
 ### Equation handling: why the obvious fix was abandoned
 
 Equation and symbol extraction remains the largest open gap. Questions

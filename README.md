@@ -304,12 +304,12 @@ listed first because they are the only items that move answer accuracy.
 Everything else in Phase 3 adds measurement or surface area, not correctness.
 
 - [x] ~~Domain-adapted re-ranking, replacing the MS MARCO cross-encoder~~
-      (Phase 3, investigated and **rejected on evidence**: fine-tuning on
-      565 in-domain examples overfits, scoring 1.000 on papers it trained
-      on and 0.818 on held-out papers, and the best-regularised version
-      only matches stock while scoring worse on MRR. Bigger off-the-shelf
-      re-rankers do not help either. See the
-      [re-ranker study](EVALUATION.md#re-ranker-study-does-domain-adaptation-help).)
+      (Phase 3, first **rejected** then **adopted** after repeating it
+      properly. With 2,264 examples from a 30-paper train split, a real
+      validation split, and test read once, the fine-tuned model beats
+      stock on test: Hit@5 0.803 against 0.737, at identical latency. The
+      original rejection came from 565 examples and a protocol that chose
+      the winner on the set it was scored on.)
 - [x] ~~Widen first-stage retrieval~~ (Phase 3, investigated and **rejected
       on evidence**: sweeping candidate pool and fusion weight on
       validation ties on Hit@5, and a much stronger embedding model lifts

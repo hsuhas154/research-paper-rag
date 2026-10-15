@@ -23,23 +23,17 @@ class TestDefaultSelection:
     def test_falls_back_to_the_stock_model(self):
         assert default_reranker_model() == STOCK_RERANKER_MODEL
 
-    def test_does_not_auto_adopt_a_locally_trained_model(self, monkeypatch, tmp_path):
-        # Measured on papers held out of training, the fine-tuned model was
-        # no better than stock and worse on MRR. Picking it up just because
-        # someone ran the training script would silently degrade retrieval.
+    def test_auto_adopts_a_locally_trained_model(self, monkeypatch, tmp_path):
+        # Reverses an earlier decision. The first fine-tuned model was
+        # worse than stock on unseen papers, so adopting it silently would
+        # have degraded retrieval. Retrained on four times the data with a
+        # real validation split, it beats stock on the held-out test split
+        # (Hit@5 0.803 against 0.737), so a trained model present on disk
+        # is now the better default.
         trained = tmp_path / "reranker-domain"
         trained.mkdir()
         (trained / "config.json").write_text("{}")
         monkeypatch.setattr(reranker, "DOMAIN_RERANKER_PATH", trained)
-
-        assert default_reranker_model() == STOCK_RERANKER_MODEL
-
-    def test_a_trained_model_is_used_only_when_opted_into(self, monkeypatch, tmp_path):
-        trained = tmp_path / "reranker-domain"
-        trained.mkdir()
-        (trained / "config.json").write_text("{}")
-        monkeypatch.setattr(reranker, "DOMAIN_RERANKER_PATH", trained)
-        monkeypatch.setenv("RERANKER_MODEL", str(trained))
 
         assert default_reranker_model() == str(trained)
 

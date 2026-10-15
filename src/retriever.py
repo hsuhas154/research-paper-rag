@@ -309,9 +309,17 @@ class HybridRetriever:
         # chunk that at least one retriever surfaced, and re-ranking can
         # only rescue a chunk that fusion kept.
         #
-        # 30 is measured, not guessed: over a 16-paper corpus, widening
-        # the pool from 20 to 30 lifts MRR@5 from 0.861 to 0.881, and 40
-        # gives nothing further while costing more cross-encoder passes.
+        # 30, kept after 50 won on validation and lost on test.
+        #
+        # On 86 validation queries pool 50 reached Hit@5 0.872 at every
+        # lexical weight tried, against 0.860 for pool 30, which looked
+        # like consistent evidence rather than one lucky cell. Confirmed
+        # on the held-out test split it went the other way: 0.78 against
+        # 0.803 for pool 30, roughly two queries out of 76.
+        #
+        # A change that does not survive the split it was not tuned on
+        # does not ship. This is the exact case the three-way split
+        # exists to catch, and it caught it.
         pool = max(self.candidate_pool, top_k)
         dense_hits = self._dense(question, pool, doc_ids)
         lexical_hits = self._lexical(question, pool, doc_ids)

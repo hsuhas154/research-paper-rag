@@ -39,18 +39,25 @@ STOCK_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 # 0.882, so it is load-bearing rather than a refinement. At 16 papers the
 # first stage was already saturated at 0.974 and re-ranking looked
 # marginal; that earlier reading was an artifact of corpus size.
-# ms-marco-MiniLM-L-12-v2 ties on Hit@5 and gains 0.025 MRR for twice the
-# latency, inside the noise at 34 queries, so L-6 remains the default.
 
-# Where scripts.train_reranker writes a fine-tuned model. It is NOT
-# picked up automatically. Domain adaptation was tried on this corpus and
-# measured against papers held out of training: the fine-tuned model
-# matched the stock one on Hit@5 and precision and was consistently worse
-# on MRR, and at a higher learning rate it overfitted badly, scoring 1.000
-# on papers it trained on and 0.818 on papers it had not seen. Auto-
-# adopting a local model would therefore silently ship a worse re-ranker
-# to anyone who ran the training script. Opt in deliberately, with
-# RERANKER_MODEL, after measuring on your own corpus.
+# A re-ranker fine-tuned on this corpus, written by scripts.tune_reranker.
+#
+# This IS adopted automatically when present, which reverses an earlier
+# decision. The first attempt at domain adaptation was rejected: trained
+# on 565 examples from 12 papers with no validation split, it scored
+# 1.000 on papers it had trained on and 0.818 on papers it had not, and
+# auto-adopting it would have silently shipped a worse re-ranker.
+#
+# Repeated properly it wins. With 2,264 examples from the 30-paper train
+# split, hyperparameters chosen on validation, and test read once after
+# the choice was locked, the selected model beats stock on the held-out
+# test split: Hit@5 0.803 against 0.737 and MRR 0.655 against 0.625, at
+# the same 0.064 s per query. Four times the data, twenty extra unseen
+# papers, and a protocol that cannot fit the choice to the score.
+#
+# A fresh checkout has no models/ directory and falls back to stock, so
+# this costs nothing until someone trains one. Train on a different
+# corpus and the gain is not guaranteed; measure before trusting it.
 DOMAIN_RERANKER_PATH = Path("models/reranker-domain")
 
 
@@ -58,12 +65,16 @@ def default_reranker_model() -> str:
     """
     The re-ranker to use unless one is named explicitly.
 
-    The RERANKER_MODEL environment variable overrides; otherwise the stock
-    MS MARCO cross-encoder is used. See DOMAIN_RERANKER_PATH for why a
-    locally trained model is not adopted automatically.
+    Resolution order: the RERANKER_MODEL environment variable, then a
+    locally fine-tuned model if one has been trained, then the stock
+    MS MARCO cross-encoder.
     """
     override = os.environ.get("RERANKER_MODEL", "").strip()
-    return override or STOCK_RERANKER_MODEL
+    if override:
+        return override
+    if (DOMAIN_RERANKER_PATH / "config.json").exists():
+        return str(DOMAIN_RERANKER_PATH)
+    return STOCK_RERANKER_MODEL
 
 
 # Kept as a module-level name for callers that import it directly.
