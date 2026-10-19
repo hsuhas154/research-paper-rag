@@ -446,3 +446,46 @@ class TestScriptMarking:
              "origin": (0.0, 100.0)},
         ])
         assert "_" not in rendered and "^" not in rendered
+
+
+class TestTruncatedMathRepair:
+    """
+    Some PDF producers write Mathematical Alphanumeric Symbols truncated
+    to sixteen bits, so italic "i" at U+1D456 arrives as U+D456, a Hangul
+    syllable. The paper appears to contain Korean and actually contains
+    italic variable names.
+    """
+
+    def test_repairs_italic_letters(self):
+        from src.pdf_processor import _restore_truncated_math
+
+        # U+D456 is U+1D456, MATHEMATICAL ITALIC SMALL I, with its plane
+        # bits lost.
+        assert _restore_truncated_math("node 푖") == "node i"
+        assert _restore_truncated_math("푁(푣)") == "N(v)"
+
+    def test_repairs_a_whole_expression(self):
+        from src.pdf_processor import _restore_truncated_math
+
+        assert _restore_truncated_math(
+            "feature vectors h(푙) and 푚 heads"
+        ) == "feature vectors h(l) and m heads"
+
+    def test_leaves_genuine_hangul_alone(self):
+        from src.pdf_processor import _restore_truncated_math
+
+        # Only codepoints that land inside the maths block once the plane
+        # is restored are touched. A real Korean word must survive, or the
+        # repair would corrupt any paper that legitimately quotes Hangul.
+        assert _restore_truncated_math("한국어") == "한국어"
+
+    def test_leaves_ordinary_text_untouched(self):
+        from src.pdf_processor import _restore_truncated_math
+
+        text = "The model uses N nodes and i indices."
+        assert _restore_truncated_math(text) == text
+
+    def test_handles_empty_input(self):
+        from src.pdf_processor import _restore_truncated_math
+
+        assert _restore_truncated_math("") == ""

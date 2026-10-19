@@ -27,6 +27,7 @@ academic paper layouts.
 
 import os
 import re
+import unicodedata
 from collections import Counter
 from itertools import groupby
 from dataclasses import dataclass, field
@@ -88,6 +89,55 @@ _PRIVATE_USE_AREA = re.compile(r"[-\U000f0000-\U0010ffff]")
 def _strip_icon_glyphs(text: str) -> str:
     """Removes private-use icon-font glyphs and collapses the gap they leave."""
     return re.sub(r"[ \t]+", " ", _PRIVATE_USE_AREA.sub(" ", text)).strip()
+
+
+# Mathematical Alphanumeric Symbols live at U+1D400 to U+1D7FF. Some PDF
+# producers write them truncated to sixteen bits, so U+1D456, italic "i",
+# arrives as U+D456, a Hangul syllable. The paper looks as though it
+# contains Korean; it actually contains italic variable names.
+#
+# This is not cosmetic. A graph neural network paper whose variables are
+# i, j, m, n and r had every one of them replaced by an unrelated glyph,
+# so the chunk text no longer contained the words a reader would search
+# for, and the language model was asked to reason about equations written
+# in a script nobody intended.
+_TRUNCATED_MATH_ALPHANUMERIC = re.compile(r"[\ud400-\ud7ff]")
+
+
+# Real Hangul spans U+AC00 to U+D7A3. Truncated maths can only land in
+# U+D400 to U+D7FF, the window that lifts into the maths block. Korean
+# text uses the whole range, so a line carrying Hangul outside that window
+# is genuinely Korean and must be left alone: "\ud55c\uad6d\uc5b4" would
+# otherwise have its first character rewritten as a maths symbol.
+_HANGUL_OUTSIDE_MATH_WINDOW = re.compile(r"[\uac00-\ud3ff]")
+
+
+def _restore_truncated_math(text: str) -> str:
+    """
+    Repairs Mathematical Alphanumeric Symbols that lost their high bits.
+
+    Adds the plane back, then folds the result to its plain ASCII letter
+    through compatibility normalization, so italic "i" becomes "i" rather
+    than a character most fonts cannot render and no tokenizer expects.
+
+    Skipped entirely on text that looks like real Korean, since the two
+    cases are indistinguishable character by character.
+    """
+    if _HANGUL_OUTSIDE_MATH_WINDOW.search(text):
+        return text
+
+    def repair(match: "re.Match") -> str:
+        lifted = chr(ord(match.group()) + 0x10000)
+        if not (0x1D400 <= ord(lifted) <= 0x1D7FF):
+            return match.group()
+        folded = unicodedata.normalize("NFKC", lifted)
+        # Accept any folding that actually simplified the character. The
+        # Latin maths letters fold to ASCII, the Greek ones to ordinary
+        # Greek: italic alpha becomes the alpha a reader expects, not the
+        # ASCII transliteration, and certainly not a Hangul syllable.
+        return folded if folded != lifted else match.group()
+
+    return _TRUNCATED_MATH_ALPHANUMERIC.sub(repair, text)
 
 
 def _table_regions(page) -> List[Tuple[Tuple[float, float, float, float], str]]:
@@ -266,7 +316,9 @@ def _page_lines(page, exclude: Optional[List] = None,
             spans = line.get("spans", [])
             if not spans:
                 continue
-            text = _strip_icon_glyphs(_render_line_spans(spans, mark_scripts))
+            text = _restore_truncated_math(
+                _strip_icon_glyphs(_render_line_spans(spans, mark_scripts))
+            )
             if not text:
                 continue
             if exclude and _inside(line["bbox"], exclude):

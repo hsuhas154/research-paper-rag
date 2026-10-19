@@ -422,6 +422,48 @@ pointed the opposite way to both metrics. Kept behind
 `ENABLE_SCRIPT_MARKERS` rather than deleted, because the extraction is
 sound and may help a model better at reading broken notation.
 
+### A corpus corruption found by looking at the output
+
+Reported from the running app: one excerpt rendered as Korean. The
+passage came from the sepsis paper and read as a wall of Hangul mixed
+into English prose.
+
+It was not Korean. Mathematical Alphanumeric Symbols live at U+1D400 to
+U+1D7FF, and some PDF producers write them truncated to sixteen bits, so
+U+1D456, MATHEMATICAL ITALIC SMALL I, arrives as U+D456, a Hangul
+syllable. 520 characters across the corpus were affected, 513 of them in
+one graph neural network paper whose variables are i, j, l, m, n and r,
+every one of them replaced.
+
+This is not cosmetic. The chunk text no longer contained the words a
+reader would search for, and the model was being asked to reason about
+equations written in a script nobody intended. The passage was indexed,
+retrieved, and shown, all of it unreadable.
+
+Repaired by restoring the plane and folding through compatibility
+normalization: italic i becomes i, italic alpha becomes the alpha a
+reader expects. 520 characters repaired, zero remaining, and retrieval is
+unchanged at 0.86 validation and 0.80 test, since the affected text was
+unmatchable in either form.
+
+Two guards were needed, and the tests caught both:
+
+- **Genuine Korean must survive.** Real Hangul spans U+AC00 to U+D7A3 and
+  truncated maths can only land in U+D400 to U+D7FF, so the two overlap:
+  the first character of a common Korean word lifts into the maths block
+  and would have been rewritten. Repair is skipped on any text carrying
+  Hangul below the window, which real Korean has and corrupted maths
+  cannot.
+- **Greek had to be allowed.** The first version accepted only foldings
+  that produced ASCII, which left 45 Greek characters unrepaired: italic
+  alpha, phi, omega and sigma fold to Greek letters, not Latin ones.
+
+Worth recording how this was found. Every automated check passed, before
+and after. The extraction tests passed, retrieval scored the same, and
+faithfulness was unaffected, because a metric comparing text to itself
+cannot see that the text is wrong. It surfaced because somebody read the
+output.
+
 ### Two measurement traps found while doing it
 
 **A stale benchmark reporting a regression that was formatting.** With
