@@ -1,7 +1,7 @@
 """
 app.py
 
-Gradio UI for the Research Paper Q&A RAG system (Phase 2).
+Gradio UI for the Research Paper Q&A RAG system.
 
 Two tabs:
   Library - upload papers, see what is indexed, remove papers. The
@@ -11,6 +11,16 @@ Two tabs:
             retrieval strategy selectable so the difference between
             dense, lexical, hybrid, and re-ranked retrieval is visible
             rather than buried in a config file.
+
+The answer streams. Retrieval takes about a tenth of a second and
+generation takes seconds, so the sources appear first and the answer
+fills in behind them. The total wait is unchanged; what changes is that
+the reader can start reading immediately and can tell a slow answer
+apart from a hung process.
+
+Scope controls are built for a library of fifty papers rather than five:
+the paper list is filterable, with select-all and clear, because fifty
+checkboxes with no search is not a control anyone can use.
 
 Run with: python app.py
 """
@@ -127,33 +137,76 @@ def format_sources(answer) -> str:
     blocks = []
     for i, source in enumerate(answer.sources, start=1):
         title = answer.document_titles.get(source.chunk.doc_id)
+        # Collapsible, with the citation always visible. Five passages of
+        # academic prose is several screens of text; a reader checking one
+        # citation should not have to scroll past the other four.
         blocks.append(
-            f"**[Excerpt {i}]** · {source.chunk.citation(title)} · score {source.score:.3f}\n\n"
-            f"{source.chunk.text}\n\n---"
+            f"<details open><summary><b>[Excerpt {i}]</b> "
+            f"{source.chunk.citation(title)} "
+            f"<i>score {source.score:.3f}</i></summary>\n\n"
+            f"{source.chunk.text}\n\n</details>"
         )
     return "\n\n".join(blocks)
 
 
+def filtered_choices(needle: str) -> list:
+    """
+    Document choices narrowed by a case-insensitive substring.
+
+    Matched against the full title, not the shortened label shown in the
+    list. Labels are truncated at 70 characters, and several papers in
+    this corpus carry the word that identifies them past that point: one
+    Venus paper leads with a list of molecular formulae and does not
+    reach "Venus" until character 85, so filtering on the visible text
+    alone would make it unfindable.
+    """
+    needle = (needle or "").strip().lower()
+    if not needle:
+        return document_choices()
+    return [(d.short_title, d.doc_id) for d in pipeline.documents
+            if needle in d.title.lower()]
+
+
+def apply_filter(needle, selected):
+    """
+    Narrows the visible paper list without discarding selections that
+    scroll out of view.
+
+    Dropping hidden selections would mean typing a filter silently
+    changes what gets searched, which is a surprising way to lose a
+    carefully chosen scope.
+    """
+    choices = filtered_choices(needle)
+    visible = {value for _, value in choices}
+    kept = [v for v in (selected or []) if v in visible]
+    return gr.update(choices=choices, value=kept)
+
+
 def ask_question(question, selected_doc_ids, mode, top_k, follow_up, history):
     """
-    Answers a question and returns the answer, the source passages, a
-    one-line description of how retrieval reached them, and the updated
-    conversation.
+    Answers a question, streaming the result.
+
+    Yields four times or more: once to acknowledge the question, once
+    when retrieval finishes so the sources appear, then repeatedly as the
+    answer arrives, then a final time with the conversation updated.
 
     `history` is Gradio session state, so each browser session keeps its
     own conversation rather than sharing one across users.
     """
     history = history or []
 
+    def fail(message):
+        return message, "", "", history
+
     if not question or not question.strip():
-        return "Please enter a question.", "", "", history
-
+        yield fail("Please enter a question.")
+        return
     if pipeline.corpus.is_empty():
-        return ("The library is empty. Upload a paper on the Library tab first.",
-                "", "", history)
-
+        yield fail("The library is empty. Upload a paper on the Library tab first.")
+        return
     if not selected_doc_ids:
-        return "Select at least one paper to search.", "", "", history
+        yield fail("Select at least one paper to search.")
+        return
 
     # Searching every paper is the same as not filtering at all, and
     # skipping the filter lets FAISS search without an id selector.
@@ -165,21 +218,37 @@ def ask_question(question, selected_doc_ids, mode, top_k, follow_up, history):
         for previous_question, previous_answer in history:
             conversation.add(previous_question, previous_answer)
 
+    yield "", "", "*Searching...*", history
+
     try:
-        answer = pipeline.answer_question(
+        retrieved, fragments = pipeline.stream_question(
             question, doc_ids=doc_ids, mode=mode, top_k=int(top_k),
             conversation=conversation,
         )
     except Exception as error:
-        return f"❌ {error}", "", "", history
+        yield fail(f"\u274c {error}")
+        return
 
     scope = "all papers" if doc_ids is None else f"{len(selected_doc_ids)} paper(s)"
-    stats = f"*Searched {scope} · {answer.retrieval_summary()}*"
-    if answer.retrieval_question:
-        stats += f"\n\n*Follow-up rewritten for search: \"{answer.retrieval_question}\"*"
+    stats = f"*Searched {scope} \u00b7 {retrieved.retrieval_summary()}*"
+    if retrieved.retrieval_question:
+        stats += f"\n\n*Follow-up rewritten for search: \"{retrieved.retrieval_question}\"*"
 
-    history = history + [(question, answer.text)]
-    return answer.text, format_sources(answer), stats, history
+    sources = format_sources(retrieved)
+    # Sources are ready long before the answer is. Showing them now gives
+    # the reader something to do during generation.
+    yield "", sources, stats + "\n\n*Writing the answer...*", history
+
+    text = ""
+    try:
+        for fragment in fragments:
+            text += fragment
+            yield text, sources, stats + "\n\n*Writing the answer...*", history
+    except Exception as error:
+        yield f"\u274c {error}", sources, stats, history
+        return
+
+    yield text, sources, stats, history + [(question, text)]
 
 
 # ----------------------------------------------------------------------
@@ -212,16 +281,29 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
                         clear_btn = gr.Button("New conversation")
 
                     gr.Markdown(
-                        "*The first question after startup takes longer (~30-40s) while "
-                        "the local LLM loads into GPU memory. Later questions are faster.*"
+                        "*The first question after startup takes longer while the local "
+                        "LLM loads into GPU memory. It is then held resident for an "
+                        "hour, so later questions start immediately.*"
                     )
 
                     answer_output = gr.Markdown(label="Answer")
                     retrieval_stats = gr.Markdown()
 
                 with gr.Column(scale=1):
+                    gr.Markdown("### Search which papers")
+                    scope_filter = gr.Textbox(
+                        label="Filter by title",
+                        placeholder="venus, transformer, mosfet ...",
+                        lines=1,
+                    )
+                    with gr.Row():
+                        select_all_btn = gr.Button("Select all", size="sm")
+                        clear_scope_btn = gr.Button("Clear", size="sm")
+                    scope_count = gr.Markdown(
+                        f"*{len(pipeline.documents)} of {len(pipeline.documents)} selected*"
+                    )
                     scope_input = gr.CheckboxGroup(
-                        label="Search which papers",
+                        label="",
                         choices=document_choices(),
                         value=[d.doc_id for d in pipeline.documents],
                     )
@@ -276,6 +358,10 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
     library_outputs = [
         library_message, library_view, library_summary, scope_input, delete_input
     ]
+    # Indexing or removing a paper resets the filter box, because the
+    # choices it was narrowing have changed underneath it.
+    add_btn.click(fn=lambda: "", outputs=scope_filter)
+    delete_btn.click(fn=lambda: "", outputs=scope_filter)
 
     add_btn.click(fn=add_document, inputs=pdf_input, outputs=library_outputs)
     delete_btn.click(fn=delete_document, inputs=delete_input, outputs=library_outputs)
@@ -284,6 +370,25 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
         fn=lambda mode: f"*{MODE_DESCRIPTIONS[mode]}*",
         inputs=mode_input,
         outputs=mode_help,
+    )
+
+    scope_filter.change(
+        fn=apply_filter, inputs=[scope_filter, scope_input], outputs=scope_input
+    )
+    select_all_btn.click(
+        fn=lambda needle: gr.update(
+            value=[value for _, value in filtered_choices(needle)]
+        ),
+        inputs=scope_filter,
+        outputs=scope_input,
+    )
+    clear_scope_btn.click(fn=lambda: gr.update(value=[]), outputs=scope_input)
+    scope_input.change(
+        fn=lambda selected: (
+            f"*{len(selected or [])} of {len(pipeline.documents)} selected*"
+        ),
+        inputs=scope_input,
+        outputs=scope_count,
     )
 
     ask_inputs = [question_input, scope_input, mode_input, top_k_input,

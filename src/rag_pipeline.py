@@ -13,12 +13,12 @@ selectable per question.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, Iterator, List, Optional, Sequence, Tuple
 
 from src.conversation import Conversation, rewrite_follow_up
 from src.corpus import Corpus, DocumentRecord
 from src.embedder import Embedder
-from src.llm import generate_answer
+from src.llm import generate_answer, stream_answer
 from src.reranker import CrossEncoderReranker
 from src.retriever import MODE_HYBRID_RERANK, HybridRetriever, looks_comparative
 from src.vector_store import RetrievedChunk
@@ -122,6 +122,84 @@ class RAGPipeline:
     # ------------------------------------------------------------------
     # Question answering
     # ------------------------------------------------------------------
+
+    def retrieve_only(
+        self,
+        question: str,
+        doc_ids: Optional[Sequence[str]] = None,
+        mode: str = MODE_HYBRID_RERANK,
+        top_k: Optional[int] = None,
+        max_per_document: Optional[int] = None,
+        conversation: Optional[Conversation] = None,
+    ) -> Answer:
+        """
+        Runs everything except generation, returning an Answer whose text
+        is still empty.
+
+        Split out so a caller can show the retrieved passages while the
+        model is still writing. Retrieval takes under a tenth of a second
+        and generation takes seconds, so there is no reason to make the
+        reader wait for both before seeing either.
+        """
+        if self.corpus.is_empty():
+            raise ValueError("No documents in the corpus. Add a PDF first.")
+
+        passages = top_k or self.top_k
+
+        retrieval_question = question
+        if conversation is not None and not conversation.is_empty():
+            retrieval_question = rewrite_follow_up(question, conversation)
+
+        if max_per_document is None and looks_comparative(retrieval_question):
+            searching = len(doc_ids) if doc_ids is not None else len(self.corpus.documents)
+            if searching > 1:
+                max_per_document = max(1, passages // 2)
+
+        retrieval = self.retriever.retrieve(
+            retrieval_question, top_k=passages, mode=mode,
+            doc_ids=doc_ids, max_per_document=max_per_document,
+        )
+        return Answer(
+            text="",
+            sources=retrieval.chunks,
+            mode=retrieval.mode,
+            document_titles=self.document_titles(),
+            max_per_document=max_per_document,
+            n_dense_candidates=retrieval.n_dense_candidates,
+            n_lexical_candidates=retrieval.n_lexical_candidates,
+            n_fused_candidates=retrieval.n_fused_candidates,
+            retrieval_question=(
+                retrieval_question if retrieval_question != question else None
+            ),
+        )
+
+    def stream_question(
+        self,
+        question: str,
+        doc_ids: Optional[Sequence[str]] = None,
+        mode: str = MODE_HYBRID_RERANK,
+        top_k: Optional[int] = None,
+        max_per_document: Optional[int] = None,
+        conversation: Optional[Conversation] = None,
+    ) -> Tuple[Answer, Iterator[str]]:
+        """
+        Returns the retrieval result immediately, plus an iterator that
+        yields the answer as it is generated.
+
+        The Answer carries empty text; the caller accumulates fragments
+        from the iterator.
+        """
+        retrieved = self.retrieve_only(
+            question, doc_ids=doc_ids, mode=mode, top_k=top_k,
+            max_per_document=max_per_document, conversation=conversation,
+        )
+        fragments = stream_answer(
+            question,
+            retrieved.sources,
+            document_titles=retrieved.document_titles,
+            history=conversation.as_messages() if conversation else None,
+        )
+        return retrieved, fragments
 
     def answer_question(
         self,

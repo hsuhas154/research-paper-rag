@@ -128,8 +128,17 @@ reopen the app. You do not need to re-upload them.
 ### Ask tab
 
 - Type a question and press **Ask** (or hit Enter).
-- **Search which papers** - tick the papers to search. All are ticked by
-  default, which searches the whole library.
+- **The answer streams.** Sources appear after about 1.5 seconds and the
+  answer fills in behind them, rather than everything arriving at once at
+  the end. The total wait is the same; you can start reading sooner, and a
+  slow answer is distinguishable from a hung one.
+- **Search which papers** - filter the list by title, then use **Select
+  all** or **Clear**. The counter shows how many of the library are in
+  scope. Filtering never silently drops a selection that scrolls out of
+  view. The filter matches the full title, not the shortened label, so a
+  paper whose subject appears late in a long title is still findable.
+- **Source passages** are collapsible, with the paper, page and section
+  always visible in the header.
 - **Retrieval strategy** - leave this on `hybrid+rerank` for normal use. The
   other options exist so you can see the difference:
   - `dense` - meaning-based search only
@@ -142,9 +151,10 @@ reopen the app. You do not need to re-upload them.
 Below each answer you get the **source passages** it was built from, each
 labelled with its paper, page, and section, so you can check any claim.
 
-> **The first question is slow** (~30-40 seconds) while the language model
-> loads into GPU memory. Every question after that is much faster. This is
-> normal and not a bug.
+> **The first question is slow** while the language model loads into GPU
+> memory. It is then held resident for an hour, so later questions start
+> immediately. Without that, Ollama unloads after five minutes of idling
+> and the next question pays the load again.
 
 ---
 

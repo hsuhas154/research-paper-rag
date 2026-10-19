@@ -16,13 +16,21 @@ groundwork for the multi-turn support planned for Phase 3.
 Requires 'ollama serve' to be running, with the model already pulled.
 """
 
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, Iterator, List, Optional, Sequence
 
 import ollama
 
 from src.vector_store import RetrievedChunk
 
 LLM_MODEL_NAME = "llama3.1:8b"
+
+# How long Ollama keeps the model resident after a request. The default
+# is five minutes, after which the next question pays a 30 to 40 second
+# reload. For an interactive session that reload is the single worst
+# moment in the experience, and it lands unpredictably. Holding the model
+# for an hour costs VRAM that nothing else on this machine wants while
+# the app is open.
+KEEP_ALIVE = "60m"
 
 SYSTEM_PROMPT = (
     "You are a research assistant that answers questions about academic papers. "
@@ -80,6 +88,70 @@ def build_prompt(
     )
 
 
+def build_messages(
+    question: str,
+    retrieved_chunks: Sequence[RetrievedChunk],
+    document_titles: Optional[Dict[str, str]] = None,
+    history: Optional[List[Dict[str, str]]] = None,
+) -> List[Dict[str, str]]:
+    """Assembles the full message list sent to the model."""
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if history:
+        messages.extend(history)
+    messages.append(
+        {"role": "user", "content": build_prompt(question, retrieved_chunks, document_titles)}
+    )
+    return messages
+
+
+NO_CONTEXT_ANSWER = (
+    "No relevant passages were retrieved, so there is nothing to base an "
+    "answer on. Try rephrasing the question, or check that the right "
+    "papers are selected."
+)
+
+
+def stream_answer(
+    question: str,
+    retrieved_chunks: Sequence[RetrievedChunk],
+    document_titles: Optional[Dict[str, str]] = None,
+    history: Optional[List[Dict[str, str]]] = None,
+    model: str = LLM_MODEL_NAME,
+    num_ctx: int = 8192,
+) -> Iterator[str]:
+    """
+    Yields the answer in fragments as the model produces them.
+
+    Generation takes 3 to 30 seconds depending on answer length, and
+    during that time a non-streaming caller shows nothing at all. The
+    total is the same either way; what changes is that the reader can
+    start on the first sentence while the rest arrives, and can tell the
+    difference between a slow answer and a hung process.
+    """
+    if not retrieved_chunks:
+        yield NO_CONTEXT_ANSWER
+        return
+
+    try:
+        stream = ollama.chat(
+            model=model,
+            messages=build_messages(question, retrieved_chunks, document_titles, history),
+            stream=True,
+            keep_alive=KEEP_ALIVE,
+            options={"num_ctx": num_ctx, "temperature": 0.2},
+        )
+        for part in stream:
+            fragment = part.get("message", {}).get("content", "")
+            if fragment:
+                yield fragment
+    except Exception as error:
+        raise RuntimeError(
+            f"Could not reach the local LLM ({model}) via Ollama: {error}\n"
+            f"Check that 'ollama serve' is running and that the model has been "
+            f"pulled with 'ollama pull {model}'."
+        ) from error
+
+
 def generate_answer(
     question: str,
     retrieved_chunks: Sequence[RetrievedChunk],
@@ -111,23 +183,13 @@ def generate_answer(
             is not pulled, with a message saying how to fix it.
     """
     if not retrieved_chunks:
-        return (
-            "No relevant passages were retrieved, so there is nothing to base an "
-            "answer on. Try rephrasing the question, or check that the right "
-            "papers are selected."
-        )
-
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    if history:
-        messages.extend(history)
-    messages.append(
-        {"role": "user", "content": build_prompt(question, retrieved_chunks, document_titles)}
-    )
+        return NO_CONTEXT_ANSWER
 
     try:
         response = ollama.chat(
             model=model,
-            messages=messages,
+            messages=build_messages(question, retrieved_chunks, document_titles, history),
+            keep_alive=KEEP_ALIVE,
             options={
                 "num_ctx": num_ctx,
                 "temperature": 0.2,  # low temperature: prioritize faithful,
