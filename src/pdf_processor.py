@@ -28,6 +28,7 @@ academic paper layouts.
 import os
 import re
 from collections import Counter
+from itertools import groupby
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
@@ -134,7 +135,121 @@ def _inside(bbox, regions) -> bool:
                for (rx0, ry0, rx1, ry1), _ in regions)
 
 
-def _page_lines(page, exclude: Optional[List] = None) -> List[RawLine]:
+# A span this much smaller than its line's body size, and offset from the
+# line's baseline, is a sub- or superscript rather than ordinary text.
+_SCRIPT_SIZE_RATIO = 0.85
+# Baseline offset needed to call it a script, as a fraction of body size.
+# Small enough to catch a 3.5pt shift on 9.7pt text, large enough to
+# ignore the sub-point jitter that ordinary spans show.
+_SCRIPT_BASELINE_FRACTION = 0.15
+
+
+def script_marking_enabled() -> bool:
+    """
+    Whether to mark sub- and superscripts, off by default.
+
+    Measured on the test split it makes answers less grounded, not more:
+    faithfulness falls from 0.873 to 0.805 and retrieval Hit@5 from 0.80
+    to 0.75. The qualitative impression pointed the other way, since
+    answers visibly return "g^2" and "10^{-8}" instead of "g2" and
+    "10-8", which is why this was measured rather than trusted.
+
+    The likely reason is that PDF line breaking splits a script from the
+    symbol it belongs to often enough that the markup arrives broken:
+    "g^2 _i" across a line boundary is harder to read than "g2i", not
+    easier. Marking is correct about the typography and still unhelpful
+    to the model consuming it.
+
+    Kept rather than deleted because the extraction is sound and the
+    problem it targets is real. Enable with ENABLE_SCRIPT_MARKERS=1 and
+    re-index.
+    """
+    return os.environ.get("ENABLE_SCRIPT_MARKERS", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
+
+def _render_line_spans(spans, mark_scripts: bool = True) -> str:
+    """
+    Joins a line's spans, marking sub- and superscripts explicitly.
+
+    PDF text extraction flattens vertical position away, so "g" with a
+    superscript 2 arrives as the string "g2", which is indistinguishable
+    from a variable named g2. Every exponent, every subscripted index,
+    every power in the corpus is silently corrupted this way, which is
+    why questions whose answer is a formula came back garbled in the
+    Phase 2 evaluation.
+
+    Sub- and superscripts are detectable: they are set smaller than the
+    line's body text and sit off its baseline. Marking them LaTeX style,
+    g^2 and v_t, keeps the distinction in the indexed text, where both
+    the retriever and the language model can use it.
+    """
+    if not spans:
+        return ""
+    if not mark_scripts:
+        return "".join(span["text"] for span in spans)
+
+    # The line's own body size and baseline, taken by character weight so
+    # a long run of normal text defines the reference rather than a
+    # handful of script characters.
+    weights: Counter = Counter()
+    for span in spans:
+        weights[round(span["size"], 1)] += max(len(span["text"]), 1)
+
+    # The body size is the largest size carrying a meaningful share of the
+    # line's characters. Scripts are smaller than body text by definition,
+    # so taking the largest qualifying size is the right reference; the
+    # weight floor keeps a single oversized drop cap from claiming it.
+    #
+    # Plain character-weighted mode is not enough: on a short line like
+    # "x" with a two-letter superscript, the superscript holds more
+    # characters than the body and would be mistaken for it.
+    heaviest = max(weights.values())
+    body_size = max(size for size, weight in weights.items()
+                    if weight >= heaviest * 0.25)
+    baselines = [s["origin"][1] for s in spans
+                 if round(s["size"], 1) == body_size]
+    body_baseline = sorted(baselines)[len(baselines) // 2] if baselines else 0.0
+    threshold = body_size * _SCRIPT_BASELINE_FRACTION
+
+    # Classify every span first, then merge consecutive spans of the same
+    # kind. Marking each span separately turns an exponent of -8, which
+    # arrives as two spans, into "10^-^8" instead of "10^{-8}".
+    classified = []
+    for span in spans:
+        text = span["text"]
+        if not text.strip():
+            classified.append((None, text))
+            continue
+        is_small = span["size"] < body_size * _SCRIPT_SIZE_RATIO
+        offset = span["origin"][1] - body_baseline
+        if is_small and offset < -threshold:
+            classified.append(("^", text))
+        elif is_small and offset > threshold:
+            classified.append(("_", text))
+        else:
+            classified.append((None, text))
+
+    parts = []
+    for kind, group in groupby(classified, key=lambda item: item[0]):
+        joined = "".join(text for _, text in group)
+        if kind is None:
+            parts.append(joined)
+            continue
+        content = joined.strip()
+        if not content:
+            continue
+        # Braces only where they are needed to bind more than one
+        # character, matching how the notation is normally written.
+        parts.append(f"{kind}{content}" if len(content) == 1
+                     else f"{kind}{{{content}}}")
+
+    return "".join(parts)
+
+
+def _page_lines(page, exclude: Optional[List] = None,
+                mark_scripts: Optional[bool] = None) -> List[RawLine]:
     """
     Reads one page's lines with their font size and weight.
 
@@ -142,6 +257,8 @@ def _page_lines(page, exclude: Optional[List] = None) -> List[RawLine]:
     the table's cells are not indexed twice: once as loose text in reading
     order and again as the rendered grid.
     """
+    if mark_scripts is None:
+        mark_scripts = script_marking_enabled()
     lines: List[RawLine] = []
 
     for block in page.get_text("dict").get("blocks", []):
@@ -149,7 +266,7 @@ def _page_lines(page, exclude: Optional[List] = None) -> List[RawLine]:
             spans = line.get("spans", [])
             if not spans:
                 continue
-            text = _strip_icon_glyphs("".join(s["text"] for s in spans))
+            text = _strip_icon_glyphs(_render_line_spans(spans, mark_scripts))
             if not text:
                 continue
             if exclude and _inside(line["bbox"], exclude):

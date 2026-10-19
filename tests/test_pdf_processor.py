@@ -346,3 +346,103 @@ class TestTableExtractionToggle:
         for value in ("0", "false", "", "maybe"):
             monkeypatch.setenv("ENABLE_TABLE_EXTRACTION", value)
             assert table_extraction_enabled() is False
+
+
+class TestScriptMarking:
+    """
+    PDF extraction flattens vertical position, so "g" with a superscript
+    2 arrives as "g2", indistinguishable from a variable named g2. Every
+    exponent and subscripted index in the corpus was corrupted this way.
+    """
+
+    @staticmethod
+    def span(text, size=9.7, y=100.0):
+        return {"text": text, "size": size, "origin": (0.0, y)}
+
+    def test_disabled_by_default(self, monkeypatch):
+        from src.pdf_processor import script_marking_enabled
+
+        # Measured as harmful: faithfulness 0.873 to 0.805, Hit@5 0.80 to
+        # 0.75. Kept available, not enabled.
+        monkeypatch.delenv("ENABLE_SCRIPT_MARKERS", raising=False)
+        assert script_marking_enabled() is False
+
+    def test_marking_can_be_switched_off(self):
+        from src.pdf_processor import _render_line_spans
+
+        spans = [self.span("g"), self.span("2", size=6.8, y=96.5)]
+        assert _render_line_spans(spans, mark_scripts=False) == "g2"
+
+    def test_marks_a_superscript(self):
+        from src.pdf_processor import _render_line_spans
+
+        # Smaller span sitting above the line's baseline.
+        assert _render_line_spans([
+            self.span("g"), self.span("2", size=6.8, y=96.5)
+        ]) == "g^2"
+
+    def test_marks_a_subscript(self):
+        from src.pdf_processor import _render_line_spans
+
+        assert _render_line_spans([
+            self.span("v"), self.span("t", size=6.8, y=103.5)
+        ]) == "v_t"
+
+    def test_merges_adjacent_script_spans(self):
+        from src.pdf_processor import _render_line_spans
+
+        # An exponent of -8 arrives as two spans. Marking each separately
+        # gives "10^-^8" instead of "10^{-8}".
+        assert _render_line_spans([
+            self.span("10"), self.span("−8", size=6.8, y=96.5)
+        ]) == "10^{−8}"
+
+    def test_braces_only_when_more_than_one_character(self):
+        from src.pdf_processor import _render_line_spans
+
+        assert _render_line_spans([
+            self.span("x"), self.span("st", size=6.8, y=96.5)
+        ]) == "x^{st}"
+
+    def test_ordinary_text_is_untouched(self):
+        from src.pdf_processor import _render_line_spans
+
+        plain = [self.span("the model solves"), self.span(" the equation")]
+        assert _render_line_spans(plain) == "the model solves the equation"
+
+    def test_a_small_span_on_the_baseline_is_not_a_script(self):
+        from src.pdf_processor import _render_line_spans
+
+        # Footnote-sized text sitting on the same baseline is just small
+        # text, not an exponent.
+        assert _render_line_spans([
+            self.span("note"), self.span("12", size=6.8, y=100.0)
+        ]) == "note12"
+
+    def test_body_size_is_taken_by_character_weight(self):
+        from src.pdf_processor import _render_line_spans
+
+        # A handful of script characters must not define the line's
+        # reference size; the long run of normal text should.
+        rendered = _render_line_spans([
+            self.span("a long stretch of ordinary body text here"),
+            self.span("2", size=6.8, y=96.5),
+        ])
+        assert rendered.endswith("^2")
+
+    def test_empty_input(self):
+        from src.pdf_processor import _render_line_spans
+
+        assert _render_line_spans([]) == ""
+
+    def test_a_drop_cap_does_not_become_the_body_size(self):
+        from src.pdf_processor import _render_line_spans
+
+        # One oversized initial letter must not make the rest of the line
+        # look like subscripts.
+        rendered = _render_line_spans([
+            {"text": "A", "size": 24.0, "origin": (0.0, 100.0)},
+            {"text": " s IS well known, silicon and germanium", "size": 9.7,
+             "origin": (0.0, 100.0)},
+        ])
+        assert "_" not in rendered and "^" not in rendered

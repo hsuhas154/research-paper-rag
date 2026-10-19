@@ -48,9 +48,19 @@ _STOPWORDS = {
 _TOKEN_PATTERN = re.compile(r"[a-z0-9]+(?:[.\-][a-z0-9]+)*")
 
 
+# Sub- and superscript markers written by the PDF processor. They are
+# stripped before tokenizing so "g^2" and "v_t" produce the same tokens
+# they did before the markers existed, "g2" and "vt". The markers are
+# there for the generator and the reader; making them part of the lexical
+# index instead would split one token into two and silently change what
+# BM25 matches.
+_SCRIPT_MARKERS = str.maketrans("", "", "^_{}")
+
+
 def tokenize(text: str) -> List[str]:
     """Lowercases text and splits it into retrieval tokens."""
-    return [t for t in _TOKEN_PATTERN.findall(text.lower()) if t not in _STOPWORDS]
+    normalized = text.lower().translate(_SCRIPT_MARKERS)
+    return [t for t in _TOKEN_PATTERN.findall(normalized) if t not in _STOPWORDS]
 
 
 @dataclass

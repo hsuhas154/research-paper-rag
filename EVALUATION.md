@@ -387,7 +387,76 @@ an overfitted choice looks like from the inside.
 
 Same latency, from a better re-ranker rather than more compute.
 
-### Equation handling: why the obvious fix was abandoned
+### Equation handling, resolved: correct typography, worse answers
+
+Equations were the largest open gap. PDF extraction flattens vertical
+position, so "g" with a superscript 2 arrives as the string "g2",
+indistinguishable from a variable named g2. Every exponent and
+subscripted index in the corpus is corrupted this way.
+
+That is fixable. Sub- and superscripts are detectable from the span data:
+they are set smaller than the line's body text and sit off its baseline.
+Marking them LaTeX style produces "g^2", "v_t" and "10^{-8}" in the
+indexed text, across 1,378 of 3,629 chunks in 48 of the 50 papers.
+
+Answers visibly improve. Asked for Adam's second moment update, the
+system returns "vt <- B2 . vt-1 + (1 - B2) . g^2" rather than flattening
+the exponent. It looks exactly like the fix the gap called for.
+
+Measured, it is worse on both axes:
+
+| | faithfulness | test Hit@5 |
+|---|---|---|
+| **plain text** | **0.873** | **0.80** |
+| sub/superscripts marked | 0.805 | 0.75 |
+
+Groundedness falls by 0.068 and retrieval by 0.05. The likely reason is
+that PDF line breaking separates a script from the symbol it belongs to
+often enough that the markup arrives broken: "g^2 _i" split across a line
+boundary is harder to read than "g2i", not easier. The extraction is
+correct about the typography and unhelpful to the model consuming it.
+
+**This is the clearest case in the project of an improvement that looks
+right and measures wrong.** The qualitative evidence was persuasive and
+pointed the opposite way to both metrics. Kept behind
+`ENABLE_SCRIPT_MARKERS` rather than deleted, because the extraction is
+sound and may help a model better at reading broken notation.
+
+### Two measurement traps found while doing it
+
+**A stale benchmark reporting a regression that was formatting.** With
+markers enabled, BM25 dropped from 0.69 to 0.63 despite its tokens being
+byte-identical by construction, which is impossible. The cause was the
+test set: 35 queries carried evidence terms like "et0" that the chunks
+now wrote as "e_{t0}", so substring matching failed. Relevance checks are
+now marker-insensitive. Uncaught, this would have been published as a
+retrieval regression caused by a change that cannot affect retrieval.
+
+**A reference that inverted on short lines.** The body text size of a
+line is taken by character weight, so a long run of normal text defines
+it. On a line like "x" with a two-letter superscript, the superscript
+holds more characters than the body and became the reference, leaving the
+body marked as a script. The rule is now the largest size carrying a
+meaningful share of the line, which also correctly ignores drop caps.
+
+### How much is actually in tables
+
+Table extraction was measured as harmful and shipped off, with the caveat
+that the benchmark could not see its upside because benchmark questions
+come from prose chunks. That caveat can be bounded rather than left open:
+
+| | count | share |
+|---|---|---|
+| table chunks | 70 | 1.9% of chunks |
+| words inside tables | 9,077 | **1.52% of indexed words** |
+
+Even perfect table retrieval can only affect the ~2% of questions whose
+answer lives in a table, while the measured cost, Hit@5 0.88 to 0.85 and
+four times the indexing, falls on the other 98%. The upside is bounded
+below the downside, which closes the question without needing a
+table-targeted benchmark.
+
+### Equation handling: why the obvious filter was abandoned
 
 Equation and symbol extraction remains the largest open gap. Questions
 whose answer *is* a formula still degrade, because PDF text extraction
@@ -453,13 +522,18 @@ claims an answer makes, how many the retrieved context actually supports.
 Claims are extracted from the answer and judged against the context
 alone. On 25 validation questions, 126 claims:
 
-| metric | validation | test | meaning |
+| metric | test, current | earlier reading | meaning |
 |---|---|---|---|
-| faithfulness | **0.906** | **0.903** | claims supported by the retrieved context |
-| contradiction rate | **0.0** | **0.0** | no claim contradicted its own context |
-| citation validity | **1.0** | **1.0** | every [Excerpt N] pointed at a real excerpt |
-| context utilisation | 0.28 | 0.22 | fraction of supplied passages actually cited |
-| claims judged | 126 | 115 | |
+| faithfulness | **0.873** | 0.903 | claims supported by the retrieved context |
+| contradiction rate | **0.0** | 0.0 | no claim contradicted its own context |
+| citation validity | **1.0** | 1.0 | every [Excerpt N] pointed at a real excerpt |
+| context utilisation | 0.29 | 0.22 | fraction of supplied passages actually cited |
+| claims judged | 195 | 115 | |
+
+The current figures are measured on 40 answers over the 408-query
+benchmark with the fine-tuned re-ranker in place. The earlier 0.903 came
+from 25 answers on the smaller 162-query set, so the two are not directly
+comparable and the apparent fall is mostly a harder, larger sample.
 
 Validation and test agree to within 0.003 on faithfulness, across
 different papers in different fields, which is a better generalisation

@@ -32,12 +32,25 @@ from src.reranker import CrossEncoderReranker
 from src.retriever import MODE_HYBRID_RERANK, HybridRetriever
 
 
+# Sub- and superscript markers are a representation detail of the
+# indexed text, not something a test set should depend on. Without this,
+# changing how equations are rendered silently invalidates any query
+# whose evidence term sits next to an exponent: "et0" stops matching once
+# the chunk says "e_{t0}", and the benchmark reports a retrieval
+# regression that is really a formatting change.
+_SCRIPT_MARKERS = str.maketrans("", "", "^_{}")
+
+
+def _normalize(text: str) -> str:
+    return text.lower().translate(_SCRIPT_MARKERS)
+
+
 def is_relevant(chunk, query: dict, titles: Dict[str, str]) -> bool:
     paper = query.get("paper")
     if paper and paper.lower() not in titles.get(chunk.doc_id, "").lower():
         return False
-    text = chunk.text.lower()
-    return all(p.lower() in text for p in query["must_contain"])
+    text = _normalize(chunk.text)
+    return all(_normalize(p) in text for p in query["must_contain"])
 
 
 def score(retriever, queries, titles, k, mode) -> Dict[str, float]:

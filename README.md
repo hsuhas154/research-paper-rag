@@ -239,9 +239,8 @@ research-paper-rag/
 ├── eval/
 │   ├── benchmark.json       # 162-query, 50-paper benchmark with split labels
 │   ├── splits.json          # paper-level train/validation/test split
-│   ├── corpus_queries.json  # 39 hand-written queries (16 papers)
-│   └── venus_queries.json   # single-paper test set (Phase 1 comparison)
-├── tests/                   # 185 unit tests
+│   └── corpus_queries.json  # 39 hand-written queries, the independent check
+├── tests/                   # 195 unit tests
 ├── app.py                   # Gradio UI, entry point
 ├── EVALUATION.md            # 16-paper test results and fixes
 ├── RUNNING.md               # setup, start/stop, troubleshooting
@@ -318,11 +317,11 @@ Everything else in Phase 3 adds measurement or surface area, not correctness.
 - [x] ~~Table extraction~~ (Phase 3, implemented and **off by default on
       measurement**: table rendering cost Hit@5 0.88 to 0.85 and quadrupled
       indexing. Available behind `ENABLE_TABLE_EXTRACTION`)
-- [ ] **Equation and symbol extraction** (still open, and the largest
-      remaining accuracy gap. A symbol-density filter was measured and
-      abandoned: it cannot tell a corrupted equation from a dense table of
-      real measurements, so it would delete the most answerable content in
-      the corpus. Needs structural extraction using font size and position)
+- [x] ~~Equation and symbol extraction~~ (Phase 3, implemented as
+      structural sub- and superscript recovery and **off by default on
+      measurement**: it makes answers visibly more precise and measurably
+      less grounded, faithfulness 0.873 to 0.805 and Hit@5 0.80 to 0.75.
+      Available behind `ENABLE_SCRIPT_MARKERS`)
 - [x] ~~Per-document retrieval quotas, so a question spanning two papers can
       reach both instead of spending its whole passage budget on one~~
       (Phase 3, done: applied only to questions that read as comparative,

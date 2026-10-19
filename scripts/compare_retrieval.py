@@ -47,6 +47,19 @@ from src.vector_store import RetrievedChunk
 DEFAULT_QUERY_FILE = Path("eval/corpus_queries.json")
 
 
+# Sub- and superscript markers are a representation detail of the
+# indexed text, not something a test set should depend on. Without this,
+# changing how equations are rendered silently invalidates any query
+# whose evidence term sits next to an exponent: "et0" stops matching once
+# the chunk says "e_{t0}", and the benchmark reports a retrieval
+# regression that is really a formatting change.
+_SCRIPT_MARKERS = str.maketrans("", "", "^_{}")
+
+
+def _normalize(text: str) -> str:
+    return text.lower().translate(_SCRIPT_MARKERS)
+
+
 def is_relevant(
     retrieved: RetrievedChunk,
     query: dict,
@@ -63,7 +76,7 @@ def is_relevant(
     paper = query.get("paper")
     if paper and paper.lower() not in titles.get(retrieved.chunk.doc_id, "").lower():
         return False
-    text = retrieved.chunk.text.lower()
+    text = _normalize(retrieved.chunk.text)
     return all(phrase.lower() in text for phrase in query["must_contain"])
 
 

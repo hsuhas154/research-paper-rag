@@ -560,3 +560,49 @@ state:
 ```bash
 curl -s -X POST http://127.0.0.1:8000/ask -H 'Content-Type: application/json' -d '{"question":"And at 60 km?","history":[{"question":"What Kzz was used at 80 km?","answer":"5.3e4 cm2/s."}]}'
 ```
+
+---
+
+## 13. Reproducing the fine-tuned re-ranker
+
+The shipped retrieval numbers depend on a re-ranker fine-tuned on this
+corpus. Its weights are not in git, because model binaries do not belong in
+a source repository, so a fresh clone falls back to the stock model and
+scores lower: Hit@5 0.737 instead of 0.803 on the test split.
+
+To regenerate it, with Ollama running:
+
+```bash
+python -m scripts.build_rerank_dataset --out eval/rerank_train.jsonl --negatives 4
+```
+
+That reads only the 30 training papers named in `eval/splits.json` and takes
+about 20 minutes, writing roughly 2,200 question and passage examples with
+mined hard negatives.
+
+```bash
+python -m scripts.tune_reranker --epochs 1 2 3 --lrs 5e-6 1e-5 2e-5
+```
+
+That trains nine configurations, selects one on the validation split, and
+reports the winner's score on test once. It takes about 20 minutes and
+prints the chosen configuration.
+
+```bash
+cp -r models/tuning/<chosen_config> models/reranker-domain && rm -rf models/reranker-domain/checkpoints models/tuning
+```
+
+The app picks up `models/reranker-domain` automatically on the next start.
+Delete that directory to go back to the stock model.
+
+Check which model is in use:
+
+```bash
+python -c "import sys; sys.path.insert(0,'.'); from src.reranker import default_reranker_model; print(default_reranker_model())"
+```
+
+### Disk
+
+Training writes checkpoints for every configuration. The nine-config grid
+produces around 800 MB; only the selected model, about 88 MB, needs keeping.
+The command above removes the rest.
