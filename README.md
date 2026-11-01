@@ -12,7 +12,8 @@ routing, 92% answer accuracy, zero hallucinations** over 39 questions
 ([full evaluation](EVALUATION.md)). See [Roadmap](#roadmap) for what's next.
 
 **New here?** [RUNNING.md](RUNNING.md) walks through setup, starting and
-stopping everything, and troubleshooting.
+stopping everything, and troubleshooting. [DEPLOYMENT.md](DEPLOYMENT.md)
+covers running it in containers and what cloud deployment would cost.
 
 ## How it works
 
@@ -212,7 +213,8 @@ research-paper-rag/
 │   ├── uploads/             # PDFs, stored under their document id
 │   └── corpus/              # persistent index (generated, gitignored)
 ├── src/
-│   ├── api.py               # FastAPI backend over the pipeline
+│   ├── api.py               # FastAPI backend, also serves the web client
+│   ├── web/                 # browser client: one page, no build step
 │   ├── conversation.py      # follow-up rewriting and history
 │   ├── faithfulness.py      # answer groundedness measurement
 │   ├── splits.py            # train/validation/test resolution
@@ -240,8 +242,11 @@ research-paper-rag/
 │   ├── benchmark.json       # 162-query, 50-paper benchmark with split labels
 │   ├── splits.json          # paper-level train/validation/test split
 │   └── corpus_queries.json  # 39 hand-written queries, the independent check
-├── tests/                   # 195 unit tests
-├── app.py                   # Gradio UI, entry point
+├── tests/                   # 220 unit tests
+├── app.py                   # Gradio UI, developer-facing
+├── Dockerfile               # app image, CPU torch
+├── docker-compose.yml       # app plus Ollama, GPU via an override
+├── DEPLOYMENT.md            # containers, cloud shapes, costs
 ├── EVALUATION.md            # 16-paper test results and fixes
 ├── RUNNING.md               # setup, start/stop, troubleshooting
 ├── requirements.txt
@@ -338,5 +343,15 @@ Everything else in Phase 3 adds measurement or surface area, not correctness.
 
 **Phase 4 - deployment.**
 
-- [ ] Docker containerization and cloud deployment (Phase 4)
-- [ ] Modern web frontend against the API (Phase 4)
+- [x] ~~Docker containerization~~ (Phase 4, `Dockerfile` and
+      `docker-compose.yml`, with the GPU as an override so the default runs
+      without one. Written and reviewed but not built, since Docker is
+      unavailable in the development environment; see
+      [DEPLOYMENT.md](DEPLOYMENT.md))
+- [x] ~~Modern web frontend against the API~~ (Phase 4, `src/web`, served
+      by FastAPI with answers streamed over Server-Sent Events. No
+      framework and no build step)
+- [ ] Cloud deployment (shapes and costs documented in
+      [DEPLOYMENT.md](DEPLOYMENT.md); not deployed, and the API has no
+      authentication yet, which it needs before being reachable from an
+      untrusted network)

@@ -616,3 +616,38 @@ python -c "import sys; sys.path.insert(0,'.'); from src.reranker import default_
 Training writes checkpoints for every configuration. The nine-config grid
 produces around 800 MB; only the selected model, about 88 MB, needs keeping.
 The command above removes the rest.
+
+---
+
+## 14. The browser client
+
+The API serves a web interface of its own, separate from the Gradio app.
+Start the API and open it:
+
+```bash
+cd ~/research-paper-rag && python -m src.api
+```
+
+Then **http://127.0.0.1:8000**.
+
+It streams: the source passages appear about a second before the answer
+starts, and the answer arrives word by word. Enter sends a question,
+Shift and Enter make a new line. The paper filter, select all and clear
+work the same way as in the Gradio app, and conversation history is held
+in the browser, so the server stays stateless.
+
+### Which interface to use
+
+| | Gradio (`python app.py`) | Web client (`python -m src.api`) |
+|---|---|---|
+| Purpose | developing and inspecting | using and deploying |
+| Retrieval strategy switch | yes | yes |
+| Library management | full table, add and remove | upload only |
+| Runs in a container | no | yes |
+
+Both talk to the same pipeline and the same corpus, so a paper indexed in
+one appears in the other.
+
+To run both at once, give them different ports; they share the corpus on
+disk but each holds its own copy in memory, so a paper added in one is
+visible to the other only after a restart.
