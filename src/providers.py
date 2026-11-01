@@ -33,6 +33,7 @@ code change.
 
 import json
 import os
+import time
 from typing import Dict, Iterator, List, Optional
 
 OLLAMA = "ollama"
@@ -133,61 +134,162 @@ def _openai_request(messages, model, stream: bool):
     }
 
 
+# A hosted endpoint throttles; a local one does not. 429 means "wait and
+# try again", not "this failed", so it is handled here rather than in
+# every caller. Without it a batch of forty evaluation questions dies
+# partway through and discards the answers that already succeeded.
+MAX_RETRIES = 5
+BASE_BACKOFF_SECONDS = 2.0
+
+# Long enough to ride out a per-minute quota, short enough that a
+# genuinely unavailable provider is reported rather than waited out.
+MAX_RETRY_DELAY_SECONDS = 60.0
+
+
+def _backoff(attempt: int) -> float:
+    """Exponential, so a sustained limit backs off instead of hammering."""
+    return BASE_BACKOFF_SECONDS * (2 ** attempt)
+
+
+def _retry_delay(response, attempt: int) -> float:
+    """
+    How long to wait before retrying, preferring the server's own
+    instruction when it sends one. Retry-After is the provider saying
+    exactly when its quota resets; guessing at that is strictly worse.
+    """
+    try:
+        return min(float(response.headers.get("retry-after", "")), MAX_RETRY_DELAY_SECONDS)
+    except (TypeError, ValueError):
+        return _backoff(attempt)
+
+
+def _is_retryable(status: int) -> bool:
+    """429 is throttling; 5xx is the provider having a bad moment."""
+    return status == 429 or 500 <= status < 600
+
+
+def _status_error(error) -> ProviderError:
+    """
+    Turns an HTTP error into one that says what went wrong.
+
+    The body has to be read explicitly on a streaming response, and it is
+    the only place the provider explains itself: a bare "404" is
+    indistinguishable between a bad URL, a retired model name, and a key
+    without access to it.
+    """
+    try:
+        error.response.read()
+        detail = error.response.text[:300]
+    except Exception:
+        detail = ""
+    return ProviderError(
+        f"The generation endpoint returned {error.response.status_code}"
+        + (f": {detail}" if detail else "")
+    )
+
+
 def _openai_complete(messages, model) -> str:
     import httpx
 
     _, kwargs = _openai_request(messages, model, stream=False)
-    try:
-        response = httpx.post(**kwargs)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except httpx.HTTPStatusError as error:
-        raise ProviderError(
-            f"The generation endpoint returned {error.response.status_code}: "
-            f"{error.response.text[:200]}"
-        ) from error
-    except Exception as error:
-        raise ProviderError(f"Could not reach the generation endpoint: {error}") from error
+
+    for attempt in range(MAX_RETRIES):
+        final = attempt == MAX_RETRIES - 1
+        try:
+            response = httpx.post(**kwargs)
+        except httpx.RequestError as error:
+            # A dropped connection is as transient as a 429 and deserves
+            # the same treatment, but there is no response to read a
+            # Retry-After from.
+            if final:
+                raise ProviderError(
+                    f"Could not reach the generation endpoint: {error}"
+                ) from error
+            time.sleep(_backoff(attempt))
+            continue
+
+        if _is_retryable(response.status_code) and not final:
+            time.sleep(_retry_delay(response, attempt))
+            continue
+
+        # Out of retries, or a status no amount of waiting will change.
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as error:
+            raise _status_error(error) from error
+
+        try:
+            return response.json()["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, ValueError) as error:
+            raise ProviderError(
+                f"The generation endpoint returned a reply in an unexpected "
+                f"shape: {response.text[:200]}"
+            ) from error
+
+    raise ProviderError("The generation endpoint could not be reached.")
 
 
 def _openai_stream(messages, model) -> Iterator[str]:
     import httpx
 
     _, kwargs = _openai_request(messages, model, stream=True)
-    try:
-        with httpx.stream("POST", **kwargs) as response:
-            response.raise_for_status()
-            for line in response.iter_lines():
-                if not line.startswith("data:"):
-                    continue
-                payload = line[5:].strip()
-                if payload == "[DONE]":
-                    return
-                try:
-                    delta = json.loads(payload)["choices"][0].get("delta", {})
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    continue
-                fragment = delta.get("content")
-                if fragment:
-                    yield fragment
-    except httpx.HTTPStatusError as error:
-        # The body has to be read explicitly on a streaming response, and
-        # it is the only place the provider says what was actually wrong:
-        # a bare "404" is indistinguishable between a bad URL, a retired
-        # model name, and a key without access to it.
+
+    # Retrying covers only establishing the stream. The status line
+    # arrives before any tokens do, so a throttled attempt costs one
+    # request and yields nothing. Once fragments have been yielded the
+    # caller has already shown them, and restarting behind its back would
+    # duplicate text on screen, so a mid-stream failure propagates.
+    yielded = False
+
+    for attempt in range(MAX_RETRIES):
+        final = attempt == MAX_RETRIES - 1
+        delay = None
+
         try:
-            error.response.read()
-            detail = error.response.text[:300]
-        except Exception:
-            detail = ""
-        raise ProviderError(
-            f"The generation endpoint returned {error.response.status_code}"
-            + (f": {detail}" if detail else "")
-        ) from error
-    except ProviderError:
-        raise
-    except Exception as error:
-        raise ProviderError(f"Could not reach the generation endpoint: {error}") from error
+            with httpx.stream("POST", **kwargs) as response:
+                if _is_retryable(response.status_code) and not final:
+                    # Worked out inside the context manager, slept outside
+                    # it, so the connection is not held open while waiting.
+                    delay = _retry_delay(response, attempt)
+                else:
+                    try:
+                        response.raise_for_status()
+                    except httpx.HTTPStatusError as error:
+                        raise _status_error(error) from error
+
+                    for line in response.iter_lines():
+                        if not line.startswith("data:"):
+                            continue
+                        payload = line[5:].strip()
+                        if payload == "[DONE]":
+                            return
+                        try:
+                            delta = json.loads(payload)["choices"][0].get("delta", {})
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            continue
+                        fragment = delta.get("content")
+                        if fragment:
+                            yielded = True
+                            yield fragment
+                    return
+        except ProviderError:
+            raise
+        except httpx.RequestError as error:
+            # Only a failure before the first fragment can be retried. A
+            # connection dropping mid-answer has already put text on the
+            # caller's screen, and starting over would repeat it.
+            if final or yielded:
+                raise ProviderError(
+                    f"Could not reach the generation endpoint: {error}"
+                ) from error
+            delay = _backoff(attempt)
+        except Exception as error:
+            raise ProviderError(
+                f"Could not reach the generation endpoint: {error}"
+            ) from error
+
+        if delay is not None:
+            time.sleep(delay)
 
 
 # ----------------------------------------------------------------------

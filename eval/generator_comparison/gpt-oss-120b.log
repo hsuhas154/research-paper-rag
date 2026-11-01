@@ -1,0 +1,69 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 1581.12it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+40 questions, split=test, judge=llama3.1:8b
+
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|██████████| 105/105 [00:00<00:00, 1561.49it/s]
+  [  1/40] faith=1.00 claims=2 cites=2/2  What is the typical image resolution that can be han
+  [  2/40] faith=0.86 claims=7 cites=1/1  What is the main difference between applying 1-dimen
+  [  3/40] faith=1.00 claims=4 cites=2/2  What is the effect on computational expense when red
+  [  4/40] faith=0.80 claims=5 cites=3/3  Do Vision Transformers require significantly less co
+  [  5/40] faith=0.50 claims=8 cites=6/6  What research papers are cited as references in this
+  [  6/40] faith=1.00 claims=3 cites=2/2  Do ViT models require larger input sizes than ResNet
+  [  7/40] faith=0.25 claims=4 cites=0/0  What is the total number of parameters in the ViT-Hu
+  [  8/40] faith=1.00 claims=6 cites=1/1  What learning rate and training schedule were chosen
+  [  9/40] faith=1.00 claims=5 cites=3/3  How does the performance of ViT models compare to th
+  [ 10/40] faith=0.75 claims=8 cites=2/2  What is the top-1 accuracy of Vision Transformer whe
+  [ 11/40] faith=1.00 claims=8 cites=8/8  What are some examples of research papers that have 
+  [ 12/40] faith=0.71 claims=7 cites=6/6  What types of neural network architectures are menti
+  [ 13/40] faith=1.00 claims=6 cites=3/3  What specific characteristics of Vision Transformers
+  [ 14/40] faith=0.62 claims=8 cites=2/2  What are the specific hyperparameter settings used f
+  [ 15/40] faith=1.00 claims=5 cites=2/2  What type of position embeddings does this model use
+  [ 16/40] faith=1.00 claims=6 cites=2/2  How do you handle higher-resolution input images whe
+  [ 17/40] faith=0.33 claims=3 cites=0/0  What types of research have been published in the Ar
+  [ 18/40] faith=1.00 claims=8 cites=14/14  What methods are being used to improve question answ
+  [ 19/40] faith=0.50 claims=2 cites=0/0  What type of question answering system does the pape
+  [ 20/40] faith=0.83 claims=6 cites=1/1  What is the specific optimization goal for training 
+  [ 21/40] faith=1.00 claims=8 cites=16/16  What are some specific research papers that have pro
+  [ 22/40] faith=1.00 claims=4 cites=1/1  What happens to a system's performance when it uses 
+  [ 23/40] faith=1.00 claims=8 cites=22/22  What are some of the key papers that have contribute
+  [ 24/40] faith=0.75 claims=8 cites=1/1  How does the number of training examples compare bet
+  [ 25/40] faith=1.00 claims=6 cites=2/2  What is the primary contribution of the Poly-encoder
+  [ 26/40] faith=1.00 claims=5 cites=3/3  What is the relationship between the size of the air
+  [ 27/40] faith=1.00 claims=2 cites=1/1  What layer thickness was chosen for the fabrication 
+  [ 28/40] faith=1.00 claims=2 cites=5/5  What is the relationship between air gap size and ma
+  [ 29/40] faith=1.00 claims=5 cites=0/0  What is the relationship between build time and laye
+  [ 30/40] faith=0.80 claims=5 cites=3/3  What is the primary goal of determining the optimal 
+  [ 31/40] faith=1.00 claims=8 cites=5/5  What are some key technical challenges that have hin
+  [ 32/40] faith=1.00 claims=4 cites=4/4  What specific design strategy can be used to minimiz
+  [ 33/40] faith=1.00 claims=8 cites=11/11  What specific design strategies have been proposed f
+  [ 34/40] faith=0.40 claims=5 cites=1/1  What types of FDM systems are suitable for creating 
+  [ 35/40] faith=0.67 claims=3 cites=2/2  What is the minimum channel length achieved in polys
+  [ 36/40] faith=0.40 claims=5 cites=3/3  What types of MOSFETs are discussed in the papers li
+  [ 37/40] faith=0.86 claims=7 cites=2/2  What degrees did Ernest Bassous receive in his educa
+  [ 38/40] faith=1.00 claims=8 cites=16/16  What specific research papers were published in the 
+  [ 39/40] faith=1.00 claims=5 cites=2/2  Under what conditions does the applied substrate bia
+  [ 40/40] faith=1.00 claims=4 cites=1/1  What sources of funding supported the research at th
+
+=== summary ===
+  n_answers              40
+  faithfulness           0.8509
+  contradiction_rate     0.0
+  citation_validity      1.0
+  context_utilisation    0.42
+  total_claims           221
+  judge_model            llama3.1:8b
+  split                  test
+  seconds                738
+  n_asked                40
+  n_failed               0
+
+Note: the judge is the generating model, which is lenient about its own output. Treat these as a floor, not a certificate.
+
+wrote eval/generator_comparison/gpt-oss-120b.json

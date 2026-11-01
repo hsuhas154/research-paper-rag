@@ -46,11 +46,28 @@ def main() -> int:
     pipeline = RAGPipeline(top_k=args.top_k)
     print(f"{len(queries)} questions, split={args.split}, judge={args.judge}\n", flush=True)
 
-    reports, rows = [], []
+    reports, rows, failures = [], [], []
     start = time.time()
     for i, query in enumerate(queries, 1):
-        answer = pipeline.answer_question(query["question"], top_k=args.top_k)
-        report = evaluate_answer(answer.text, answer.sources, model=args.judge)
+        # One unlucky question must not cost the whole run. A hosted
+        # endpoint throttles and occasionally drops a request, and an
+        # unguarded loop threw away thirty-nine finished answers over the
+        # fortieth. Each failure is recorded and the run continues.
+        try:
+            answer = pipeline.answer_question(query["question"], top_k=args.top_k)
+            report = evaluate_answer(answer.text, answer.sources, model=args.judge)
+        except Exception as error:
+            failures.append({"id": query["id"], "error": f"{type(error).__name__}: {error}"})
+            rows.append({
+                "id": query["id"],
+                "question": query["question"],
+                "paper": query["paper"],
+                "error": f"{type(error).__name__}: {error}",
+            })
+            print(f"  [{i:>3}/{len(queries)}] FAILED  {type(error).__name__}: "
+                  f"{str(error)[:120]}", flush=True)
+            continue
+
         reports.append(report)
         rows.append({
             "id": query["id"],
@@ -68,6 +85,11 @@ def main() -> int:
     summary = aggregate(reports)
     summary["split"] = args.split
     summary["seconds"] = round(time.time() - start)
+    # The denominator belongs next to the score. A mean over 31 of 40
+    # questions is not comparable with one over all 40, and the gap is
+    # invisible unless it is written down.
+    summary["n_asked"] = len(queries)
+    summary["n_failed"] = len(failures)
 
     print("\n=== summary ===")
     for key, value in summary.items():
@@ -75,11 +97,22 @@ def main() -> int:
     print("\nNote: the judge is the generating model, which is lenient about "
           "its own output. Treat these as a floor, not a certificate.")
 
+    if failures:
+        print(f"\n{len(failures)} of {len(queries)} questions failed and are "
+              f"excluded from the scores above:")
+        for failure in failures[:5]:
+            print(f"  {failure['id']}  {failure['error'][:150]}")
+        if len(failures) > 5:
+            print(f"  ... and {len(failures) - 5} more")
+
     if args.out:
         args.out.write_text(json.dumps({"summary": summary, "per_question": rows}, indent=1),
                             encoding="utf-8")
         print(f"\nwrote {args.out}")
-    return 0
+
+    # Non-zero on any failure, so a caller can tell a complete run from a
+    # partial one without parsing the output.
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

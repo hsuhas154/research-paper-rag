@@ -147,6 +147,15 @@ answer would send retrieved passages to an external provider, which gives
 up the property this system was built around: that nothing leaves the
 machine. That is a real trade, not a detail.
 
+What it costs in answer quality was measured rather than assumed, across
+the local model and two hosted ones on the same 40 test questions with
+retrieval and judge held fixed. The short version is that faithfulness is
+indistinguishable between them at this sample size, so the trade is about
+privacy and cost rather than groundedness. See
+[GENERATOR_COMPARISON.md](GENERATOR_COMPARISON.md), which is kept separate
+from [EVALUATION.md](EVALUATION.md) so the locally measured numbers stay
+as they were recorded.
+
 ### Before exposing it to anyone else
 
 The API has **no authentication**. It was built for a single user on
