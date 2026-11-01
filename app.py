@@ -27,6 +27,7 @@ Run with: python app.py
 
 import gradio as gr
 
+from src import providers
 from src.conversation import Conversation
 from src.rag_pipeline import RAGPipeline
 from src.retriever import (
@@ -44,6 +45,24 @@ print("Starting up: loading models and corpus...")
 pipeline = RAGPipeline(top_k=5)
 print(f"Ready. Corpus holds {len(pipeline.documents)} document(s), "
       f"{len(pipeline.corpus.store)} chunks.")
+print(f"Generation: {providers.describe()}")
+
+
+def privacy_banner() -> str:
+    """
+    States where generation happens, in the interface rather than only in
+    a log line.
+
+    Whether the retrieved passages leave the machine is the single thing
+    about this system a user most needs to know before uploading a
+    document, and it is invisible from the UI otherwise.
+    """
+    if providers.is_local():
+        return (f"Generation runs locally ({providers.model_name()}). "
+                "Nothing leaves this machine.")
+    return (f"Generation uses {providers.describe()}. The retrieved passages "
+            "of your document are sent to that provider to write each answer. "
+            "Do not upload anything confidential.")
 
 
 MODE_DESCRIPTIONS = {
@@ -266,6 +285,7 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
         "generation, and every retrieved passage is shown with its page and section "
         "so you can check the answer against the source."
     )
+    gr.Markdown(f"*{privacy_banner()}*")
 
     with gr.Tabs():
         with gr.Tab("Ask"):

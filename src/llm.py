@@ -18,19 +18,15 @@ Requires 'ollama serve' to be running, with the model already pulled.
 
 from typing import Dict, Iterator, List, Optional, Sequence
 
-import ollama
-
+from src import providers
+from src.providers import ProviderError
 from src.vector_store import RetrievedChunk
 
-LLM_MODEL_NAME = "llama3.1:8b"
-
-# How long Ollama keeps the model resident after a request. The default
-# is five minutes, after which the next question pays a 30 to 40 second
-# reload. For an interactive session that reload is the single worst
-# moment in the experience, and it lands unpredictably. Holding the model
-# for an hour costs VRAM that nothing else on this machine wants while
-# the app is open.
-KEEP_ALIVE = "60m"
+# Kept for callers that import it. The model actually used comes from
+# providers.model_name(), which defaults to this for local Ollama and to
+# a hosted equivalent when LLM_PROVIDER is set.
+LLM_MODEL_NAME = providers.DEFAULT_OLLAMA_MODEL
+KEEP_ALIVE = providers.KEEP_ALIVE
 
 SYSTEM_PROMPT = (
     "You are a research assistant that answers questions about academic papers. "
@@ -116,7 +112,7 @@ def stream_answer(
     retrieved_chunks: Sequence[RetrievedChunk],
     document_titles: Optional[Dict[str, str]] = None,
     history: Optional[List[Dict[str, str]]] = None,
-    model: str = LLM_MODEL_NAME,
+    model: Optional[str] = None,
     num_ctx: int = 8192,
 ) -> Iterator[str]:
     """
@@ -132,24 +128,11 @@ def stream_answer(
         yield NO_CONTEXT_ANSWER
         return
 
+    messages = build_messages(question, retrieved_chunks, document_titles, history)
     try:
-        stream = ollama.chat(
-            model=model,
-            messages=build_messages(question, retrieved_chunks, document_titles, history),
-            stream=True,
-            keep_alive=KEEP_ALIVE,
-            options={"num_ctx": num_ctx, "temperature": 0.2},
-        )
-        for part in stream:
-            fragment = part.get("message", {}).get("content", "")
-            if fragment:
-                yield fragment
-    except Exception as error:
-        raise RuntimeError(
-            f"Could not reach the local LLM ({model}) via Ollama: {error}\n"
-            f"Check that 'ollama serve' is running and that the model has been "
-            f"pulled with 'ollama pull {model}'."
-        ) from error
+        yield from providers.stream(messages, model=model, num_ctx=num_ctx)
+    except ProviderError as error:
+        raise RuntimeError(str(error)) from error
 
 
 def generate_answer(
@@ -157,7 +140,7 @@ def generate_answer(
     retrieved_chunks: Sequence[RetrievedChunk],
     document_titles: Optional[Dict[str, str]] = None,
     history: Optional[List[Dict[str, str]]] = None,
-    model: str = LLM_MODEL_NAME,
+    model: Optional[str] = None,
     num_ctx: int = 8192,
 ) -> str:
     """
@@ -185,25 +168,11 @@ def generate_answer(
     if not retrieved_chunks:
         return NO_CONTEXT_ANSWER
 
+    messages = build_messages(question, retrieved_chunks, document_titles, history)
     try:
-        response = ollama.chat(
-            model=model,
-            messages=build_messages(question, retrieved_chunks, document_titles, history),
-            keep_alive=KEEP_ALIVE,
-            options={
-                "num_ctx": num_ctx,
-                "temperature": 0.2,  # low temperature: prioritize faithful,
-                                     # grounded answers over creative variation
-            },
-        )
-    except Exception as error:
-        raise RuntimeError(
-            f"Could not reach the local LLM ({model}) via Ollama: {error}\n"
-            f"Check that 'ollama serve' is running and that the model has been "
-            f"pulled with 'ollama pull {model}'."
-        ) from error
-
-    return response["message"]["content"]
+        return providers.complete(messages, model=model, num_ctx=num_ctx)
+    except ProviderError as error:
+        raise RuntimeError(str(error)) from error
 
 
 if __name__ == "__main__":

@@ -1,0 +1,18 @@
+# Hugging Face Spaces dependency set.
+#
+# CPU torch from the PyTorch CPU index: the free tier has no GPU, and the
+# CUDA build would be roughly 2.5 GB of wheel for hardware that is not
+# there. Embedding and re-ranking are two 22M parameter models over a
+# corpus of one or two uploaded papers, which is comfortable on CPU.
+#
+# No ollama package here. Generation on this Space goes to a hosted
+# OpenAI-compatible endpoint over httpx, so the 5 GB local runtime is not
+# installed or needed.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.6.0
+sentence-transformers>=3.0.0
+faiss-cpu>=1.8.0
+pymupdf>=1.24.0
+httpx>=0.27.0
+gradio>=5.0.0

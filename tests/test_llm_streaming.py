@@ -1,18 +1,27 @@
 """
-Tests for streamed generation.
+Tests for streamed generation and provider selection.
 
-Streaming changes when the caller sees output, not what it is, so these
-check the contract: fragments come through in order, an empty context
-still yields the refusal, failures surface as a clear error rather than
-a half-written answer, and the model is asked to stay resident.
+Generation can go to local Ollama or to any OpenAI-compatible endpoint.
+These cover the contract shared by both: fragments in order, an empty
+context short-circuiting, failures surfacing as a clear error, and the
+two paths sending identical messages. They also pin the default, because
+"where does my paper text go" is not something that should change by
+accident.
 """
 
 import pytest
 
-from src import llm
+from src import llm, providers
 from src.chunker import Chunk
-from src.llm import KEEP_ALIVE, NO_CONTEXT_ANSWER, build_messages, stream_answer
+from src.llm import NO_CONTEXT_ANSWER, build_messages, stream_answer
+from src.providers import ProviderError
 from src.vector_store import RetrievedChunk
+
+
+@pytest.fixture(autouse=True)
+def clean_env(monkeypatch):
+    for name in ("LLM_PROVIDER", "LLM_MODEL", "LLM_BASE_URL", "LLM_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
 
 
 def sources(n=2):
@@ -22,65 +31,101 @@ def sources(n=2):
     ]
 
 
-def fake_stream(*fragments):
-    def chat(**kwargs):
-        chat.kwargs = kwargs
+def fake_ollama(*fragments):
+    def chat(messages, model, num_ctx, stream):
+        chat.seen = {"messages": messages, "model": model, "stream": stream}
+        if not stream:
+            return {"message": {"content": "".join(fragments)}}
         return [{"message": {"content": f}} for f in fragments]
     return chat
 
 
+class TestProviderSelection:
+    def test_defaults_to_local(self):
+        # The project's premise is that nothing leaves the machine. That
+        # must be the default, not something you remember to set.
+        assert providers.provider_name() == providers.OLLAMA
+        assert providers.is_local() is True
+
+    def test_hosted_is_opt_in(self, monkeypatch):
+        monkeypatch.setenv("LLM_PROVIDER", "openai")
+        assert providers.is_local() is False
+
+    def test_an_unknown_provider_falls_back_to_local(self, monkeypatch):
+        # Failing closed matters here: a typo must not silently start
+        # shipping paper text to a remote endpoint.
+        monkeypatch.setenv("LLM_PROVIDER", "opanai")
+        assert providers.is_local() is True
+
+    def test_model_defaults_differ_by_provider(self, monkeypatch):
+        assert providers.model_name() == providers.DEFAULT_OLLAMA_MODEL
+        monkeypatch.setenv("LLM_PROVIDER", "openai")
+        assert providers.model_name() == providers.DEFAULT_OPENAI_MODEL
+
+    def test_description_says_where_generation_happens(self, monkeypatch):
+        assert "local" in providers.describe().lower()
+        monkeypatch.setenv("LLM_PROVIDER", "openai")
+        monkeypatch.setenv("LLM_BASE_URL", "https://api.example.com/v1")
+        described = providers.describe()
+        assert "hosted" in described and "api.example.com" in described
+
+
+class TestHostedConfiguration:
+    def test_missing_base_url_is_reported_clearly(self, monkeypatch):
+        monkeypatch.setenv("LLM_PROVIDER", "openai")
+        monkeypatch.setenv("LLM_API_KEY", "k")
+        with pytest.raises(ProviderError, match="LLM_BASE_URL"):
+            providers.complete([{"role": "user", "content": "q"}])
+
+    def test_missing_api_key_is_reported_clearly(self, monkeypatch):
+        monkeypatch.setenv("LLM_PROVIDER", "openai")
+        monkeypatch.setenv("LLM_BASE_URL", "https://api.example.com/v1")
+        with pytest.raises(ProviderError, match="LLM_API_KEY"):
+            providers.complete([{"role": "user", "content": "q"}])
+
+
 class TestStreaming:
     def test_yields_fragments_in_order(self, monkeypatch):
-        monkeypatch.setattr(llm.ollama, "chat", fake_stream("Hello", " there", "."))
+        monkeypatch.setattr(providers, "_ollama_chat", fake_ollama("Hello", " there", "."))
         assert list(stream_answer("q", sources())) == ["Hello", " there", "."]
 
     def test_skips_empty_fragments(self, monkeypatch):
-        # Ollama emits a final empty chunk; passing it through would make
-        # the UI redraw for no reason.
-        monkeypatch.setattr(llm.ollama, "chat", fake_stream("text", "", None or ""))
+        # Ollama emits a trailing empty chunk; passing it through would
+        # make the UI redraw for nothing.
+        monkeypatch.setattr(providers, "_ollama_chat", fake_ollama("text", ""))
         assert list(stream_answer("q", sources())) == ["text"]
 
-    def test_empty_context_yields_the_refusal_without_calling_the_model(self, monkeypatch):
+    def test_empty_context_short_circuits(self, monkeypatch):
         called = []
-        monkeypatch.setattr(llm.ollama, "chat", lambda **kw: called.append(kw))
+        monkeypatch.setattr(providers, "_ollama_chat",
+                            lambda *a, **kw: called.append(1))
         assert list(stream_answer("q", [])) == [NO_CONTEXT_ANSWER]
         assert not called
 
-    def test_requests_streaming_and_keeps_the_model_resident(self, monkeypatch):
-        chat = fake_stream("x")
-        monkeypatch.setattr(llm.ollama, "chat", chat)
-        list(stream_answer("q", sources()))
+    def test_a_provider_failure_surfaces_as_a_runtime_error(self, monkeypatch):
+        def boom(*a, **kw):
+            raise ProviderError("ollama serve is not running")
 
-        assert chat.kwargs["stream"] is True
-        # Without this the model unloads after five minutes and the next
-        # question pays a 30 to 40 second reload.
-        assert chat.kwargs["keep_alive"] == KEEP_ALIVE
-
-    def test_an_unreachable_model_raises_with_guidance(self, monkeypatch):
-        def boom(**kw):
-            raise ConnectionError("connection refused")
-
-        monkeypatch.setattr(llm.ollama, "chat", boom)
+        monkeypatch.setattr(providers, "_ollama_chat", boom)
         with pytest.raises(RuntimeError, match="ollama serve"):
             list(stream_answer("q", sources()))
 
 
 class TestMessageAssembly:
     def test_streaming_and_blocking_send_identical_messages(self, monkeypatch):
-        # The two paths must not drift: a difference here would mean the
-        # streamed answer is generated from a different prompt.
-        seen = {}
+        # Drift here would mean the streamed answer came from a different
+        # prompt than the one every measurement was taken with.
+        seen = []
 
-        def chat(**kw):
-            seen.setdefault("calls", []).append(kw["messages"])
-            return [{"message": {"content": "x"}}] if kw.get("stream") else \
-                {"message": {"content": "x"}}
+        def chat(messages, model, num_ctx, stream):
+            seen.append(messages)
+            return ([{"message": {"content": "x"}}] if stream
+                    else {"message": {"content": "x"}})
 
-        monkeypatch.setattr(llm.ollama, "chat", chat)
+        monkeypatch.setattr(providers, "_ollama_chat", chat)
         list(stream_answer("q", sources()))
         llm.generate_answer("q", sources())
-
-        assert seen["calls"][0] == seen["calls"][1]
+        assert seen[0] == seen[1]
 
     def test_history_sits_between_system_prompt_and_question(self):
         messages = build_messages(
