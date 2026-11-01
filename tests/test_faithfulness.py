@@ -139,3 +139,28 @@ class TestEndToEnd:
         assert report.faithfulness == 1.0
         assert report.n_valid_citations == 2
         assert report.context_utilisation == pytest.approx(2 / 3)
+
+
+class TestCitationStylesAcrossModels:
+    """
+    Different models write citations differently. The measurement must
+    not depend on which one generated the answer.
+    """
+
+    def test_ascii_brackets(self):
+        assert check_citations("A [Excerpt 1] and [Excerpt 3].", 5)["n_citations"] == 2
+
+    def test_full_width_brackets(self):
+        # gpt-oss uses U+3010 and U+3011. Matching only ASCII scored a
+        # correctly cited answer at 0.0 citation validity.
+        assert check_citations("A 【Excerpt 1】 and 【Excerpt 3】.", 5)["n_citations"] == 2
+
+    def test_parentheses(self):
+        assert check_citations("A (Excerpt 1) and (Excerpt 3).", 5)["n_citations"] == 2
+
+    def test_tolerates_internal_spacing(self):
+        assert check_citations("A 【 Excerpt 2 】.", 5)["n_citations"] == 1
+
+    def test_out_of_range_still_invalid_in_any_style(self):
+        result = check_citations("【Excerpt 9】", n_supplied=3)
+        assert result["n_citations"] == 1 and result["n_valid_citations"] == 0

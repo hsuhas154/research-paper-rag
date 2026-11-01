@@ -42,7 +42,16 @@ import ollama
 from src.llm import LLM_MODEL_NAME
 from src.vector_store import RetrievedChunk
 
-CITATION_PATTERN = re.compile(r"\[Excerpt\s+(\d+)\]", re.IGNORECASE)
+# Bracket style varies by model and the measurement must not. Llama 3.1
+# writes [Excerpt 2]; gpt-oss writes it with full-width CJK brackets,
+# U+3010 and U+3011, and some models use parentheses. Matching only the
+# ASCII form scored citation validity at 0.0 for a model that was in fact
+# citing every claim correctly, which would have looked like a
+# catastrophic groundedness failure rather than a regex that was too
+# narrow.
+CITATION_PATTERN = re.compile(
+    r"[\[\(\u3010]\s*Excerpt\s+(\d+)\s*[\]\)\u3011]", re.IGNORECASE
+)
 
 CLAIM_PROMPT = (
     "Break the following answer into its distinct factual claims.\n\n"

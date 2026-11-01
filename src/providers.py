@@ -39,7 +39,13 @@ OLLAMA = "ollama"
 OPENAI = "openai"
 
 DEFAULT_OLLAMA_MODEL = "llama3.1:8b"
-DEFAULT_OPENAI_MODEL = "llama-3.1-8b-instant"
+# Hosted model names are not stable. llama-3.1-8b-instant was the
+# obvious choice because it matches the local model, and it had already
+# been retired by the time this was tested: the endpoint answers 404
+# rather than saying the name is unknown. Check what a key can actually
+# reach before trusting any default here:
+#   curl -s $LLM_BASE_URL/models -H "Authorization: Bearer $LLM_API_KEY"
+DEFAULT_OPENAI_MODEL = "openai/gpt-oss-20b"
 
 # Ollama unloads an idle model after five minutes, and the next question
 # then pays a 30 to 40 second reload.
@@ -165,8 +171,18 @@ def _openai_stream(messages, model) -> Iterator[str]:
                 if fragment:
                     yield fragment
     except httpx.HTTPStatusError as error:
+        # The body has to be read explicitly on a streaming response, and
+        # it is the only place the provider says what was actually wrong:
+        # a bare "404" is indistinguishable between a bad URL, a retired
+        # model name, and a key without access to it.
+        try:
+            error.response.read()
+            detail = error.response.text[:300]
+        except Exception:
+            detail = ""
         raise ProviderError(
             f"The generation endpoint returned {error.response.status_code}"
+            + (f": {detail}" if detail else "")
         ) from error
     except ProviderError:
         raise

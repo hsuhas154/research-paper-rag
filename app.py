@@ -48,6 +48,23 @@ print(f"Ready. Corpus holds {len(pipeline.documents)} document(s), "
 print(f"Generation: {providers.describe()}")
 
 
+def startup_note() -> str:
+    """
+    What to expect from the first question, which differs by provider.
+
+    The local path pays a 30 to 40 second model load once. The hosted
+    path pays nothing and answers immediately. Telling a hosted user to
+    wait for a GPU load that is not happening is worse than saying
+    nothing, since they will read the first slow retrieval as that.
+    """
+    if providers.is_local():
+        return ("The first question after startup takes longer while the local "
+                "LLM loads into GPU memory. It is then held resident for an hour, "
+                "so later questions start immediately.")
+    return ("Retrieval runs on this machine and generation is remote, so answers "
+            "usually start within a second or two.")
+
+
 def privacy_banner() -> str:
     """
     States where generation happens, in the interface rather than only in
@@ -300,11 +317,7 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
                         ask_btn = gr.Button("Ask", variant="primary")
                         clear_btn = gr.Button("New conversation")
 
-                    gr.Markdown(
-                        "*The first question after startup takes longer while the local "
-                        "LLM loads into GPU memory. It is then held resident for an "
-                        "hour, so later questions start immediately.*"
-                    )
+                    gr.Markdown(f"*{startup_note()}*")
 
                     answer_output = gr.Markdown(label="Answer")
                     retrieval_stats = gr.Markdown()
