@@ -23,6 +23,7 @@ Run with:
 Interactive documentation is generated automatically at /docs.
 """
 
+import json
 import shutil
 import tempfile
 from contextlib import asynccontextmanager
@@ -30,6 +31,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.conversation import Conversation
@@ -238,6 +241,90 @@ def remove_document(doc_id: str) -> None:
         raise HTTPException(status_code=404, detail=f"No document {doc_id!r} in the library.")
 
 
+def sse(event: str, payload: Dict[str, object]) -> str:
+    """One Server-Sent Events frame."""
+    return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
+
+
+@app.post("/ask/stream", summary="Ask a question, streamed")
+def ask_stream(request: AskIn) -> StreamingResponse:
+    """
+    Answers a question as a Server-Sent Events stream.
+
+    Three event types, in order:
+      sources  the retrieved passages, emitted as soon as retrieval
+               finishes and before generation starts
+      token    one fragment of the answer
+      done     the final answer text, or an error
+
+    Retrieval takes about a second and generation several more, so a
+    client that waits for a single JSON response shows nothing for the
+    whole of it. Sending the sources first gives the reader something to
+    work with while the answer is still being written.
+
+    Errors are delivered as a `done` event carrying an `error` field
+    rather than an HTTP status, because by the time generation fails the
+    response has already begun and its status line is long gone.
+    """
+    p = require_pipeline()
+
+    if request.mode not in RETRIEVAL_MODES:
+        raise HTTPException(status_code=422, detail=f"Unknown retrieval mode {request.mode!r}")
+    if p.corpus.is_empty():
+        raise HTTPException(status_code=409, detail="The library is empty. Add a PDF first.")
+
+    known = {d.doc_id for d in p.documents}
+    unknown = sorted(set(request.doc_ids or []) - known)
+    if unknown:
+        raise HTTPException(status_code=404, detail=f"Unknown document ids: {unknown}")
+
+    conversation = None
+    if request.history:
+        conversation = Conversation()
+        for turn in request.history:
+            conversation.add(turn.question, turn.answer)
+
+    def events():
+        try:
+            retrieved, fragments = p.stream_question(
+                request.question,
+                doc_ids=request.doc_ids,
+                mode=request.mode,
+                top_k=request.top_k,
+                max_per_document=request.max_per_document,
+                conversation=conversation,
+            )
+        except Exception as error:
+            yield sse("done", {"error": str(error)})
+            return
+
+        yield sse("sources", {
+            "sources": [s.model_dump() for s in to_sources(retrieved)],
+            "mode": retrieved.mode,
+            "retrieval_summary": retrieved.retrieval_summary(),
+            "retrieval_question": retrieved.retrieval_question,
+        })
+
+        text = ""
+        try:
+            for fragment in fragments:
+                text += fragment
+                yield sse("token", {"text": fragment})
+        except Exception as error:
+            yield sse("done", {"error": str(error), "answer": text})
+            return
+
+        yield sse("done", {"answer": text})
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        # Proxies that buffer a response defeat streaming entirely; this
+        # asks nginx and friends not to.
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @app.post("/ask", response_model=AskOut, summary="Ask a question")
 def ask(request: AskIn) -> AskOut:
     """
@@ -287,6 +374,14 @@ def ask(request: AskIn) -> AskOut:
         max_per_document=answer.max_per_document,
         retrieval_question=answer.retrieval_question,
     )
+
+
+# The browser client is served from the same origin as the API, so there
+# is no CORS to configure and no second process to run. Mounted last so
+# it cannot shadow an API route.
+_WEB_ROOT = Path(__file__).resolve().parent / "web"
+if _WEB_ROOT.is_dir():
+    app.mount("/", StaticFiles(directory=str(_WEB_ROOT), html=True), name="web")
 
 
 if __name__ == "__main__":

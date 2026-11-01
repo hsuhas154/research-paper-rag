@@ -1,0 +1,23 @@
+# Container dependency set, deliberately separate from requirements.txt.
+#
+# The development environment runs a CUDA 12.8 nightly build of torch,
+# pinned for a Blackwell GPU. That build is large, machine specific, and
+# not something to bake into an image. The container installs CPU torch
+# from the PyTorch CPU index instead, which cuts the image by roughly
+# 2.5 GB and runs anywhere.
+#
+# Embedding and re-ranking on CPU are fast enough: both models are tiny
+# (22M and 22M parameters) and the corpus is indexed once. Generation is
+# the slow part, and that happens in Ollama, which is a separate service
+# and can have the GPU to itself.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.6.0
+sentence-transformers>=3.0.0
+faiss-cpu>=1.8.0
+pymupdf>=1.24.0
+ollama>=0.3.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+pydantic>=2.0.0

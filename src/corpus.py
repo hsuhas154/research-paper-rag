@@ -31,6 +31,7 @@ removal a pure array operation instead of a full re-index.
 """
 
 import json
+import os
 import re
 import shutil
 from dataclasses import asdict, dataclass
@@ -46,7 +47,19 @@ from src.embedder import Embedder
 from src.pdf_processor import extract_pages, extract_title, segment_pages, strip_references_section
 from src.vector_store import VectorStore
 
-DEFAULT_CORPUS_DIR = Path("data/corpus")
+def _default_corpus_dir() -> Path:
+    """
+    Where the persistent index lives.
+
+    Overridable with CORPUS_DIR so a container can point it at a mounted
+    volume. The relative default keeps a local checkout working with no
+    configuration, but a container's working directory is inside the
+    image, and writing the index there would lose it on every restart.
+    """
+    return Path(os.environ.get("CORPUS_DIR", "").strip() or "data/corpus")
+
+
+DEFAULT_CORPUS_DIR = _default_corpus_dir()
 
 # Indexed PDFs are archived *inside* the corpus directory, not alongside
 # the user's source files. Writing them back to the staging folder made
@@ -90,11 +103,13 @@ class Corpus:
     def __init__(
         self,
         embedder: Embedder,
-        corpus_dir: Path = DEFAULT_CORPUS_DIR,
+        corpus_dir: Optional[Path] = None,
         pdf_dir: Optional[Path] = None,
     ):
         self.embedder = embedder
-        self.corpus_dir = Path(corpus_dir)
+        # Resolved per instance rather than at import, so setting
+        # CORPUS_DIR after import still takes effect.
+        self.corpus_dir = Path(corpus_dir) if corpus_dir else _default_corpus_dir()
         self.pdf_dir = Path(pdf_dir) if pdf_dir else self.corpus_dir / DEFAULT_PDF_SUBDIR
         self.corpus_dir.mkdir(parents=True, exist_ok=True)
         self.pdf_dir.mkdir(parents=True, exist_ok=True)

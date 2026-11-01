@@ -1,0 +1,78 @@
+# Two services: the retrieval stack and the language model runtime.
+#
+# They are separate because they have different needs. Ollama holds
+# several gigabytes of model weights, wants the GPU, and is updated on
+# its own schedule. The app is a small Python image that is rebuilt
+# whenever the code changes. Coupling them would mean a 5 GB rebuild for
+# a one line fix, and no way to give the GPU to one without the other.
+#
+#   docker compose up --build
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up
+#
+# First start pulls the language model, about 4.9 GB, into the ollama
+# volume. That happens once; the volume persists.
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    # Not published by default. Nothing outside the compose network needs
+    # to reach the model runtime directly, and exposing it would put an
+    # unauthenticated inference endpoint on the host.
+    expose:
+      - "11434"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  # Pulls the model once, then exits. Separating this from the app means
+  # the app's healthcheck reports on the app, not on a download, and a
+  # restart of either does not re-pull.
+  model-puller:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["sh", "-c", "ollama pull ${LLM_MODEL:-llama3.1:8b}"]
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      ollama:
+        condition: service_healthy
+      model-puller:
+        condition: service_completed_successfully
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      CORPUS_DIR: /data/corpus
+      # Set to a path under /models to use a fine tuned re-ranker. Left
+      # unset, the stock model is downloaded on first use. See
+      # RUNNING.md section 13 for why that difference matters.
+      RERANKER_MODEL: ${RERANKER_MODEL:-}
+    volumes:
+      # The index and archived PDFs. Without this the library is lost on
+      # every container restart and every paper has to be re-indexed.
+      - corpus:/data
+      # Embedding and re-ranking weights, about 200 MB. Cached so a
+      # restart does not re-download them.
+      - model-cache:/models
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    restart: unless-stopped
+
+volumes:
+  ollama-models:
+  corpus:
+  model-cache:

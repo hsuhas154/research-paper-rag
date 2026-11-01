@@ -8,6 +8,7 @@ hundreds of times slower for no added coverage.
 """
 
 import json
+import pathlib
 
 import numpy as np
 import pytest
@@ -184,3 +185,39 @@ class TestLookups:
         record = DocumentRecord("id", "T" * 200, "f.pdf", 1, 1, "2026-01-01T00:00:00+00:00")
         assert len(record.short_title) == 70
         assert record.short_title.endswith("...")
+
+
+class TestCorpusLocation:
+    """
+    The index location is configurable so a container can mount a volume
+    for it. Writing the index inside the image would lose it on restart.
+    """
+
+    def test_defaults_to_the_local_path(self, monkeypatch, tmp_path):
+        from src.corpus import Corpus
+
+        monkeypatch.delenv("CORPUS_DIR", raising=False)
+        monkeypatch.chdir(tmp_path)
+        corpus = Corpus(FakeEmbedder())
+        assert corpus.corpus_dir == pathlib.Path("data/corpus")
+
+    def test_environment_variable_overrides(self, monkeypatch, tmp_path):
+        from src.corpus import Corpus
+
+        monkeypatch.setenv("CORPUS_DIR", str(tmp_path / "mounted"))
+        corpus = Corpus(FakeEmbedder())
+        assert corpus.corpus_dir == tmp_path / "mounted"
+
+    def test_an_explicit_argument_still_wins(self, monkeypatch, tmp_path):
+        from src.corpus import Corpus
+
+        monkeypatch.setenv("CORPUS_DIR", str(tmp_path / "ignored"))
+        corpus = Corpus(FakeEmbedder(), corpus_dir=tmp_path / "explicit")
+        assert corpus.corpus_dir == tmp_path / "explicit"
+
+    def test_pdf_archive_follows_the_corpus_directory(self, monkeypatch, tmp_path):
+        from src.corpus import Corpus
+
+        monkeypatch.setenv("CORPUS_DIR", str(tmp_path / "mounted"))
+        corpus = Corpus(FakeEmbedder())
+        assert corpus.pdf_dir.is_relative_to(tmp_path / "mounted")

@@ -1,0 +1,23 @@
+# Keep the build context small and free of anything machine specific.
+.git
+.gitignore
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.vscode/
+
+# Generated at runtime, mounted as volumes rather than baked in.
+data/corpus/
+models/
+
+# Copyrighted source PDFs. The image ships the code; papers are supplied
+# by whoever runs it, through the mounted uploads volume.
+data/uploads/*.pdf
+
+# Mined training data holds verbatim passages from those papers.
+eval/rerank_train.jsonl
+eval/rerank_train.heldout.json
+
+# Developer environment, not the container's.
+requirements.txt

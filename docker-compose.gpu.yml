@@ -1,0 +1,23 @@
+# GPU override for the model runtime.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up
+#
+# Requires the NVIDIA Container Toolkit on the host. Without it the
+# container will not start, which is why this is an override rather than
+# part of the base file: the default has to work on a machine with no
+# GPU at all.
+#
+# Only ollama gets the GPU. Embedding and re-ranking are two 22M
+# parameter models over a corpus indexed once, and they are fast enough
+# on CPU that giving them a share of an 8 GB card would just take VRAM
+# away from generation, which is the part that actually needs it.
+
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Research Paper Q&amp;A</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Research Paper Q&amp;A</h1>
+  <p class="sub">Answers grounded in your papers, with page and section citations.</p>
+  <div id="status" class="status" role="status">Connecting...</div>
+</header>
+
+<main>
+  <section class="ask">
+    <label for="question" class="sr-only">Question</label>
+    <textarea id="question" rows="3"
+      placeholder="What eddy diffusion coefficient was used in the cloud layer?"></textarea>
+
+    <div class="controls">
+      <button id="ask" class="primary">Ask</button>
+      <button id="reset" class="ghost">New conversation</button>
+      <label class="inline"><input type="checkbox" id="followup"> Follow-up</label>
+      <select id="mode" aria-label="Retrieval strategy">
+        <option value="hybrid+rerank" selected>hybrid + rerank</option>
+        <option value="hybrid">hybrid</option>
+        <option value="dense">dense</option>
+        <option value="bm25">bm25</option>
+      </select>
+      <label class="inline">Passages
+        <input type="number" id="topk" value="5" min="1" max="20">
+      </label>
+    </div>
+
+    <div id="rewritten" class="note hidden"></div>
+    <article id="answer" class="answer" aria-live="polite"></article>
+    <div id="summary" class="note"></div>
+
+    <h2 id="sourcesHeading" class="hidden">Source passages</h2>
+    <div id="sources"></div>
+
+    <h2 id="historyHeading" class="hidden">Conversation</h2>
+    <div id="history"></div>
+  </section>
+
+  <aside class="scope">
+    <h2>Papers</h2>
+    <input id="filter" type="search" placeholder="Filter by title...">
+    <div class="scope-actions">
+      <button id="selectAll" class="ghost small">Select all</button>
+      <button id="clearAll" class="ghost small">Clear</button>
+    </div>
+    <p id="scopeCount" class="note"></p>
+    <div id="papers" class="papers"></div>
+
+    <details class="upload">
+      <summary>Add a paper</summary>
+      <input type="file" id="pdf" accept="application/pdf">
+      <button id="upload" class="ghost small">Index PDF</button>
+      <p id="uploadNote" class="note"></p>
+    </details>
+  </aside>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
