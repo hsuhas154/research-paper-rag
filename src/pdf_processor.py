@@ -420,10 +420,65 @@ def pymupdf_open(pdf_path: str):
     return pymupdf.open(pdf_path)
 
 
+# The heading a bibliography actually carries varies more than it looks.
+# Requiring the line to end immediately after "references" missed Science's
+# "REFERENCES AND NOTES" entirely, which left 61 chunks of pure citation
+# list in the index, and those chunks do get retrieved as if they were
+# evidence.
+#
+# [ \t] rather than \s throughout: \s matches newlines, so with MULTILINE a
+# trailing \s*$ can run past the end of the line it started on.
 _REFERENCE_HEADING_PATTERN = re.compile(
-    r"^\s*(?:\d+\.?\s*)?(references|bibliography|works cited)\s*$",
+    r"^[ \t]*(?:\d+\.?[ \t]*)?"
+    r"(?:notes[ \t]+and[ \t]+)?"
+    r"(?:references|bibliography|works[ \t]+cited|literature[ \t]+cited)"
+    r"(?:[ \t]+and[ \t]+notes?)?"
+    r"[ \t]*:?[ \t]*$",
     re.IGNORECASE | re.MULTILINE,
 )
+
+
+# Markers that are dense in a bibliography and sparse in prose: bracketed
+# citation numbers, years, "Initial. Surname", "et al", page ranges.
+_CITATION_MARKERS = [
+    re.compile(r"\[\d{1,3}\]"),
+    re.compile(r"\(\d{4}[a-z]?\)"),
+    re.compile(r"\b(?:19|20)\d{2}\b"),
+    re.compile(r"\b[A-Z]\.\s?[A-Z]?\.?\s?[A-Z][a-z]+"),
+    re.compile(r"\bet al\b", re.IGNORECASE),
+    re.compile(r"\b\d+\s*[-\u2013]\s*\d+\b"),
+]
+
+# Measured across this corpus: pages of citations score 7.6 to 53 per
+# thousand characters, pages of appendix prose and tables score 0.3 to
+# 4.7. The gap is wide, so the exact threshold is not delicate.
+_BIBLIOGRAPHY_DENSITY = 6.0
+
+
+def _citation_density(text: str) -> float:
+    """Citation markers per thousand characters."""
+    if not text:
+        return 0.0
+    hits = sum(len(pattern.findall(text)) for pattern in _CITATION_MARKERS)
+    return 1000 * hits / len(text)
+
+
+def _is_heading_cased(matched: str) -> bool:
+    """
+    Whether a matched line is capitalised like a heading.
+
+    This is the check that separates a real bibliography heading from a
+    sentence that happened to wrap. "Theory of Superconductivity" contains
+    the line "references" on its own, the tail of "...references to the
+    literature may be found", at 62% of the document. Position cannot tell
+    that apart from a genuine heading, and accepting it discarded twelve
+    pages of physics.
+
+    Published headings are "References", "REFERENCES" or "References and
+    Notes". A lower-case one is prose.
+    """
+    stripped = matched.strip().lstrip("0123456789. \t")
+    return bool(stripped) and stripped[0].isupper()
 
 
 def strip_references_section(pages: List[RawPage]) -> List[RawPage]:
@@ -431,33 +486,66 @@ def strip_references_section(pages: List[RawPage]) -> List[RawPage]:
     Removes the references/bibliography section, if a confident section
     heading can be found for it.
 
-    Only considers matches in the final 30% of the document, measured in
-    characters across all pages. The word "references" could appear in
-    ordinary running text earlier in a paper, but a genuine bibliography
-    heading is always near the end - restricting the search window
-    avoids false positives that would truncate real content.
+    Takes the *last* heading in the document and accepts it if it falls in
+    the second half, measured in characters across all pages.
 
-    If no confident match is found, the pages are returned unchanged: it
-    is safer to leave the references section in (a minor retrieval-noise
-    issue) than to risk cutting off real paper content.
+    The window used to be the final 30%, which was too strict to be
+    correct. A long bibliography starts early: in one paper here the
+    heading sits at 63% of the document, was found correctly, and was then
+    discarded for being too early, leaving 37 chunks of citation list in
+    the index. Taking the last match is what makes a looser window safe,
+    because an in-text mention of the word appears before the real heading,
+    not after it.
+
+    Pages after the heading are dropped only while they still look like
+    citations, so appendices that sit behind the bibliography survive.
+
+    If no confident match is found, the pages are returned unchanged. That
+    direction of failure is still the right one, but it is not free: an
+    un-stripped bibliography is retrieved as though it were evidence, and
+    it crowded out five of eight passages on one real question.
     """
     total_chars = sum(len(p.text) for p in pages)
     if total_chars == 0:
         return pages
 
-    cutoff = total_chars * 0.7
-    chars_before_page = 0
+    cutoff = total_chars * 0.5
 
+    # Scanned once into a list so the last match can be taken without
+    # walking the pages twice.
+    matches = []
+    chars_before_page = 0
     for i, page in enumerate(pages):
         for match in _REFERENCE_HEADING_PATTERN.finditer(page.text):
-            absolute_position = chars_before_page + match.start()
-            if absolute_position >= cutoff:
-                # Truncate this page at the heading and drop every page after it.
-                truncated = RawPage(page.page_number, page.text[: match.start()])
-                return pages[:i] + [truncated]
+            if _is_heading_cased(match.group(0)):
+                matches.append((chars_before_page + match.start(), i, match.start()))
         chars_before_page += len(page.text)
 
-    return pages
+    if not matches:
+        return pages
+
+    absolute_position, page_index, offset = matches[-1]
+    if absolute_position < cutoff:
+        return pages
+
+    truncated = RawPage(pages[page_index].page_number, pages[page_index].text[:offset])
+
+    # Dropping everything after the heading is wrong for any paper whose
+    # appendices sit behind its bibliography, and several here do. Truncating
+    # blindly cost the RAG paper its "Further Details" and "Retrieval
+    # Collapse" sections and ResNet its object-detection baselines, all of
+    # which are real content that questions were answered from.
+    #
+    # So the pages after the heading are dropped only while they still read
+    # like citations, and everything from the first prose page onward is
+    # kept.
+    resume = len(pages)
+    for i in range(page_index + 1, len(pages)):
+        if _citation_density(pages[i].text) < _BIBLIOGRAPHY_DENSITY:
+            resume = i
+            break
+
+    return pages[:page_index] + [truncated] + pages[resume:]
 
 
 # A heading line in an academic paper is short, starts with a capital or a

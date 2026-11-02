@@ -13,6 +13,7 @@ from src.pdf_processor import (
     segment_pages,
     strip_references_section,
 )
+from src.pdf_processor import _citation_density
 
 
 def body(lead: str, words: int = 45) -> str:
@@ -489,3 +490,131 @@ class TestTruncatedMathRepair:
         from src.pdf_processor import _restore_truncated_math
 
         assert _restore_truncated_math("") == ""
+
+
+class TestReferenceHeadingVariants:
+    """
+    Real bibliographies do not all announce themselves as "References".
+    Every case here was found in the indexed corpus, not invented: between
+    them they left 147 chunks of pure citation list in the index, and those
+    chunks were retrieved as though they were evidence. On one question
+    five of the eight passages returned were bibliography.
+    """
+
+    def tail(self, heading: str):
+        return [
+            RawPage(1, body("Introduction.", 120)),
+            RawPage(2, body("Results and discussion.", 120)),
+            RawPage(3, "Conclusions drawn. " * 20 + f"\n{heading}\n1. Smith, J. Nature 1, 2 (2020).\n"),
+            RawPage(4, "2. Jones, A. Science 3, 4 (2021).\n"),
+        ]
+
+    def test_strips_references_and_notes(self):
+        # Science's standard heading. The pattern required the line to end
+        # right after "references", so this never matched at all.
+        kept = strip_references_section(self.tail("REFERENCES AND NOTES"))
+        assert len(kept) == 3
+        assert "Smith, J." not in kept[-1].text
+        assert "Conclusions drawn." in kept[-1].text
+
+    def test_strips_literature_cited(self):
+        # Annual Review format.
+        assert len(strip_references_section(self.tail("LITERATURE CITED"))) == 3
+
+    def test_strips_notes_and_references(self):
+        assert len(strip_references_section(self.tail("Notes and References"))) == 3
+
+    def test_strips_a_trailing_colon(self):
+        assert len(strip_references_section(self.tail("References:"))) == 3
+
+    def test_still_strips_the_plain_heading(self):
+        assert len(strip_references_section(self.tail("References"))) == 3
+
+
+class TestReferenceHeadingFalsePositives:
+    def test_a_lower_case_match_is_prose_not_a_heading(self):
+        # "Theory of Superconductivity" wraps the sentence "...references to
+        # the literature may be found" so that "references" lands alone on a
+        # line, at 62% of the document. Position cannot tell that from a
+        # real heading, and treating it as one discarded twelve pages of
+        # physics. Published headings are capitalised; prose is not.
+        pages = [
+            RawPage(1, body("Introduction.", 120)),
+            RawPage(2, "Further discussion. " * 40 + "\nreferences\nto the literature may be found.\n"),
+            RawPage(3, body("Real content that must survive.", 120)),
+        ]
+
+        kept = strip_references_section(pages)
+
+        assert len(kept) == 3
+        assert "Real content that must survive." in kept[-1].text
+
+    def test_a_heading_in_the_first_half_is_ignored(self):
+        pages = [
+            RawPage(1, "\nReferences\nare discussed in this introduction.\n"),
+            RawPage(2, body("Body text.", 200)),
+            RawPage(3, body("More body text.", 200)),
+        ]
+        assert len(strip_references_section(pages)) == 3
+
+    def test_the_last_heading_wins(self):
+        # Taking the last match is what makes the looser window safe: an
+        # in-text mention comes before the real heading, never after it.
+        pages = [
+            RawPage(1, body("See References section below.", 120)),
+            RawPage(2, "Body. " * 80 + "\nReferences\n1. Early, A. (2001).\n"),
+            RawPage(3, "2. Later, B. (2002).\n"),
+        ]
+
+        kept = strip_references_section(pages)
+
+        assert len(kept) == 2
+        assert "Early, A." not in kept[-1].text
+
+
+class TestAppendicesSurviveTheBibliography:
+    """
+    Several papers here put their appendices behind their references.
+    Dropping everything after the heading cost the RAG paper its "Further
+    Details on FEVER" and "Retrieval Collapse" sections and ResNet its
+    object-detection baselines, and benchmark questions were answered from
+    exactly that text.
+    """
+
+    def citations(self, n=6):
+        return " ".join(
+            f"[{i}] A. Author and B. Writer. A paper title. In Proceedings, "
+            f"pages {i}0-{i}9, 20{i:02d}."
+            for i in range(1, n + 1)
+        )
+
+    def test_an_appendix_after_the_references_is_kept(self):
+        pages = [
+            RawPage(1, body("Introduction.", 150)),
+            RawPage(2, body("Results.", 150)),
+            RawPage(3, "Conclusions here. " * 20 + "\nReferences\n" + self.citations()),
+            RawPage(4, self.citations(9)),
+            RawPage(5, body("Appendix A. Further details of the method.", 150)),
+        ]
+
+        kept = strip_references_section(pages)
+
+        assert [p.page_number for p in kept] == [1, 2, 3, 5]
+        assert "Further details of the method." in kept[-1].text
+        assert "A. Author" not in " ".join(p.text for p in kept)
+
+    def test_references_running_to_the_end_drop_entirely(self):
+        pages = [
+            RawPage(1, body("Introduction.", 150)),
+            RawPage(2, "Conclusions here. " * 20 + "\nReferences\n" + self.citations()),
+            RawPage(3, self.citations(9)),
+        ]
+
+        kept = strip_references_section(pages)
+
+        assert [p.page_number for p in kept] == [1, 2]
+        assert "A. Author" not in " ".join(p.text for p in kept)
+
+    def test_a_dense_page_is_recognised_and_prose_is_not(self):
+        assert _citation_density(self.citations(9)) >= 6.0
+        assert _citation_density(body("Ordinary prose about a method.", 150)) < 6.0
