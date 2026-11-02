@@ -65,9 +65,15 @@ SHARING = sharing()
 MIN_TOP_K = 1
 MAX_TOP_K = 10
 
-# Only while sharing. Enough for a real paper, far short of filling the
-# disk of the machine the link points at.
-MAX_UPLOAD_WHILE_SHARING = "32mb"
+# Only while sharing. Comfortably more than any real paper needs.
+MAX_UPLOAD_WHILE_SHARING = "64mb"
+
+# A per-file cap alone bounds nothing, because nothing limited how many
+# files could be uploaded. Every indexed PDF is copied into the corpus
+# directory and kept there after the visitor leaves, so without a count
+# the worst case is as much disk as someone cares to spend an afternoon
+# filling. A demo needs two or three papers; ten is already generous.
+MAX_DOCUMENTS_WHILE_SHARING = 10
 
 # One generation at a time, with a short queue behind it. A public link
 # with unbounded concurrency lets a handful of visitors saturate the GPU,
@@ -176,6 +182,14 @@ def add_document(pdf_file):
     """Indexes an uploaded PDF into the persistent library."""
     if pdf_file is None:
         return refresh_library_views("Please choose a PDF first.")
+
+    if SHARING and len(pipeline.documents) >= MAX_DOCUMENTS_WHILE_SHARING:
+        # Checked in the handler for the same reason removal is: the
+        # layout is not the boundary.
+        return refresh_library_views(
+            f"This demo holds at most {MAX_DOCUMENTS_WHILE_SHARING} papers. "
+            f"Ask about one that is already here."
+        )
 
     try:
         record = pipeline.add_document(pdf_file)
@@ -498,7 +512,8 @@ if __name__ == "__main__":
             f"machine. It stays up only while this process runs.\n"
             f"\n"
             f"  removing papers   refused\n"
-            f"  uploads           allowed, max {MAX_UPLOAD_WHILE_SHARING}\n"
+            f"  uploads           max {MAX_UPLOAD_WHILE_SHARING} each, "
+            f"{MAX_DOCUMENTS_WHILE_SHARING} papers total\n"
             f"  passages/question capped at {MAX_TOP_K}\n"
             f"  generation        {SHARED_CONCURRENCY} at a time, "
             f"queue of {SHARED_QUEUE_SIZE}\n"
@@ -506,8 +521,9 @@ if __name__ == "__main__":
             f"\n"
             f"Anyone holding the link can still read the library, upload to\n"
             f"it, and ask unlimited questions. Asking costs GPU time locally\n"
-            f"and real money against a hosted endpoint. Point CORPUS_DIR at a\n"
-            f"throwaway directory so the real library is never in reach.\n"
+            f"and real money against a hosted endpoint. Uploaded PDFs are kept\n"
+            f"on this disk after the visitor leaves, so point CORPUS_DIR at a\n"
+            f"throwaway directory you can delete afterwards.\n"
         )
     if SHARING:
         # api_open=False keeps the handlers reachable from this page and

@@ -257,12 +257,16 @@ at, with where each item stands.
 |---|---|
 | Read the library listing, titles and filenames | allowed, use `CORPUS_DIR` to control what is listed |
 | Ask questions, unlimited | allowed, and it costs GPU time or hosted tokens |
-| Upload a PDF | allowed, capped at 32 MB |
+| Upload a PDF | allowed, 64 MB per file and 10 papers in total |
 | Remove a paper | refused in the handler, not merely hidden |
 | Request thousands of passages per question | capped at 10 |
 | Saturate generation with parallel requests | one at a time, queue of 8 |
 | Script the endpoints as a documented API | closed with `api_open=False` |
 | Download the indexed PDFs | no component returns their paths, so not served |
+
+Uploaded PDFs are copied into the corpus directory and kept after the
+visitor leaves. A per-file size cap bounds one upload and not the disk,
+which is why the document count is capped as well.
 
 Two of those were real defects rather than hardening:
 

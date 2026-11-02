@@ -221,3 +221,53 @@ class TestTelemetryIsOff:
         # Gradio reports usage to its own endpoint unless told not to.
         module, _ = import_app_with_share(monkeypatch, "")
         assert module.demo.analytics_enabled is False
+
+
+class TestUploadIsBounded:
+    """
+    A per-file size cap bounds one upload, not the disk. Every indexed PDF
+    is copied into the corpus directory and kept after the visitor leaves,
+    so the count has to be bounded too.
+    """
+
+    def stub_with(self, module, n_documents):
+        indexed = []
+        module.pipeline = SimpleNamespace(
+            documents=[make_doc(str(i), f"Paper {i}") for i in range(n_documents)],
+            corpus=SimpleNamespace(store=[1] * 10, is_empty=lambda: n_documents == 0),
+            add_document=lambda path: indexed.append(path) or SimpleNamespace(
+                title="New Paper", n_pages=3, n_chunks=7
+            ),
+        )
+        return indexed
+
+    def test_uploading_is_allowed_below_the_cap(self, monkeypatch):
+        module, _ = import_app_with_share(monkeypatch, "1")
+        indexed = self.stub_with(module, module.MAX_DOCUMENTS_WHILE_SHARING - 1)
+
+        module.add_document("/tmp/paper.pdf")
+
+        assert indexed == ["/tmp/paper.pdf"]
+
+    def test_uploading_is_refused_at_the_cap(self, monkeypatch):
+        module, _ = import_app_with_share(monkeypatch, "1")
+        indexed = self.stub_with(module, module.MAX_DOCUMENTS_WHILE_SHARING)
+
+        message = module.add_document("/tmp/paper.pdf")[0]
+
+        assert indexed == []
+        assert str(module.MAX_DOCUMENTS_WHILE_SHARING) in message
+
+    def test_the_cap_does_not_apply_when_not_sharing(self, monkeypatch):
+        # The owner's own library is not limited to ten papers; the real
+        # one holds fifty.
+        module, _ = import_app_with_share(monkeypatch, "")
+        indexed = self.stub_with(module, 50)
+
+        module.add_document("/tmp/paper.pdf")
+
+        assert indexed == ["/tmp/paper.pdf"]
+
+    def test_the_per_file_size_cap_is_set(self, monkeypatch):
+        module, _ = import_app_with_share(monkeypatch, "1")
+        assert module.MAX_UPLOAD_WHILE_SHARING == "64mb"

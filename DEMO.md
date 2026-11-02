@@ -36,10 +36,16 @@ Removing papers is disabled whenever `SHARE` is set. The button is hidden
 and the handler refuses, because hiding a Gradio control takes it off the
 page but leaves the function reachable to anyone with the link.
 
-Also while sharing: uploads are capped at 32 MB, passages per question are
-capped at 10, generation runs one at a time behind a queue of 8, and the
-scripted API is closed. `DEPLOYMENT.md` has the full audit of what a
-stranger holding the link can and cannot do.
+Also while sharing: uploads are capped at 64 MB per file and 10 papers in
+total, passages per question are capped at 10, generation runs one at a
+time behind a queue of 8, and the scripted API is closed.
+`DEPLOYMENT.md` has the full audit of what a stranger holding the link can
+and cannot do.
+
+Anything a visitor uploads stays on your disk after they leave, so delete
+the demo directory when you are finished with it:
+
+    rm -rf data/demo-corpus
 
 What stays open is the question count. A visitor can ask as much as they
 like, which costs GPU time locally and real money against a hosted
