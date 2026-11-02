@@ -22,3 +22,6 @@ models/
 # scripts.build_rerank_dataset rather than redistributing the text.
 eval/rerank_train.jsonl
 eval/rerank_train.heldout.json
+
+# Screenshots and scratch files for a session, not part of the project.
+temp/
