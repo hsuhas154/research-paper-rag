@@ -56,6 +56,25 @@ def sharing() -> bool:
 # paper answered is the point of the demo.
 SHARING = sharing()
 
+# The supported range for passages per question. The slider enforces this
+# in the browser, but every Gradio handler is also an HTTP endpoint that
+# takes whatever it is sent, so the handler has to enforce it too. The
+# corpus holds a few thousand chunks, and an unclamped top_k would pull all
+# of them into a single prompt: wasted GPU locally, and a real bill against
+# a hosted endpoint.
+MIN_TOP_K = 1
+MAX_TOP_K = 10
+
+# Only while sharing. Enough for a real paper, far short of filling the
+# disk of the machine the link points at.
+MAX_UPLOAD_WHILE_SHARING = "32mb"
+
+# One generation at a time, with a short queue behind it. A public link
+# with unbounded concurrency lets a handful of visitors saturate the GPU,
+# or the hosted quota, before anyone gets an answer.
+SHARED_CONCURRENCY = 1
+SHARED_QUEUE_SIZE = 8
+
 
 # Loaded once at startup, not per-request. Loading the embedding model
 # and restoring the corpus is the expensive part; reusing one instance
@@ -283,9 +302,16 @@ def ask_question(question, selected_doc_ids, mode, top_k, follow_up, history):
 
     yield "", "", "*Searching...*", history
 
+    # Clamped unconditionally, not only while sharing: accepting a value
+    # the slider cannot produce is a defect either way.
+    try:
+        passages = min(max(int(top_k), MIN_TOP_K), MAX_TOP_K)
+    except (TypeError, ValueError):
+        passages = MIN_TOP_K + 4
+
     try:
         retrieved, fragments = pipeline.stream_question(
-            question, doc_ids=doc_ids, mode=mode, top_k=int(top_k),
+            question, doc_ids=doc_ids, mode=mode, top_k=passages,
             conversation=conversation,
         )
     except Exception as error:
@@ -318,7 +344,10 @@ def ask_question(question, selected_doc_ids, mode, top_k, follow_up, history):
 # Layout
 # ----------------------------------------------------------------------
 
-with gr.Blocks(title="Research Paper Q&A") as demo:
+# analytics_enabled=False because Gradio reports usage to its own
+# endpoint by default, and "nothing leaves this machine" should not
+# have an asterisk on it.
+with gr.Blocks(title="Research Paper Q&A", analytics_enabled=False) as demo:
     # Per-session, so two browsers do not share one conversation.
     history_state = gr.State([])
 
@@ -375,7 +404,7 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
                     mode_help = gr.Markdown(f"*{MODE_DESCRIPTIONS[MODE_HYBRID_RERANK]}*")
                     top_k_input = gr.Slider(
                         label="Passages to retrieve",
-                        minimum=1, maximum=10, value=5, step=1,
+                        minimum=MIN_TOP_K, maximum=MAX_TOP_K, value=5, step=1,
                     )
                     follow_up_input = gr.Checkbox(
                         label="Follow-up question",
@@ -465,10 +494,30 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
 if __name__ == "__main__":
     if SHARING:
         print(
-            "\nSHARE=1: Gradio will print a public link that tunnels to this\n"
-            "machine. It stays up only while this process runs. Anyone with\n"
-            "the link can read the library and upload to it; removal is off.\n"
-            "To keep the real library out of reach, point CORPUS_DIR at a\n"
-            "separate directory before starting.\n"
+            f"\nSHARE=1: Gradio will print a public link that tunnels to this\n"
+            f"machine. It stays up only while this process runs.\n"
+            f"\n"
+            f"  removing papers   refused\n"
+            f"  uploads           allowed, max {MAX_UPLOAD_WHILE_SHARING}\n"
+            f"  passages/question capped at {MAX_TOP_K}\n"
+            f"  generation        {SHARED_CONCURRENCY} at a time, "
+            f"queue of {SHARED_QUEUE_SIZE}\n"
+            f"  scripted API      closed\n"
+            f"\n"
+            f"Anyone holding the link can still read the library, upload to\n"
+            f"it, and ask unlimited questions. Asking costs GPU time locally\n"
+            f"and real money against a hosted endpoint. Point CORPUS_DIR at a\n"
+            f"throwaway directory so the real library is never in reach.\n"
         )
-    demo.launch(share=SHARING)
+    if SHARING:
+        # api_open=False keeps the handlers reachable from this page and
+        # not as a documented API anyone holding the link can script
+        # against. The queue caps bound how much work a visitor can start.
+        demo.queue(
+            api_open=False,
+            default_concurrency_limit=SHARED_CONCURRENCY,
+            max_size=SHARED_QUEUE_SIZE,
+        )
+        demo.launch(share=True, max_file_size=MAX_UPLOAD_WHILE_SHARING)
+    else:
+        demo.launch()

@@ -166,3 +166,58 @@ class TestSharedLinkGuards:
         module, _ = import_app_with_share(monkeypatch, "1")
         assert module.SHARING is True
         assert callable(module.add_document)
+
+
+class TestTopKIsClamped:
+    """
+    Every Gradio handler is also an HTTP endpoint. The slider cannot
+    produce a value outside 1 to 10, but the endpoint accepts whatever it
+    is sent, and the corpus holds a few thousand chunks: an unclamped
+    top_k pulls all of them into one prompt. Wasted GPU locally, and a
+    real bill against a hosted endpoint.
+    """
+
+    def ask(self, module, top_k):
+        """Runs one question and reports the top_k the pipeline received."""
+        seen = {}
+
+        def stream_question(question, doc_ids, mode, top_k, conversation):
+            seen["top_k"] = top_k
+            return Answer(text="", sources=[], mode="dense", document_titles={}), iter(["ok"])
+
+        module.pipeline = SimpleNamespace(
+            documents=list(DOCS),
+            corpus=SimpleNamespace(is_empty=lambda: False),
+            stream_question=stream_question,
+        )
+        list(module.ask_question("q", ["a"], "dense", top_k, False, []))
+        return seen.get("top_k")
+
+    def test_a_value_above_the_maximum_is_clamped(self, monkeypatch):
+        module, _ = import_app_with_share(monkeypatch, "")
+        assert self.ask(module, 100000) == module.MAX_TOP_K
+
+    def test_a_value_below_the_minimum_is_clamped(self, monkeypatch):
+        module, _ = import_app_with_share(monkeypatch, "")
+        assert self.ask(module, -5) == module.MIN_TOP_K
+
+    def test_a_value_in_range_is_passed_through(self, monkeypatch):
+        module, _ = import_app_with_share(monkeypatch, "")
+        assert self.ask(module, 3) == 3
+
+    def test_a_non_numeric_value_does_not_crash(self, monkeypatch):
+        module, _ = import_app_with_share(monkeypatch, "")
+        assert module.MIN_TOP_K <= self.ask(module, "many") <= module.MAX_TOP_K
+
+    def test_the_slider_and_the_handler_agree(self, monkeypatch):
+        # Two places enforcing different bounds is how the gap reopens.
+        module, _ = import_app_with_share(monkeypatch, "")
+        assert (module.MIN_TOP_K, module.MAX_TOP_K) == (1, 10)
+
+
+class TestTelemetryIsOff:
+    def test_analytics_are_disabled(self, monkeypatch):
+        # The project's premise is that nothing leaves the machine, and
+        # Gradio reports usage to its own endpoint unless told not to.
+        module, _ = import_app_with_share(monkeypatch, "")
+        assert module.demo.analytics_enabled is False

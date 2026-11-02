@@ -247,3 +247,43 @@ directory and the real library is never in reach.
 Gradio downloads a helper binary on first use, so this needs a dry run
 before it is needed in front of someone.
 
+### What a stranger holding the link can do
+
+Every Gradio handler is also an HTTP endpoint, so the layout is not the
+security boundary. This is the whole surface, audited rather than guessed
+at, with where each item stands.
+
+| Action | While sharing |
+|---|---|
+| Read the library listing, titles and filenames | allowed, use `CORPUS_DIR` to control what is listed |
+| Ask questions, unlimited | allowed, and it costs GPU time or hosted tokens |
+| Upload a PDF | allowed, capped at 32 MB |
+| Remove a paper | refused in the handler, not merely hidden |
+| Request thousands of passages per question | capped at 10 |
+| Saturate generation with parallel requests | one at a time, queue of 8 |
+| Script the endpoints as a documented API | closed with `api_open=False` |
+| Download the indexed PDFs | no component returns their paths, so not served |
+
+Two of those were real defects rather than hardening:
+
+**`top_k` was unbounded through the endpoint.** The slider stops at 10,
+but the handler took whatever it was sent and the corpus holds 3,658
+chunks. A crafted request would have pulled the entire corpus into a
+single prompt. It is now clamped in the handler, unconditionally, because
+accepting a value the slider cannot produce is a defect whether or not a
+link is public.
+
+**Gradio telemetry was on.** It reports usage to its own endpoint by
+default. For a project whose premise is that nothing leaves the machine,
+that asterisk should not exist, so `analytics_enabled=False` now applies
+in every mode.
+
+### What is still open by design
+
+Questions are unlimited. A visitor can ask all day, which costs GPU time
+locally and real money against a hosted endpoint. Rate limiting per
+visitor is not implemented. The mitigations are that the link is
+unguessable, short lived, and only up while the process runs, and that
+`demo.launch(auth=("user", "password"))` is available if a demo ever
+needs to be handed out more widely than one conversation.
+
