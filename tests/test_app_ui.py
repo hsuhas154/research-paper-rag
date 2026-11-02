@@ -105,3 +105,64 @@ class TestSourceRendering:
     def test_no_sources_renders_empty(self, ui):
         empty = Answer(text="", sources=[], mode="dense", document_titles={})
         assert ui.format_sources(empty) == ""
+
+
+def import_app_with_share(monkeypatch, share_value):
+    """
+    Imports app.py fresh with SHARE set, since the flag and the layout are
+    both decided at import time.
+    """
+    import src.rag_pipeline as rp
+
+    removed = []
+    stub = SimpleNamespace(
+        documents=list(DOCS),
+        corpus=SimpleNamespace(
+            store=[1] * 50,
+            is_empty=lambda: False,
+            title_for=lambda doc_id: "First Paper",
+        ),
+        remove_document=lambda doc_id: removed.append(doc_id) or True,
+    )
+    monkeypatch.setenv("SHARE", share_value)
+    monkeypatch.setattr(rp, "RAGPipeline", lambda *a, **kw: stub)
+    sys.modules.pop("app", None)
+    try:
+        module = importlib.import_module("app")
+    finally:
+        sys.modules.pop("app", None)
+    return module, removed
+
+
+class TestSharedLinkGuards:
+    """
+    A public link reaches a library that took hours to build, and removal
+    is the one browser action that cannot be undone.
+    """
+
+    def test_sharing_is_off_unless_asked_for(self, monkeypatch):
+        module, _ = import_app_with_share(monkeypatch, "")
+        assert module.SHARING is False
+
+    def test_removal_works_when_not_sharing(self, monkeypatch):
+        module, removed = import_app_with_share(monkeypatch, "")
+        module.delete_document("a")
+        assert removed == ["a"]
+
+    def test_removal_is_refused_while_sharing(self, monkeypatch):
+        module, removed = import_app_with_share(monkeypatch, "1")
+
+        message = module.delete_document("a")[0]
+
+        # Refused in the handler, not just hidden in the layout: a hidden
+        # Gradio control is still a reachable endpoint for anyone holding
+        # the link.
+        assert removed == []
+        assert "disabled" in message.lower()
+
+    def test_uploading_stays_available_while_sharing(self, monkeypatch):
+        # Showing someone their own paper answered is the point of the
+        # demo, so the upload path is deliberately not guarded.
+        module, _ = import_app_with_share(monkeypatch, "1")
+        assert module.SHARING is True
+        assert callable(module.add_document)

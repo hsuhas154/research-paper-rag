@@ -25,6 +25,8 @@ checkboxes with no search is not a control anyone can use.
 Run with: python app.py
 """
 
+import os
+
 import gradio as gr
 
 from src import providers
@@ -37,6 +39,23 @@ from src.retriever import (
     MODE_HYBRID_RERANK,
     RETRIEVAL_MODES,
 )
+
+def sharing() -> bool:
+    """
+    Whether this process is handing out a public link.
+
+    Read from the environment rather than a command line flag because the
+    interface is built at import time, before argument parsing would run.
+    """
+    return os.environ.get("SHARE", "").strip().lower() in ("1", "true", "yes")
+
+
+# A public link reaches a library that took real time to build. Removal is
+# the one action that cannot be undone from the browser, so it is refused
+# while sharing. Uploading stays available, since showing someone their own
+# paper answered is the point of the demo.
+SHARING = sharing()
+
 
 # Loaded once at startup, not per-request. Loading the embedding model
 # and restoring the corpus is the expensive part; reusing one instance
@@ -151,6 +170,14 @@ def add_document(pdf_file):
 
 def delete_document(doc_id):
     """Removes a paper and everything derived from it."""
+    if SHARING:
+        # Checked here and not only in the layout. Hiding a Gradio control
+        # removes it from the page, not from the API surface, so the
+        # function stays callable by anyone holding the link.
+        return refresh_library_views(
+            "Removing papers is disabled while a public link is open."
+        )
+
     if not doc_id:
         return refresh_library_views("Select a paper to remove.")
 
@@ -368,7 +395,7 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
                     pdf_input = gr.File(label="PDF", file_types=[".pdf"], type="filepath")
                     add_btn = gr.Button("Index paper", variant="primary")
 
-                with gr.Column():
+                with gr.Column(visible=not SHARING):
                     gr.Markdown("### Remove a paper")
                     delete_input = gr.Dropdown(
                         label="Paper", choices=document_choices(), value=None
@@ -436,4 +463,12 @@ with gr.Blocks(title="Research Paper Q&A") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch()
+    if SHARING:
+        print(
+            "\nSHARE=1: Gradio will print a public link that tunnels to this\n"
+            "machine. It stays up only while this process runs. Anyone with\n"
+            "the link can read the library and upload to it; removal is off.\n"
+            "To keep the real library out of reach, point CORPUS_DIR at a\n"
+            "separate directory before starting.\n"
+        )
+    demo.launch(share=SHARING)

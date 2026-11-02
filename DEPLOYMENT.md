@@ -3,6 +3,9 @@
 Three ways to run this, from least to most moving parts. Everything below
 runs the same code; what changes is where it runs and who can reach it.
 
+**What was actually chosen is section 4.** Sections 2 and 3 describe
+shapes that fit, not shapes that were built.
+
 **Verification note, stated up front.** The container files were written
 and reviewed but **not built or run**, because Docker is not available in
 the WSL distribution this project is developed in. The Python
@@ -190,3 +193,57 @@ in-memory FAISS index built from the same volume. Reads are fine. Writes
 are not: a paper indexed by one container is invisible to the other until
 it restarts. One writer, or a real vector database, before running more
 than one replica.
+
+---
+
+## 4. What was chosen, and why
+
+**A recording plus a temporary public link.** Neither costs anything and
+neither needs a hosting account. The runbook for both is in
+[DEMO.md](DEMO.md).
+
+Hosting was considered properly and declined on cost. For the record, so
+the reasoning survives:
+
+- **Hugging Face Spaces.** Creating a Gradio Space requires a paid plan,
+  about 9 USD a month, even though the CPU Basic hardware it then runs on
+  is free. Free accounts may host 2 Gradio Spaces on ZeroGPU instead, but
+  that needs an account older than 30 days and gives 5 GPU-minutes a day,
+  which one curious visitor exhausts.
+- **Cloud Run.** Free tier and a clean URL, but the container files here
+  have never been built, Docker is unavailable in the development
+  environment, and the first build would have to be debugged in the cloud
+  with billing enabled.
+
+The measurement in [GENERATOR_COMPARISON.md](GENERATOR_COMPARISON.md) is
+what made this easy to decide. Faithfulness was statistically
+indistinguishable across local Llama 3.1 8B, gpt-oss-20b and gpt-oss-120b,
+so moving generation off this machine buys no answer quality. It costs
+privacy and money. With nothing to gain on quality, the cheap routes lose
+nothing that matters.
+
+### The public link
+
+```bash
+SHARE=1 CORPUS_DIR=data/demo-corpus python app.py
+```
+
+`SHARE` is read from the environment rather than a command line flag
+because the Gradio interface is built at import time, before argument
+parsing would run.
+
+Two deliberate behaviours while it is set:
+
+**Removal is refused, not merely hidden.** The Remove control is taken off
+the page, and `delete_document` also returns early. A hidden Gradio
+component is still a reachable endpoint for anyone holding the link, so
+the layout alone would not protect a library that took hours to build.
+
+**Uploading stays open.** Answering a visitor's own paper is the point of
+the demo. `CORPUS_DIR` is the guard instead: point it at a throwaway
+directory and the real library is never in reach.
+
+**Not verified:** the tunnel has never been opened from this machine.
+Gradio downloads a helper binary on first use, so this needs a dry run
+before it is needed in front of someone.
+
