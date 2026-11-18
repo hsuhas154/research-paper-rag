@@ -110,6 +110,37 @@ Open **http://127.0.0.1:7860** in your browser.
 > The first startup after a fresh install also downloads the embedding model
 > (~90 MB) and the re-ranking model (~90 MB). Later startups are fast.
 
+### Step 3 (optional) - Share it temporarily
+
+To let someone else use it from their own machine, start it with `SHARE=1`:
+
+```bash
+SHARE=1 CORPUS_DIR=data/demo-corpus python app.py
+```
+
+Gradio prints a public URL that tunnels to this machine. It lasts about 72
+hours and only while the process runs.
+
+`CORPUS_DIR` points the app at a separate, empty library so the main one is
+never exposed. Upload whichever papers the visitor should see.
+
+While `SHARE` is set, four limits apply automatically:
+
+| | |
+|---|---|
+| removing papers | refused, in the handler and not merely hidden |
+| uploads | 64 MB per file, 10 papers in total |
+| passages per question | capped at 10 |
+| generation | one at a time, behind a queue of 8 |
+
+Generation still runs locally, so the visitor's questions and the paper text
+never leave this machine. Anything they upload stays on this disk after they
+leave, so delete the demo library when finished:
+
+```bash
+rm -rf data/demo-corpus
+```
+
 ---
 
 ## 3. Using the app
