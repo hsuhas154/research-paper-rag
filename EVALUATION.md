@@ -1,4 +1,8 @@
-# Phase 2 Evaluation - 16-Paper Corpus
+# Evaluation record: 16-paper and 50-paper corpora
+
+Phase 2 on the original 16-paper corpus is below. Phase 3, scaling to the
+current 50-paper corpus with a proper train/validation/test split, begins at
+[Phase 3: scaling to 50 papers](#phase-3-scaling-to-50-papers).
 
 Testing the Phase 2 system against a deliberately heterogeneous library:
 16 papers spanning machine learning, planetary science, computational
