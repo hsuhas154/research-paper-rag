@@ -28,3 +28,6 @@ temp/
 
 # Gradio downloads a public root certificate here for the share tunnel.
 .gradio/
+
+# Recording script for the demo video, deleted after use.
+questions.txt
