@@ -37,3 +37,6 @@ youtube-description.txt
 
 # Gradio downloads a public root certificate here for the share tunnel.
 .gradio/
+
+# Editor configuration, not project code.
+.vscode/

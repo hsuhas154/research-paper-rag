@@ -421,7 +421,38 @@ Everything else in Phase 3 adds measurement or surface area, not correctness.
 - [x] ~~FastAPI backend, replacing direct Gradio-to-pipeline calls~~
       (Phase 3, done: `src/api.py`, see [RUNNING.md](RUNNING.md) section 9)
 
-**Phase 4 - deployment.**
+**Phase 4 - deployment.** Done on the `deploy` branch, which is this system
+plus container artifacts, a browser client, a streaming API and an optional
+hosted-generation path. The branches are kept apart on purpose: this one is
+the local-only system that the measurements above describe.
 
-- [ ] Docker containerization and cloud deployment (Phase 4)
-- [ ] Modern web frontend against the API (Phase 4)
+- [x] ~~Docker containerization~~ (`deploy` branch: `Dockerfile` and
+      `docker-compose.yml` with the GPU as an override, written and reviewed
+      but **never built**, since Docker is unavailable in the development
+      environment)
+- [x] ~~Web frontend against the API~~ (`deploy` branch: `src/web`, served
+      by FastAPI with answers streamed over Server-Sent Events, no framework
+      and no build step)
+- [ ] Cloud deployment. **Not done, and not planned.** Generation was
+      measured across the local model and two hosted ones on the same
+      questions, with retrieval and the judge held fixed, and faithfulness
+      was statistically indistinguishable between them. Hosting would cost
+      privacy and money for no gain in answer quality, so the demo is a
+      recorded walkthrough plus a temporary share link instead.
+
+## Where this ended
+
+The system is finished and measured. Both branches are stable and neither is
+under active development.
+
+`main` is the canonical local-only system and is tagged `phase-3-complete`.
+`deploy` carries the deployment work. Returning to this branch means checking
+out that tag; nothing on `deploy` is required for the system to run.
+
+One weakness is recorded rather than hidden. Roughly half of the test split's
+queries are answered by bibliographies and front matter rather than research
+content, which means the published **Hit@5 of 0.803 understates** retrieval
+on real questions; on the rest the system scores 0.88. Regenerating that
+benchmark, re-indexing and re-measuring as one coherent change is the obvious
+next piece of work, and it has deliberately not been done rather than done
+hastily. The full audit is in `BENCHMARK_AUDIT.md` on the `deploy` branch.
