@@ -31,3 +31,6 @@ temp/
 
 # Recording script for the demo video, deleted after use.
 questions.txt
+
+# Draft YouTube description, deleted once the video is up.
+youtube-description.txt
