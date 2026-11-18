@@ -326,6 +326,7 @@ research-paper-rag/
 │   ├── splits.json          # paper-level train/validation/test split
 │   └── corpus_queries.json  # 39 hand-written queries, the independent check
 ├── tests/                   # 216 unit tests
+├── pytest.ini               # scopes collection to tests/
 ├── app.py                   # Gradio UI, entry point
 ├── EVALUATION.md            # full measurement record, 16-paper and 50-paper
 ├── RUNNING.md               # setup, start/stop, troubleshooting
