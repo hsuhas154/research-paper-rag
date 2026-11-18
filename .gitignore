@@ -34,3 +34,6 @@ questions.txt
 
 # Draft YouTube description, deleted once the video is up.
 youtube-description.txt
+
+# Runbook written to guide recording the demo. Not part of the project.
+DEMO.md

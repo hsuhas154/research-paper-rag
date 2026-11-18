@@ -199,8 +199,8 @@ than one replica.
 ## 4. What was chosen, and why
 
 **A recording plus a temporary public link.** Neither costs anything and
-neither needs a hosting account. The runbook for both is in
-[DEMO.md](DEMO.md).
+neither needs a hosting account. The recorded walkthrough is linked from
+the README; the public link is described below.
 
 Hosting was considered properly and declined on cost. For the record, so
 the reasoning survives:
@@ -243,9 +243,12 @@ the layout alone would not protect a library that took hours to build.
 the demo. `CORPUS_DIR` is the guard instead: point it at a throwaway
 directory and the real library is never in reach.
 
-**Not verified:** the tunnel has never been opened from this machine.
-Gradio downloads a helper binary on first use, so this needs a dry run
-before it is needed in front of someone.
+**Verified.** The tunnel has been opened from this machine and reached
+from a phone on mobile data, with the guards above in place: the Remove
+control absent, the scripted API closed, and generation running locally so
+the visitor's questions never left the machine. Gradio downloads a helper
+binary the first time a share link starts, so allow for that on a cold
+run.
 
 ### What a stranger holding the link can do
 

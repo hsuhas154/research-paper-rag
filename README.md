@@ -10,24 +10,15 @@ locally: no external API calls, no data leaving your machine.
 question under all four retrieval strategies: fusion alone returns a
 confidently wrong number and re-ranking corrects it.
 
-**Status:** Phase 3 complete and measured, with deployment work on the
-`deploy` branch. Fifty papers, hybrid retrieval, a cross-encoder re-ranker
-fine-tuned on this corpus, conversational follow-ups, and answer
-faithfulness measurement.
+**Status:** Phase 3 complete and measured. Deployment work lives on the
+`deploy` branch; `main` is the canonical local-only system, tagged
+`phase-3-complete`.
 
-On a held-out test split, stratified by paper across seven topic clusters so
-that no paper appears in both training and test: **Hit@5 0.803, MRR@5 0.655,
-faithfulness 0.873 over 195 claims, citation validity 1.0**
-([full evaluation](EVALUATION.md)).
-
-A later audit found that roughly half of that test split asks the retriever
-to find bibliography entries rather than research content, which drags the
-average down; on the remainder the system scores 0.88 Hit@5. The published
-figures are left as measured rather than restated
-([audit](BENCHMARK_AUDIT.md)).
-
-The 16-paper benchmark further down predates this corpus and is kept for the
-progression it shows, not as the current result. See [Roadmap](#roadmap).
+Fifty papers, hybrid retrieval, a cross-encoder re-ranker fine-tuned on this
+corpus, conversational follow-ups, and answer-faithfulness measurement. On a
+held-out test split: **Hit@5 0.803, MRR@5 0.655, faithfulness 0.873,
+citation validity 1.0**. Full numbers and their caveats in
+[Measured results](#measured-results).
 
 **New here?** [RUNNING.md](RUNNING.md) walks through setup, starting and
 stopping everything, and troubleshooting. [DEPLOYMENT.md](DEPLOYMENT.md)
@@ -80,6 +71,78 @@ flowchart TD
    section, are passed to a locally running LLM instructed to answer only from
    that context and cite the excerpt behind every claim.
 
+## Measured results
+
+The current corpus is **50 papers, 3,438 chunks**, spanning machine learning,
+semiconductors, planetary science, medicine, ecology and mechanics.
+
+Papers are split 30 train / 10 validation / 10 test, **stratified across
+seven topic clusters**, so no paper contributes to both training and test.
+Splitting by chunk instead would let a model score well by memorising a
+paper's vocabulary, which is the most common way a RAG benchmark flatters
+itself.
+
+### Retrieval
+
+| split | dense | bm25 | hybrid | hybrid + rerank |
+|---|---|---|---|---|
+| validation (34 q) | 0.62 / 0.469 | 0.68 / 0.543 | 0.74 / 0.593 | **0.88 / 0.703** |
+| test (32 q) | 0.66 / 0.569 | 0.66 / 0.445 | 0.69 / 0.559 | **0.75 / 0.651** |
+| hand-written (39 q) | 0.79 / 0.643 | 0.95 / 0.794 | 0.90 / 0.729 | **0.97 / 0.864** |
+
+Hit@5 / MRR@5. The full pipeline wins in every setting. The spread between
+the three benchmarks is itself the point: a single test set is one
+measurement, not the truth.
+
+The cross-encoder was fine-tuned on this corpus, and that is worth the
+training run:
+
+| re-ranker | test Hit@5 | test MRR@5 | sec/query |
+|---|---|---|---|
+| stock ms-marco-MiniLM-L-6-v2 | 0.737 | 0.625 | 0.063 |
+| **fine-tuned on this corpus** | **0.803** | **0.655** | 0.064 |
+
+Identical latency, identical model size, about five more queries answered
+out of 76.
+
+### Answer quality
+
+Measured by extracting the individual claims from each answer and judging
+each one against the passages the model was given:
+
+| | |
+|---|---|
+| faithfulness | **0.873** over 195 claims |
+| citation validity | **1.0** |
+| contradictions | **0.0** |
+
+The judge is the same 8B model that generates, which is lenient about its
+own output. These are a floor, not a certificate, and
+[EVALUATION.md](EVALUATION.md) says so at more length.
+
+### A caveat the project found in its own benchmark
+
+An audit of the test split found that **roughly half of its queries are
+answered by bibliographies or front matter** rather than research content,
+with evidence terms that are author names lifted out of citation entries.
+Those queries are hard, so they pull the average down rather than inflating
+it: on the queries whose evidence is genuine prose the system scores **0.88
+Hit@5**.
+
+The published figures above are left exactly as measured rather than
+restated upward. The full audit, including two bugs introduced while fixing
+the first one, is in [BENCHMARK_AUDIT.md](BENCHMARK_AUDIT.md).
+
+Reproduce any of it:
+
+```bash
+python -m scripts.compare_retrieval --queries eval/benchmark.json --split test --k 5
+```
+
+```bash
+python -m scripts.evaluate_faithfulness --split test --limit 40
+```
+
 ## Why hybrid retrieval
 
 Dense embedding search matches on *meaning*, which is what you want for
@@ -96,7 +159,10 @@ Fusing the two rankings covers each method's blind spot with the other's
 strength, and the cross-encoder then re-reads the survivors to fix the cases
 where both first-stage retrievers guessed wrong.
 
-### Measured results, 16-paper corpus (Phase 2)
+### The earlier 16-paper benchmark
+
+Superseded by the 50-paper results above, and kept because the progression
+is the argument. These numbers come from an earlier, smaller corpus:
 
 Thirty-nine labelled questions across a **16-paper, 802-chunk corpus**
 (`eval/corpus_queries.json`), retrieval unscoped so every query must find its
@@ -223,6 +289,42 @@ Every module also runs standalone for inspection, e.g.
 `python -m src.pdf_processor <pdf>` prints the detected sections and
 `python -m src.bm25 <pdf>` shows lexical retrieval in isolation.
 
+## Deployment, and why it is not hosted
+
+The honest summary, so nobody has to guess from the file list:
+
+**It is not deployed to a public URL.** The demo is the recorded walkthrough
+linked at the top, plus a temporary `share=True` link that tunnels to a
+local machine when one is needed live. Both are free and neither needs a
+hosting account.
+
+**Why not hosted.** Creating a Hugging Face Gradio Space requires a paid
+plan. The free ZeroGPU allowance that replaces it gives five GPU-minutes a
+day, which one curious visitor exhausts. Google Cloud Run would fit on its
+free tier, but the container files here have **never been built**, because
+Docker is unavailable in the development environment, so a first build would
+have to be debugged in the cloud with billing enabled.
+
+**What made that an easy call.** Generation was measured across the local
+Llama 3.1 8B and two hosted models on the same 40 questions, with retrieval
+and the judge held fixed. Faithfulness was statistically indistinguishable
+between them: every paired bootstrap interval includes zero. Hosting would
+have bought privacy loss and a monthly bill, and no answer quality. The
+measurement is in [GENERATOR_COMPARISON.md](GENERATOR_COMPARISON.md).
+
+**What is here, and what state it is in:**
+
+| artifact | state |
+|---|---|
+| `Dockerfile`, `docker-compose.yml`, `.dockerignore` | written and reviewed, **never built** |
+| `docker-compose.gpu.yml` | GPU override, deliberately not the default |
+| `space/` | Hugging Face Space config, prepared before that route was declined, **unused** |
+| `SHARE=1` demo mode | **working and tested**, including from a phone over mobile data |
+| hosted generation via `LLM_PROVIDER` | **working and tested** against an OpenAI-compatible endpoint |
+
+[DEPLOYMENT.md](DEPLOYMENT.md) has the full reasoning, the cost table, and
+an audit of exactly what a stranger holding a share link can and cannot do.
+
 ## Project structure
 
 ```text
@@ -255,17 +357,25 @@ research-paper-rag/
 │   ├── build_rerank_dataset.py # mines in-domain training data from the corpus
 │   ├── train_reranker.py       # cross-encoder fine-tuning
 │   ├── evaluate_faithfulness.py # answer groundedness
+│   ├── compare_generators.sh   # same questions, local vs hosted models
+│   ├── reindex_corpus.py       # rebuilds the index after extraction changes
 │   └── validate_queries.py     # checks a test set is actually answerable
 ├── eval/
 │   ├── benchmark.json       # 162-query, 50-paper benchmark with split labels
 │   ├── splits.json          # paper-level train/validation/test split
 │   └── corpus_queries.json  # 39 hand-written queries, the independent check
-├── tests/                   # 220 unit tests
-├── app.py                   # Gradio UI, developer-facing
+├── tests/                   # 271 unit tests
+├── space/                   # Hugging Face Space config, prepared but unused
+├── app.py                   # Gradio UI, also the demo surface
 ├── Dockerfile               # app image, CPU torch
 ├── docker-compose.yml       # app plus Ollama, GPU via an override
-├── DEPLOYMENT.md            # containers, cloud shapes, costs
-├── EVALUATION.md            # 16-paper test results and fixes
+├── docker-compose.gpu.yml   # GPU override, not the default
+├── requirements-docker.txt  # CPU torch, smaller image
+├── pytest.ini               # scopes collection to tests/
+├── DEPLOYMENT.md            # containers, cloud shapes, costs, what was chosen
+├── EVALUATION.md            # full measurement record, 16-paper and 50-paper
+├── BENCHMARK_AUDIT.md       # the benchmark's own flaws, found and quantified
+├── GENERATOR_COMPARISON.md  # local against hosted generation, measured
 ├── RUNNING.md               # setup, start/stop, troubleshooting
 ├── requirements.txt
 └── README.md
