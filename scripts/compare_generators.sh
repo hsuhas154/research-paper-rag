@@ -10,9 +10,12 @@
 #
 #   read -s GROQ_KEY && export GROQ_KEY
 #   bash scripts/compare_generators.sh
+#
+# Set PYTHON if the interpreter you want is not the one on PATH:
+#   PYTHON=/path/to/venv/bin/python bash scripts/compare_generators.sh
 set -u
 
-PY=/home/suhas/miniforge3/envs/ultimate_dl/bin/python
+PY=${PYTHON:-python}
 OUT=eval/generator_comparison
 LIMIT=${LIMIT:-40}
 mkdir -p "$OUT"

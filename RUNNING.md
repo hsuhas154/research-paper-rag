@@ -101,7 +101,7 @@ Wait for it to print something like:
 
 ```
 Starting up: loading models and corpus...
-Ready. Corpus holds 16 document(s), 802 chunks.
+Ready. Corpus holds 50 document(s), 3438 chunks.
 * Running on local URL:  http://127.0.0.1:7860
 ```
 
