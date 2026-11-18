@@ -37,3 +37,6 @@ youtube-description.txt
 
 # Runbook written to guide recording the demo. Not part of the project.
 DEMO.md
+
+# Editor configuration, not project code.
+.vscode/

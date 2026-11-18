@@ -479,7 +479,31 @@ Everything else in Phase 3 adds measurement or surface area, not correctness.
 - [x] ~~Modern web frontend against the API~~ (Phase 4, `src/web`, served
       by FastAPI with answers streamed over Server-Sent Events. No
       framework and no build step)
-- [ ] Cloud deployment (shapes and costs documented in
-      [DEPLOYMENT.md](DEPLOYMENT.md); not deployed, and the API has no
-      authentication yet, which it needs before being reachable from an
-      untrusted network)
+- [ ] Cloud deployment. **Not done, and not planned.** The shapes and
+      costs are worked out in [DEPLOYMENT.md](DEPLOYMENT.md), and the
+      reasoning for stopping there is in
+      [Deployment, and why it is not hosted](#deployment-and-why-it-is-not-hosted):
+      hosted generation measured indistinguishable from local on
+      faithfulness, so it would cost privacy and money for no gain. Two
+      things would be needed first in any case: the container images have
+      never been built, and the API has no authentication, which it needs
+      before being reachable from an untrusted network.
+
+## Where this ended
+
+The system is finished and measured. Both branches are stable and neither is
+under active development.
+
+`main` is the canonical local-only system and is tagged `phase-3-complete`.
+This branch adds the deployment work: container artifacts, a browser client,
+a streaming API, an optional hosted-generation path and the temporary share
+mode. Nothing here is required for the system to run.
+
+One weakness is recorded rather than hidden. Roughly half of the test split's
+queries are answered by bibliographies and front matter rather than research
+content, which means the published **Hit@5 of 0.803 understates** retrieval
+on real questions; on the rest the system scores 0.88. Regenerating that
+benchmark, re-indexing and re-measuring as one coherent change is the obvious
+next piece of work, and it has deliberately not been done rather than done
+hastily. The full audit, including two bugs introduced while fixing the first
+one, is in [BENCHMARK_AUDIT.md](BENCHMARK_AUDIT.md).
