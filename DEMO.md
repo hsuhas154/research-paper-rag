@@ -119,69 +119,87 @@ hosting costs privacy and money rather than answer quality. See
 
 ## The questions to ask
 
-Every question below was run against this corpus before being listed, so
-none of them is a guess. The order builds: one paper, then several, then
-the retrieval machinery, then a failure.
+Every question below was run end to end against this corpus, answer and
+all, before being listed. Several earlier candidates were cut after their
+answers turned out hedgy or self-contradicting, which is not visible from
+retrieval scores alone. The order moves through different fields on
+purpose: the library spans medicine, planetary science, ecology,
+semiconductors and machine learning, and a demo that stays in one of them
+undersells it.
 
-**1. Precise and numeric, one paper.**
+**1. Precise, numeric, and willing to report a negative result.**
 
     What is the mortality benefit of dexamethasone in hospitalized COVID-19 patients?
 
 The strongest retrieval in the corpus. Gives 12.3 percentage points for
-ventilated patients and 4.1 for oxygen-only, and then reports that
-patients on no respiratory support saw no benefit and possibly harm. A
-system that will state a negative result reads as trustworthy.
+ventilated patients and 4.1 for oxygen-only, then reports that patients on
+no respiratory support saw no benefit and possibly harm. A system that
+states an inconvenient finding reads as trustworthy.
 
-**2. Across several papers at once.**
+**2. One question, three papers.**
 
     What evidence is there for an unknown ultraviolet absorber in the clouds of Venus?
 
-Answers from three Venus papers together, quoting each with its citation.
-This is the shot that justifies the whole project, because no keyword
-search does it.
+Answers from three Venus papers at once, quoting each with its citation.
+This is the shot that justifies the project, because no keyword search
+does it.
 
-**3. Where two papers disagree.**
+**3. A clean ranked answer.**
 
-    How does dense passage retrieval compare with BM25?
+    Which human activities cause the most biodiversity loss?
 
-Returns 65.2% against 42.9% Top-5 accuracy and 995 against 23.7 questions
-per second, then notes that BM25 still wins on FEVER. The system prompt
-asks for disagreement to be surfaced rather than smoothed over, and here
-it is.
+Land and sea use change first, direct exploitation second, pollution
+third, with climate change and invasive species explicitly ranked below
+them. Easy to read at a glance, which matters without narration.
 
 **4. The same question under all four retrieval modes.**
 
-    What Top-5 retrieval accuracy did DPR reach compared with BM25?
+    How many participants were randomized in the vaccine trial?
 
-Ask it four times: dense, BM25, hybrid, hybrid with re-ranking. BM25 alone
-picks the wrong passage and the other three find the accuracy table. The
-statistics line under the answer changes each time and is worth showing.
+Ask it four times: dense, BM25, hybrid, then hybrid with re-ranking. The
+first three return the wrong passage and only the last finds "a total of
+43,548 participants underwent randomization". The answer then separates
+the 43,448 who were actually injected from the number randomised.
 
-**5. Narrowing the library.** Type `venus` in the filter, clear the
-selection, tick only those papers, and ask question 2 again.
+This is the clearest evidence in the whole demo that the re-ranker earns
+its place, and it needs no explanation to land.
 
-**6. A question the papers cannot answer.**
+**5. A question the papers cannot answer.**
 
     How does CRISPR gene editing modify DNA sequences?
 
 It names the topics it did retrieve and says the information is not there.
+Most demos avoid showing this. Showing it is worth more than another good
+answer.
 
-**7. A follow-up, if the conversation memory is wanted.** After question
-3, tick "Follow-up question" and ask `Which of the two is faster at query
-time?`. Try this once before recording; it is the only one here not
+**6. Optional, if the audience is machine learning.**
+
+    What problem do residual connections solve in very deep networks?
+
+Explains the shortcut formulation across two papers.
+
+**7. Optional, to show conversation memory.** After any question, tick
+"Follow-up question" and ask a short one that depends on the previous
+answer. Try it once before recording; this is the only item here not
 verified end to end.
 
 ### What not to ask
 
-Each of these was tested and each looks bad on camera.
+Each of these was tested and rejected, for the reason given.
 
-- **Nothing comparing ResNet and Vision Transformer.** ViT is the one
-  paper where bibliography chunks survive, and that question returns its
-  reference list as the top passage.
-- **Nothing about superconductivity.** That paper is a poor OCR scan and
-  the author's name renders as "Scrrzrzzzzf".
-- **Nothing about Moore's law or the Kalman filter.** Both land on page
-  headers and copyright blocks instead of content.
+- **ResNet against Vision Transformer.** ViT is the one paper where
+  bibliography chunks survive the strip, so this returns its reference
+  list as the top passage.
+- **Superconductivity.** That paper is a poor OCR scan and the author's
+  name renders as "Scrrzrzzzzf".
+- **Moore's law, or the Kalman filter.** Both land on page headers and
+  copyright blocks instead of content.
+- **Graphene, additive manufacturing, stochastic parrots.** All three
+  retrieve badly here.
+- **What limits MOSFET scaling, or which chlorine compounds are in the
+  Venus clouds.** Retrieval looks fine but the answers hedge, and the
+  chlorine one opens by denying what it then quotes. Ask about ion
+  implantation instead if a semiconductor question is wanted.
 
 ## Recording without sound
 
