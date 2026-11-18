@@ -22,3 +22,18 @@ models/
 # scripts.build_rerank_dataset rather than redistributing the text.
 eval/rerank_train.jsonl
 eval/rerank_train.heldout.json
+
+# Screenshots and scratch files for a session, not part of the project.
+temp/
+
+# Runbook written to guide recording the demo. Not part of the project.
+DEMO.md
+
+# Recording script for the demo video, deleted after use.
+questions.txt
+
+# Draft YouTube description, deleted once the video is up.
+youtube-description.txt
+
+# Gradio downloads a public root certificate here for the share tunnel.
+.gradio/

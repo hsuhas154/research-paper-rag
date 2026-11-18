@@ -5,11 +5,22 @@ across a library of research papers, with answers grounded in the papers'
 actual text and citations down to the page and section. Runs entirely
 locally: no external API calls, no data leaving your machine.
 
-**Status:** Phase 2 complete - persistent multi-paper library, hybrid
-retrieval, cross-encoder re-ranking, and a measured retrieval benchmark.
-Validated on a 16-paper corpus spanning six fields: **100% paper-level
-routing, 92% answer accuracy, zero hallucinations** over 39 questions
-([full evaluation](EVALUATION.md)). See [Roadmap](#roadmap) for what's next.
+**Demo:** [recorded walkthrough](https://youtu.be/5RfWODCtR5E) over the
+50-paper library, with chapters. The section worth watching asks one factual
+question under all four retrieval strategies. It was recorded from the
+`deploy` branch, which is this system plus a browser client and deployment
+artifacts; the retrieval and generation shown are the ones measured here.
+
+**Status:** Phase 3 complete and measured. This branch is the canonical
+local-only system and is tagged `phase-3-complete`. Deployment work, the
+browser client and an optional hosted-generation path live on the `deploy`
+branch.
+
+Fifty papers, hybrid retrieval, a cross-encoder re-ranker fine-tuned on this
+corpus, conversational follow-ups, and answer-faithfulness measurement. On a
+held-out test split: **Hit@5 0.803, MRR@5 0.655, faithfulness 0.873,
+citation validity 1.0**. Full numbers and their caveats in
+[Measured results](#measured-results).
 
 **New here?** [RUNNING.md](RUNNING.md) walks through setup, starting and
 stopping everything, and troubleshooting.
@@ -61,6 +72,77 @@ flowchart TD
    section, are passed to a locally running LLM instructed to answer only from
    that context and cite the excerpt behind every claim.
 
+## Measured results
+
+The corpus is **50 papers**, spanning machine learning, semiconductors,
+planetary science, medicine, ecology and mechanics.
+
+Papers are split 30 train / 10 validation / 10 test, **stratified across
+seven topic clusters**, so no paper contributes to both training and test.
+Splitting by chunk instead would let a model score well by memorising a
+paper's vocabulary, which is the most common way a RAG benchmark flatters
+itself.
+
+### Retrieval
+
+| split | dense | bm25 | hybrid | hybrid + rerank |
+|---|---|---|---|---|
+| validation (34 q) | 0.62 / 0.469 | 0.68 / 0.543 | 0.74 / 0.593 | **0.88 / 0.703** |
+| test (32 q) | 0.66 / 0.569 | 0.66 / 0.445 | 0.69 / 0.559 | **0.75 / 0.651** |
+| hand-written (39 q) | 0.79 / 0.643 | 0.95 / 0.794 | 0.90 / 0.729 | **0.97 / 0.864** |
+
+Hit@5 / MRR@5. The full pipeline wins in every setting. The spread between
+the three benchmarks is itself the point: a single test set is one
+measurement, not the truth.
+
+The cross-encoder was fine-tuned on this corpus, and that is worth the
+training run:
+
+| re-ranker | test Hit@5 | test MRR@5 | sec/query |
+|---|---|---|---|
+| stock ms-marco-MiniLM-L-6-v2 | 0.737 | 0.625 | 0.063 |
+| **fine-tuned on this corpus** | **0.803** | **0.655** | 0.064 |
+
+Identical latency, identical model size, about five more queries answered
+out of 76.
+
+### Answer quality
+
+Measured by extracting the individual claims from each answer and judging
+each one against the passages the model was given:
+
+| | |
+|---|---|
+| faithfulness | **0.873** over 195 claims |
+| citation validity | **1.0** |
+| contradictions | **0.0** |
+
+The judge is the same 8B model that generates, which is lenient about its
+own output. These are a floor, not a certificate, and
+[EVALUATION.md](EVALUATION.md) says so at more length.
+
+### A caveat found later in the benchmark itself
+
+An audit carried out on the `deploy` branch found that **roughly half of the
+test split's queries are answered by bibliographies or front matter** rather
+than research content, with evidence terms that are author names lifted out
+of citation entries. Those queries are hard, so they pull the average down
+rather than inflating it: on the queries whose evidence is genuine prose the
+system scores **0.88 Hit@5**.
+
+The figures above are left exactly as measured rather than restated upward.
+The full audit is in `BENCHMARK_AUDIT.md` on the `deploy` branch.
+
+Reproduce any of it:
+
+```bash
+python -m scripts.compare_retrieval --queries eval/benchmark.json --split test --k 5
+```
+
+```bash
+python -m scripts.evaluate_faithfulness --split test --limit 40
+```
+
 ## Why hybrid retrieval
 
 Dense embedding search matches on *meaning*, which is what you want for
@@ -77,7 +159,10 @@ Fusing the two rankings covers each method's blind spot with the other's
 strength, and the cross-encoder then re-reads the survivors to fix the cases
 where both first-stage retrievers guessed wrong.
 
-### Measured results
+### The earlier 16-paper benchmark
+
+Superseded by the 50-paper results above, and kept because the progression
+is the argument. These numbers come from an earlier, smaller corpus:
 
 Thirty-nine labelled questions across a **16-paper, 802-chunk corpus**
 (`eval/corpus_queries.json`), retrieval unscoped so every query must find its
@@ -240,9 +325,9 @@ research-paper-rag/
 │   ├── benchmark.json       # 162-query, 50-paper benchmark with split labels
 │   ├── splits.json          # paper-level train/validation/test split
 │   └── corpus_queries.json  # 39 hand-written queries, the independent check
-├── tests/                   # 195 unit tests
+├── tests/                   # 216 unit tests
 ├── app.py                   # Gradio UI, entry point
-├── EVALUATION.md            # 16-paper test results and fixes
+├── EVALUATION.md            # full measurement record, 16-paper and 50-paper
 ├── RUNNING.md               # setup, start/stop, troubleshooting
 ├── requirements.txt
 └── README.md
