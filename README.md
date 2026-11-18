@@ -5,11 +5,29 @@ across a library of research papers, with answers grounded in the papers'
 actual text and citations down to the page and section. Runs entirely
 locally: no external API calls, no data leaving your machine.
 
-**Status:** Phase 2 complete - persistent multi-paper library, hybrid
-retrieval, cross-encoder re-ranking, and a measured retrieval benchmark.
-Validated on a 16-paper corpus spanning six fields: **100% paper-level
-routing, 92% answer accuracy, zero hallucinations** over 39 questions
-([full evaluation](EVALUATION.md)). See [Roadmap](#roadmap) for what's next.
+**Demo:** [recorded walkthrough](https://youtu.be/5RfWODCtR5E) over the
+50-paper library, with chapters. The section worth watching asks one factual
+question under all four retrieval strategies: fusion alone returns a
+confidently wrong number and re-ranking corrects it.
+
+**Status:** Phase 3 complete and measured, with deployment work on the
+`deploy` branch. Fifty papers, hybrid retrieval, a cross-encoder re-ranker
+fine-tuned on this corpus, conversational follow-ups, and answer
+faithfulness measurement.
+
+On a held-out test split, stratified by paper across seven topic clusters so
+that no paper appears in both training and test: **Hit@5 0.803, MRR@5 0.655,
+faithfulness 0.873 over 195 claims, citation validity 1.0**
+([full evaluation](EVALUATION.md)).
+
+A later audit found that roughly half of that test split asks the retriever
+to find bibliography entries rather than research content, which drags the
+average down; on the remainder the system scores 0.88 Hit@5. The published
+figures are left as measured rather than restated
+([audit](BENCHMARK_AUDIT.md)).
+
+The 16-paper benchmark further down predates this corpus and is kept for the
+progression it shows, not as the current result. See [Roadmap](#roadmap).
 
 **New here?** [RUNNING.md](RUNNING.md) walks through setup, starting and
 stopping everything, and troubleshooting. [DEPLOYMENT.md](DEPLOYMENT.md)
@@ -78,7 +96,7 @@ Fusing the two rankings covers each method's blind spot with the other's
 strength, and the cross-encoder then re-reads the survivors to fix the cases
 where both first-stage retrievers guessed wrong.
 
-### Measured results
+### Measured results, 16-paper corpus (Phase 2)
 
 Thirty-nine labelled questions across a **16-paper, 802-chunk corpus**
 (`eval/corpus_queries.json`), retrieval unscoped so every query must find its
