@@ -117,6 +117,91 @@ indistinguishable: every paired bootstrap interval includes zero. So
 hosting costs privacy and money rather than answer quality. See
 [GENERATOR_COMPARISON.md](GENERATOR_COMPARISON.md).
 
+## The questions to ask
+
+Every question below was run against this corpus before being listed, so
+none of them is a guess. The order builds: one paper, then several, then
+the retrieval machinery, then a failure.
+
+**1. Precise and numeric, one paper.**
+
+    What is the mortality benefit of dexamethasone in hospitalized COVID-19 patients?
+
+The strongest retrieval in the corpus. Gives 12.3 percentage points for
+ventilated patients and 4.1 for oxygen-only, and then reports that
+patients on no respiratory support saw no benefit and possibly harm. A
+system that will state a negative result reads as trustworthy.
+
+**2. Across several papers at once.**
+
+    What evidence is there for an unknown ultraviolet absorber in the clouds of Venus?
+
+Answers from three Venus papers together, quoting each with its citation.
+This is the shot that justifies the whole project, because no keyword
+search does it.
+
+**3. Where two papers disagree.**
+
+    How does dense passage retrieval compare with BM25?
+
+Returns 65.2% against 42.9% Top-5 accuracy and 995 against 23.7 questions
+per second, then notes that BM25 still wins on FEVER. The system prompt
+asks for disagreement to be surfaced rather than smoothed over, and here
+it is.
+
+**4. The same question under all four retrieval modes.**
+
+    What Top-5 retrieval accuracy did DPR reach compared with BM25?
+
+Ask it four times: dense, BM25, hybrid, hybrid with re-ranking. BM25 alone
+picks the wrong passage and the other three find the accuracy table. The
+statistics line under the answer changes each time and is worth showing.
+
+**5. Narrowing the library.** Type `venus` in the filter, clear the
+selection, tick only those papers, and ask question 2 again.
+
+**6. A question the papers cannot answer.**
+
+    How does CRISPR gene editing modify DNA sequences?
+
+It names the topics it did retrieve and says the information is not there.
+
+**7. A follow-up, if the conversation memory is wanted.** After question
+3, tick "Follow-up question" and ask `Which of the two is faster at query
+time?`. Try this once before recording; it is the only one here not
+verified end to end.
+
+### What not to ask
+
+Each of these was tested and each looks bad on camera.
+
+- **Nothing comparing ResNet and Vision Transformer.** ViT is the one
+  paper where bibliography chunks survive, and that question returns its
+  reference list as the top passage.
+- **Nothing about superconductivity.** That paper is a poor OCR scan and
+  the author's name renders as "Scrrzrzzzzf".
+- **Nothing about Moore's law or the Kalman filter.** Both land on page
+  headers and copyright blocks instead of content.
+
+## Recording without sound
+
+With no narration the screen has to explain itself, so slow down rather
+than adding more material.
+
+- Type each question at a readable pace instead of pasting it. The
+  question is the only narration there is.
+- After each answer, expand one source and let it sit for a few seconds.
+  Matching a claim to the passage it came from is the whole argument, and
+  silently is still convincing.
+- Linger on the statistics line under each answer, which is where the
+  candidate counts and the retrieval mode are visible.
+- If the editor allows a title card between sections, one short line is
+  enough: "one paper", "three papers at once", "the same question, four
+  retrieval strategies", "a question the library cannot answer".
+- Seven beats at this pace is six to eight minutes, which is longer than
+  anyone watches. Cutting question 7 before cutting the pauses is the
+  better trade.
+
 ## Two things worth saying out loud
 
 Both are in the history and both land better volunteered than discovered.
