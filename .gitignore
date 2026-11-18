@@ -25,3 +25,6 @@ eval/rerank_train.heldout.json
 
 # Screenshots and scratch files for a session, not part of the project.
 temp/
+
+# Gradio downloads a public root certificate here for the share tunnel.
+.gradio/
